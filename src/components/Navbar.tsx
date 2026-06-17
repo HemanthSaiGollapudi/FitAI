@@ -1,0 +1,173 @@
+import React, { useState, useEffect } from 'react';
+import { Activity, Menu, X, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface NavbarProps {
+  onStartOnboarding: () => void;
+  activeView: 'home' | 'scanner' | 'profile' | 'coach' | 'body-fat' | 'store';
+  onChangeView: (view: 'home' | 'scanner' | 'profile' | 'coach' | 'body-fat' | 'store') => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, onChangeView }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const menuItems = [
+    { name: 'Dashboard', href: '#dashboard', view: 'home' },
+    { name: 'Exercise Library', href: '#library', view: 'home' },
+    { name: 'Diet Planner', href: '#nutrition', view: 'home' },
+    { name: 'Workout Logger', href: '#builder', view: 'home' },
+    { name: 'Progress Tracker', href: '#tracker', view: 'home' },
+    { name: 'AI Food Scanner', href: '#scanner', view: 'scanner' },
+    { name: 'AI Coach', href: '#coach', view: 'coach' },
+    { name: 'AI Body Fat Estimator', href: '#body-fat', view: 'body-fat' },
+    { name: 'Accessories Store', href: '#store', view: 'store' },
+    { name: 'Profile', href: '#profile', view: 'profile' },
+  ];
+
+  const handleLinkClick = (e: React.MouseEvent, item: typeof menuItems[0]) => {
+    e.preventDefault();
+    setIsOpen(false);
+    
+    if (item.view === 'home') {
+      onChangeView('home');
+      setTimeout(() => {
+        const id = item.href.substring(1);
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 80);
+    } else {
+      onChangeView(item.view as any);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBrandClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsOpen(false);
+    onChangeView('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled || activeView !== 'home'
+          ? 'bg-dark-950/70 border-b border-white/5 backdrop-blur-md py-4'
+          : 'bg-transparent py-6'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        {/* Left Side: Logo + Nav Links Grouped for Closer Spacing */}
+        <div className="flex items-center space-x-8">
+          {/* Logo */}
+          <a href="#" onClick={handleBrandClick} className="flex items-center space-x-2 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-brand-violet rounded-lg blur-md opacity-45 group-hover:opacity-75 transition-opacity" />
+              <div className="relative p-2 bg-dark-900 border border-white/10 rounded-lg text-brand-cyan group-hover:text-brand-violet transition-colors">
+                <Activity className="h-5 w-5" />
+              </div>
+            </div>
+            <span className="font-display font-black text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-200 to-zinc-400">
+              FIT<span className="text-brand-violet">AI</span>
+            </span>
+          </a>
+
+          {/* Desktop Nav Links (Balanced, moderate spacing) */}
+          <div className="hidden xl:flex items-center space-x-5">
+            {menuItems.map((item) => {
+              const isCurrent = (item.view === activeView && (item.view !== 'home' || window.location.hash === item.href));
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => handleLinkClick(e, item)}
+                  className={`text-xs uppercase tracking-wider transition-colors duration-200 font-bold whitespace-nowrap ${
+                    isCurrent ? 'text-brand-cyan' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {item.name}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop Action Buttons */}
+        <div className="hidden md:flex items-center">
+          <button
+            onClick={onStartOnboarding}
+            className="relative group overflow-hidden px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 border border-brand-violet/50 hover:border-brand-violet"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-brand-violet to-brand-cyan opacity-80 group-hover:opacity-100 transition-opacity" />
+            <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity blur" />
+            <span className="relative flex items-center gap-1.5 text-white">
+              Get Started <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </button>
+        </div>
+
+        {/* Mobile Menu Toggle */}
+        <div className="xl:hidden">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="xl:hidden bg-dark-950/95 border-b border-white/5 backdrop-blur-lg overflow-hidden"
+          >
+            <div className="px-6 py-8 space-y-6 flex flex-col">
+              {menuItems.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => handleLinkClick(e, item)}
+                  className="text-lg font-medium text-zinc-300 hover:text-white transition-colors text-left"
+                >
+                  {item.name}
+                </a>
+              ))}
+              <div className="h-px bg-white/5" />
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    onStartOnboarding();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-semibold bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-glow-purple"
+                >
+                  Get Started <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+};
