@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface NavbarProps {
   onStartOnboarding: () => void;
-  activeView: 'home' | 'scanner' | 'profile' | 'coach' | 'body-fat' | 'store';
-  onChangeView: (view: 'home' | 'scanner' | 'profile' | 'coach' | 'body-fat' | 'store') => void;
+  activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile';
+  onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, onChangeView }) => {
@@ -25,16 +25,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
   }, []);
 
   const menuItems = [
-    { name: 'Dashboard', href: '#dashboard', view: 'home' },
-    { name: 'Exercise Library', href: '#library', view: 'home' },
-    { name: 'Diet Planner', href: '#nutrition', view: 'home' },
-    { name: 'Workout Logger', href: '#builder', view: 'home' },
-    { name: 'Progress Tracker', href: '#tracker', view: 'home' },
-    { name: 'AI Food Scanner', href: '#scanner', view: 'scanner' },
-    { name: 'AI Coach', href: '#coach', view: 'coach' },
-    { name: 'AI Body Fat Estimator', href: '#body-fat', view: 'body-fat' },
-    { name: 'Accessories Store', href: '#store', view: 'store' },
-    { name: 'Profile', href: '#profile', view: 'profile' },
+    { name: '🏠 Dashboard', href: '#dashboard', view: 'home' },
+    { name: '🍽️ Nutrition Hub', href: '#nutrition-hub', view: 'nutrition' },
+    { name: '🏋️ Training Hub', href: '#training-hub', view: 'training' },
+    { name: '🤖 AI Coach', href: '#coach', view: 'coach' },
+    { name: '📸 AI Body Fat Estimator', href: '#body-fat', view: 'body-fat' },
+    { name: '🛍️ Accessories Store', href: '#store', view: 'store' },
+    { name: '👤 Profile', href: '#profile', view: 'profile' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent, item: typeof menuItems[0]) => {
@@ -90,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
           {/* Desktop Nav Links (Balanced, moderate spacing) */}
           <div className="hidden xl:flex items-center space-x-5">
             {menuItems.map((item) => {
-              const isCurrent = (item.view === activeView && (item.view !== 'home' || window.location.hash === item.href));
+              const isCurrent = item.view === activeView;
               return (
                 <a
                   key={item.name}

@@ -12,22 +12,19 @@ import { Footer } from './components/Footer';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { DashboardView } from './components/DashboardView';
 import type { ActiveWorkout } from './components/DashboardView';
-import { DietModule } from './components/DietModule';
 import type { SavedDietPlan } from './components/DietModule';
-import { ExerciseLibrary } from './components/ExerciseLibrary';
-import { WorkoutBuilder } from './components/WorkoutBuilder';
 import type { WorkoutRoutine } from './components/WorkoutBuilder';
-import { ProgressTracker } from './components/ProgressTracker';
 import type { LoggedWorkout, WeightLog, MeasurementLog } from './components/ProgressTracker';
 import { WarmUpProtocol } from './components/WarmUpProtocol';
 import { EXERCISE_DATABASE } from './data/exerciseDatabase';
 import { AnimatePresence } from 'framer-motion';
-import { FoodScanner } from './components/FoodScanner';
 import type { LoggedScannedFood } from './components/FoodScanner';
 import { ProfileView } from './components/ProfileView';
 import { AICoach } from './components/AICoach';
 import { BodyFatEstimator } from './components/BodyFatEstimator';
 import { AccessoriesStore } from './components/AccessoriesStore';
+import { NutritionHub } from './components/NutritionHub';
+import { TrainingHub } from './components/TrainingHub';
 
 function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -109,7 +106,20 @@ function App() {
     }
   });
 
-  const [activeView, setActiveView] = useState<'home' | 'scanner' | 'profile' | 'coach' | 'body-fat' | 'store'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile'>('home');
+  const [nutritionActiveTab, setNutritionActiveTab] = useState<'diet' | 'scanner'>('diet');
+  const [trainingActiveTab, setTrainingActiveTab] = useState<'library' | 'logger' | 'progress'>('library');
+
+  const handleNavigate = (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => {
+    setActiveView(view);
+    if (view === 'nutrition' && subTab) {
+      setNutritionActiveTab(subTab as 'diet' | 'scanner');
+    }
+    if (view === 'training' && subTab) {
+      setTrainingActiveTab(subTab as 'library' | 'logger' | 'progress');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem('fitai_user_name') || 'Champion';
   });
@@ -478,12 +488,40 @@ function App() {
       <Navbar 
         onStartOnboarding={openOnboarding} 
         activeView={activeView}
-        onChangeView={setActiveView}
+        onChangeView={(view) => handleNavigate(view)}
       />
 
-      {activeView === 'scanner' ? (
-        <FoodScanner 
+      {activeView === 'nutrition' ? (
+        <NutritionHub
+          activeTab={nutritionActiveTab}
+          onTabChange={setNutritionActiveTab}
+          onSaveDiet={handleSaveDiet}
+          savedGoal={savedDietGoal}
+          savedType={savedDietType}
+          savedCalories={savedDietCalories}
           onAddScannedFood={handleAddScannedFood}
+        />
+      ) : activeView === 'training' ? (
+        <TrainingHub
+          activeTab={trainingActiveTab}
+          onTabChange={setTrainingActiveTab}
+          onSaveExercise={handleSaveExercise}
+          onCompleteExercise={handleCompleteExercise}
+          savedExercises={savedExercises}
+          completedExercises={completedExercises}
+          customRoutines={customRoutines}
+          onSaveRoutine={handleSaveRoutine}
+          onDeleteRoutine={handleDeleteRoutine}
+          onDuplicateRoutine={handleDuplicateRoutine}
+          onStartWorkout={handleStartWorkout}
+          workoutHistory={workoutHistory}
+          weightHistory={weightHistory}
+          measurementHistory={measurementHistory}
+          onAddWeightLog={handleAddWeightLog}
+          onAddMeasurementLog={handleAddMeasurementLog}
+          onClearHistory={handleClearHistory}
+          goalWeight={goalWeight}
+          onSaveGoalWeight={handleSaveGoalWeight}
         />
       ) : activeView === 'coach' ? (
         <AICoach 
@@ -532,51 +570,14 @@ function App() {
             userName={userName}
             waterLogs={waterLogs}
             onAddWater={handleAddWater}
-            onChangeView={setActiveView}
+            onNavigate={handleNavigate}
           />
 
           {/* Core Capability Cards */}
           <Features />
 
-          {/* Custom Routine Builder Section */}
-          <WorkoutBuilder
-            customRoutines={customRoutines}
-            onSaveRoutine={handleSaveRoutine}
-            onDeleteRoutine={handleDeleteRoutine}
-            onDuplicateRoutine={handleDuplicateRoutine}
-            onStartWorkout={handleStartWorkout}
-          />
-
           {/* Preparation warmups and stretching */}
           <WarmUpProtocol />
-
-          {/* Comprehensive Exercise Library with Verified Video Demonstrations */}
-          <ExerciseLibrary 
-            onSaveExercise={handleSaveExercise}
-            onCompleteExercise={handleCompleteExercise}
-            savedExercises={savedExercises}
-            completedExercises={completedExercises}
-          />
-
-          {/* Indian Nutrition & Diet Module */}
-          <DietModule 
-            onSaveDiet={handleSaveDiet}
-            savedGoal={savedDietGoal}
-            savedType={savedDietType}
-            savedCalories={savedDietCalories}
-          />
-
-          {/* Biometrics & History Tracking Loggers */}
-          <ProgressTracker
-            workoutHistory={workoutHistory}
-            weightHistory={weightHistory}
-            measurementHistory={measurementHistory}
-            onAddWeightLog={handleAddWeightLog}
-            onAddMeasurementLog={handleAddMeasurementLog}
-            onClearHistory={handleClearHistory}
-            goalWeight={goalWeight}
-            onSaveGoalWeight={handleSaveGoalWeight}
-          />
 
           {/* Workflow Steps */}
           <HowItWorks />

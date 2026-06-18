@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Heart, Flame, Dumbbell, 
   Apple, CheckSquare, AlertCircle, RefreshCw, Check,
-  Plus, Trash2, X, Clock, Award, Award as Trophy, Scale
+  Plus, Trash2, X, Clock, Award, Award as Trophy, Scale,
+  BookOpen, TrendingUp
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
@@ -182,7 +183,7 @@ interface DashboardViewProps {
   userName: string;
   waterLogs: Record<string, number>;
   onAddWater: (ml: number) => void;
-  onChangeView: (view: 'home' | 'scanner' | 'profile' | 'coach') => void;
+  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -212,7 +213,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   userName,
   waterLogs,
   onAddWater,
-  onChangeView
+  onNavigate
 }) => {
 
   // Active workout stopwatch state
@@ -550,43 +551,90 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Quick Operations Actions Grid */}
-        <div className="mb-10 text-left space-y-2.5">
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Quick Operations Panel</span>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <button
-              onClick={() => onChangeView('scanner')}
-              className="px-4 py-3.5 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5"
-            >
-              📷 Scan Food
-            </button>
-            <button
-              onClick={onStartEmptyWorkout}
-              className="px-4 py-3.5 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5"
-            >
-              🏋️ Log Workout
-            </button>
-            <button
-              onClick={() => onChangeView('coach')}
-              className="px-4 py-3.5 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5"
-            >
-              🤖 Ask AI Coach
-            </button>
-            <button
-              onClick={() => onAddWater(250)}
-              className="px-4 py-3.5 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5 animate-pulse"
-            >
-              💧 Add +250ml
-            </button>
-            <button
-              onClick={() => {
-                const el = document.getElementById('tracker');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="px-4 py-3.5 bg-white/5 border border-white/5 hover:border-brand-pink hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5"
-            >
-              ⚖️ Log Weight
-            </button>
+        {/* Quick Operations & Actions Panel */}
+        <div className="mb-10 text-left space-y-4">
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Quick Operations & Actions</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Nutrition shortcuts */}
+            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                <Apple className="h-4 w-4 text-brand-lime" />
+                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Nutrition Hub</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => onNavigate('nutrition', 'diet')}
+                  className="px-3 py-3 bg-white/5 border border-white/5 hover:border-brand-lime hover:bg-brand-lime/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  🥗 Diet Planner
+                </button>
+                <button
+                  onClick={() => onNavigate('nutrition', 'scanner')}
+                  className="px-3 py-3 bg-white/5 border border-white/5 hover:border-brand-lime hover:bg-brand-lime/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  📷 Scan Food
+                </button>
+              </div>
+            </div>
+
+            {/* Training shortcuts */}
+            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                <Dumbbell className="h-4 w-4 text-brand-violet" />
+                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Training Hub</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => onNavigate('training', 'library')}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">Exercises</span>
+                </button>
+                <button
+                  onClick={() => onNavigate('training', 'logger')}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
+                >
+                  <Dumbbell className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">Log Session</span>
+                </button>
+                <button
+                  onClick={() => onNavigate('training', 'progress')}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap">Progress</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
+              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                <Plus className="h-4 w-4 text-brand-cyan" />
+                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Quick Utilities</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => onNavigate('coach')}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
+                >
+                  🤖 Coach
+                </button>
+                <button
+                  onClick={() => onAddWater(250)}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center animate-pulse"
+                >
+                  💧 +250ml
+                </button>
+                <button
+                  onClick={() => onNavigate('training', 'progress')}
+                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
+                >
+                  ⚖️ Weight
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

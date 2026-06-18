@@ -31,7 +31,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'High-quality isolate primary source whey protein. 24g protein, 5.5g BCAA per serving.',
     subType: 'whey',
-    image: 'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-on-whey.jpg'
   },
   {
     id: 'supp-mb-whey',
@@ -41,7 +41,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'Clinically tested Enhanced Absorption Formula (EAF) to maximize protein assimilation.',
     subType: 'whey',
-    image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-mb-whey.jpg'
   },
   {
     id: 'supp-mp-whey',
@@ -51,7 +51,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'Premium grade whey concentrate. Ideal for daily post-workout recovery muscle cycles.',
     subType: 'whey',
-    image: 'https://images.unsplash.com/photo-1620189507195-68309c04c4d0?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-mp-whey.jpg'
   },
   {
     id: 'supp-avv-whey',
@@ -61,7 +61,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: '100% double filtered grass-fed whey. Made fresh from fresh milk within 24 hours.',
     subType: 'whey',
-    image: 'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-avv-whey.jpg'
   },
   // Supplements - Creatine
   {
@@ -72,7 +72,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'Micronized creatine monohydrate. Promotes ATP synthesis and high-intensity cellular power.',
     subType: 'creatine',
-    image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-on-creatine.jpg'
   },
   {
     id: 'supp-mb-creatine',
@@ -82,7 +82,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'Pure micronized creatine to boost explosive power and structural muscle hydration.',
     subType: 'creatine',
-    image: 'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-mb-creatine.jpg'
   },
   {
     id: 'supp-mp-creatine',
@@ -92,7 +92,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Supplements',
     description: 'Convenient pure monohydrate powder to increase physical strength limits during lifts.',
     subType: 'creatine',
-    image: 'https://images.unsplash.com/photo-1620189507195-68309c04c4d0?auto=format&fit=crop&w=400&q=80'
+    image: '/products/supp-mp-creatine.jpg'
   },
   // Gym Accessories - Grips
   {
@@ -103,7 +103,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: 'Adjustable resistance range (10kg-60kg). Sturdy steel springs to build forearm density.',
     subType: 'grip',
-    image: 'https://images.unsplash.com/photo-1605296867304-46d5465a25f1?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-adj-grip.jpg'
   },
   {
     id: 'acc-met-grip',
@@ -113,7 +113,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: 'Heavy knurled aluminum handles with high-tension steel springs for advanced grip strength.',
     subType: 'grip',
-    image: 'https://images.unsplash.com/photo-1605296867424-35fc25c9542a?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-met-grip.jpg'
   },
   // Gym Accessories - Lifting Accessories
   {
@@ -124,7 +124,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: 'Heavy duty thumb loop wraps. Offers maximal structural wrist safety during bench presses.',
     subType: 'wraps',
-    image: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-wrist-wraps.jpg'
   },
   {
     id: 'acc-lift-straps',
@@ -134,7 +134,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: 'Neoprene padded heavy cotton straps. Eliminates grip fatigue during heavy deadlifts.',
     subType: 'wraps',
-    image: 'https://images.unsplash.com/photo-1605296867304-46d5465a25f1?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-lift-straps.jpg'
   },
   {
     id: 'acc-belt',
@@ -144,7 +144,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: '4-inch contoured leather belt with double buckle. Maximizes intra-abdominal load pressure.',
     subType: 'belt',
-    image: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-belt.jpg'
   },
   {
     id: 'acc-sleeves',
@@ -154,7 +154,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: '7mm premium neoprene compression sleeves to keep knees warm and secure during squat cycles.',
     subType: 'sleeves',
-    image: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-sleeves.jpg'
   },
   {
     id: 'acc-bands',
@@ -164,7 +164,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Gym Accessories',
     description: 'Set of 5 loop bands with stackable loads. Perfect for glute activation and warmup stretches.',
     subType: 'bands',
-    image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=400&q=80'
+    image: '/products/acc-bands.jpg'
   },
   // Clothing
   {
@@ -175,7 +175,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Clothing',
     description: 'Ultra lightweight, anti-odor performance blend. Engineered with a supportive athletic fit.',
     subType: 'tshirt',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80'
+    image: '/products/clot-perf-t.jpg'
   },
   {
     id: 'clot-dry-t',
@@ -185,7 +185,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Clothing',
     description: 'Sweat-wicking dry-fit weave with reflective safety liners. High flexibility stretch zones.',
     subType: 'tshirt',
-    image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=400&q=80'
+    image: '/products/clot-dry-t.jpg'
   },
   {
     id: 'clot-pants',
@@ -195,7 +195,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Clothing',
     description: 'Sleek tapered joggers with secure zipper pocket compartments. Perfect for cooler training.',
     subType: 'pants',
-    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80'
+    image: '/products/clot-pants.jpg'
   },
   {
     id: 'clot-shorts-base',
@@ -205,7 +205,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Clothing',
     description: 'Lightweight double-layered compression shorts with phone sleeve. Complete quad flexibility.',
     subType: 'shorts',
-    image: 'https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=400&q=80'
+    image: '/products/clot-shorts-base.jpg'
   },
   {
     id: 'clot-shorts-prem',
@@ -215,7 +215,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Clothing',
     description: 'Flexible split leg design for weightlifters. Water-resistant dry weave shell.',
     subType: 'shorts',
-    image: 'https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=400&q=80'
+    image: '/products/clot-shorts-prem.jpg'
   },
   // Hydration
   {
@@ -226,7 +226,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Hydration',
     description: 'Double walled vacuum insulated. Keeps water ice cold for 24 hours. Matte black finish.',
     subType: 'bottle',
-    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=80'
+    image: '/products/hydr-steel.jpg'
   },
   {
     id: 'hydr-smart',
@@ -236,7 +236,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Hydration',
     description: 'LED temp gauge lid indicator. Hourly buzz reminders to lock your water targets.',
     subType: 'bottle',
-    image: 'https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=400&q=80'
+    image: '/products/hydr-smart.jpg'
   },
   {
     id: 'hydr-shaker',
@@ -246,7 +246,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Hydration',
     description: 'Leak-proof screw caps with metallic wire whisk. Prepares lump-free whey protein logs.',
     subType: 'bottle',
-    image: 'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=400&q=80'
+    image: '/products/hydr-shaker.jpg'
   },
   // Healthy Snacks
   {
@@ -257,7 +257,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Healthy Snacks',
     description: '20g protein snack bar. Zero added sugar. Rich in dietary fiber & active prebiotics.',
     subType: 'bar',
-    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=400&q=80'
+    image: '/products/snack-bite.jpg'
   },
   {
     id: 'snack-yoga',
@@ -267,7 +267,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Healthy Snacks',
     description: 'All-natural seeds, oats, and whey bars. Free from artificial preservatives.',
     subType: 'bar',
-    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=400&q=80'
+    image: '/products/snack-yoga.jpg'
   },
   {
     id: 'snack-truth',
@@ -277,7 +277,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Healthy Snacks',
     description: 'Cleanest ingredients list. No fillers, sweetened only with dates. Incredible taste.',
     subType: 'bar',
-    image: 'https://images.unsplash.com/photo-1568254183919-78a4f43a2877?auto=format&fit=crop&w=400&q=80'
+    image: '/products/snack-truth.jpg'
   },
   {
     id: 'snack-myfit',
@@ -287,7 +287,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Healthy Snacks',
     description: 'Original American recipe. High protein roasted brown skin peanuts. Unsweetened.',
     subType: 'butter',
-    image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=400&q=80'
+    image: '/products/snack-myfit.jpg'
   },
   {
     id: 'snack-pintola',
@@ -297,7 +297,7 @@ const PRODUCTS_DATABASE: Product[] = [
     category: 'Healthy Snacks',
     description: 'Organic certified crunchy peanut butter. 30g protein per serving. Pure oil separation.',
     subType: 'butter',
-    image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?auto=format&fit=crop&w=400&q=80'
+    image: '/products/snack-pintola.jpg'
   }
 ];
 
@@ -341,11 +341,9 @@ const ProductImage: React.FC<{ src: string; name: string; subType: Product['subT
           className="w-full h-full object-contain p-2 hover:scale-105 transition-transform duration-300 ease-out" 
         />
       ) : (
-        /* Branded FitAI Placeholder Fallback */
-        <div className="flex flex-col items-center justify-center p-3 w-full h-full text-center space-y-1 select-none animate-fadeIn">
-          <Sparkles className="h-5 w-5 text-brand-cyan opacity-80" />
-          <span className="text-[9px] font-black text-white tracking-widest uppercase">FIT<span className="text-brand-violet">AI</span> PREMIUM</span>
-          <span className="text-[8px] text-zinc-500 font-bold uppercase truncate max-w-full px-2">{name.split(' ').slice(0, 2).join(' ')}</span>
+        /* Standardized Fallback when image is unavailable */
+        <div className="flex flex-col items-center justify-center p-3 w-full h-full text-center select-none animate-fadeIn">
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Product image unavailable</span>
         </div>
       )}
     </div>
