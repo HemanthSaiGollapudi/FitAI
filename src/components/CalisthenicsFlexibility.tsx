@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Check } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
+import { VideoPlayer } from './VideoPlayer';
 
 type CalCategory = 'Beginner' | 'Intermediate' | 'Advanced' | 'Flexibility';
 
@@ -11,7 +12,7 @@ interface Exercise {
   muscle: string;
   sets: string;
   instructions: string;
-  videoUrl: string;
+  youtubeUrl: string;
 }
 
 interface CalisthenicsFlexibilityProps {
@@ -39,7 +40,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Chest & Triceps',
         sets: '3 Sets x 12 Reps',
         instructions: 'Place hands on an elevated surface like a bench. Keep body straight and descend until chest touches, then push back up.',
-        videoUrl: 'https://www.youtube.com/embed/5U0aK9Q_rFA'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'bw-squats',
@@ -47,7 +48,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Quads & Glutes',
         sets: '3 Sets x 15 Reps',
         instructions: 'Stand with feet shoulder-width apart. Squat down as if sitting in a chair, keeping knees tracking over toes. Drive back up.',
-        videoUrl: 'https://www.youtube.com/embed/U3HlEF_E9fo'
+        youtubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
       },
       {
         id: 'knee-raises',
@@ -55,7 +56,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Lower Abdominals',
         sets: '3 Sets x 10 Reps',
         instructions: 'Hang from a bar or support yourself on parallel bars. Slowly pull your knees up toward your chest, contracting your core.',
-        videoUrl: 'https://www.youtube.com/embed/e1A5Ew6W9Y4'
+        youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU'
       },
       {
         id: 'ass-pullups',
@@ -63,7 +64,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Lats & Biceps',
         sets: '3 Sets x 8 Reps',
         instructions: 'Use a loop resistance band anchored to the bar. Place feet or knees in the band, pull up until chin clears the bar.',
-        videoUrl: 'https://www.youtube.com/embed/y2cO5S620r8'
+        youtubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
       },
       {
         id: 'plank',
@@ -71,7 +72,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Core Stability',
         sets: '3 Sets x 45s Hold',
         instructions: 'Support bodyweight on forearms and toes. Keep body in a straight line, squeezing glutes and engaging the core.',
-        videoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+        youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU'
       }
     ],
     'Intermediate': [
@@ -81,7 +82,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Chest, Shoulders & Triceps',
         sets: '3 Sets x 15-20 Reps',
         instructions: 'From a plank position, lower your chest to the floor keeping elbows tucked at 45 degrees. Squeeze chest to push up.',
-        videoUrl: 'https://www.youtube.com/embed/IODxDxX7oi4'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'pullups',
@@ -89,7 +90,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Back & Biceps',
         sets: '4 Sets x 8 Reps',
         instructions: 'Hang from pull-up bar with overhand grip. Pull shoulder blades down, pull chest to bar, lower slowly with control.',
-        videoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g'
+        youtubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
       },
       {
         id: 'dips',
@@ -97,7 +98,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Chest & Triceps',
         sets: '3 Sets x 10 Reps',
         instructions: 'Support weight on parallel bars. Lower body by bending elbows to 90 degrees, leaning slightly forward. Push up.',
-        videoUrl: 'https://www.youtube.com/embed/2z8JmcrW-As'
+        youtubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
       },
       {
         id: 'hanging-leg-raises',
@@ -105,7 +106,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Core & Hip Flexors',
         sets: '3 Sets x 8-10 Reps',
         instructions: 'Hang from bar. Keeping legs completely straight, raise them up to a 90-degree angle with control, then lower slowly.',
-        videoUrl: 'https://www.youtube.com/embed/jO_JgV44RKE'
+        youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU'
       },
       {
         id: 'bulg-split-squats',
@@ -113,7 +114,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Quads & Glutes',
         sets: '3 Sets x 12 Reps / leg',
         instructions: 'Place one foot back on an elevated bench. Squat down on the front leg until back knee almost touches. Return to start.',
-        videoUrl: 'https://www.youtube.com/embed/2C-uNgKw12A'
+        youtubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
       }
     ],
     'Advanced': [
@@ -123,7 +124,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Lats, Chest & Triceps',
         sets: '3 Sets x 4 Reps',
         instructions: 'Pull up dynamically with a hollow-body arc. Transition your chest over the bar rapidly, then press out into dip lock.',
-        videoUrl: 'https://www.youtube.com/embed/9G6kXoK5Wz4'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'front-lever',
@@ -131,7 +132,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Core, Lats & Scapula',
         sets: '4 Sets x 10s Hold',
         instructions: 'Hang from bar. Pull straight arms down, lifting entire torso and legs horizontally. Keep body flat like a table.',
-        videoUrl: 'https://www.youtube.com/embed/mG97_S1pLkw'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'hspu',
@@ -139,7 +140,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Shoulders & Triceps',
         sets: '3 Sets x 5 Reps',
         instructions: 'Kick up against a wall in a handstand. Lower body until head lightly touches ground, push up extending arms fully.',
-        videoUrl: 'https://www.youtube.com/embed/7V2VlYpG_a0'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'pistol-squats',
@@ -147,7 +148,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Legs & Balance',
         sets: '3 Sets x 8 Reps / leg',
         instructions: 'Stand on one leg, extending other leg straight out. Squat deep on standing leg until glute reaches calf. Stand up.',
-        videoUrl: 'https://www.youtube.com/embed/q0_J3sKpxw4'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       },
       {
         id: 'dragon-flags',
@@ -155,7 +156,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Entire Core & Lats',
         sets: '3 Sets x 6 Reps',
         instructions: 'Lie on bench, grip bar behind head. Lift entire body on shoulders, keep body rigid. Lower slowly as a single unit.',
-        videoUrl: 'https://www.youtube.com/embed/Mh1v59yV-h0'
+        youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE'
       }
     ],
     'Flexibility': [
@@ -165,7 +166,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Hamstrings & Lower Back',
         sets: '3 Sets x 30s Hold',
         instructions: 'Sit with legs extended straight. Fold forward from the hips, reaching hands towards toes while keeping spine long.',
-        videoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       },
       {
         id: 'hip-flexor-stretch',
@@ -173,7 +174,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Psoas & Quads',
         sets: '3 Sets x 30s / leg',
         instructions: 'Kneel on one knee, step other foot forward in a lunge. Tuck pelvis and lean forward slightly to stretch hip front.',
-        videoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       },
       {
         id: 'butterfly-stretch',
@@ -181,7 +182,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Inner Thighs & Adductors',
         sets: '3 Sets x 40s Hold',
         instructions: 'Sit with knees bent, soles of feet pressed together. Hold feet, gently pull heels in, and press knees towards ground.',
-        videoUrl: 'https://www.youtube.com/embed/v9C2K8u4W0E'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       },
       {
         id: 'cat-cow',
@@ -189,7 +190,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Spinal Mobility',
         sets: '3 Sets x 10 Cycles',
         instructions: 'On hands and knees. Alternate between arching spine up (cat) and dropping belly low while lifting head (cow).',
-        videoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       },
       {
         id: 'childs-pose',
@@ -197,7 +198,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Shoulders & Spine Decompression',
         sets: '2 Sets x 60s Hold',
         instructions: 'Kneel, sit back on heels. Fold chest forward over thighs, reaching arms out in front on floor, forehead resting down.',
-        videoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       },
       {
         id: 'cobra-stretch',
@@ -205,7 +206,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
         muscle: 'Abdominals & Lower Back',
         sets: '3 Sets x 30s Hold',
         instructions: 'Lie flat on stomach. Place hands under shoulders, press down to arch spine up, keeping thighs in contact with floor.',
-        videoUrl: 'https://www.youtube.com/embed/JDdCc7jK6pU'
+        youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E'
       }
     ]
   };
@@ -341,14 +342,7 @@ export const CalisthenicsFlexibility: React.FC<CalisthenicsFlexibilityProps> = (
 
                     {/* YouTube Video Player Embed */}
                     <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-dark-950 shadow-inner">
-                      <iframe
-                        src={ex.videoUrl}
-                        title={ex.name}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
+                      <VideoPlayer primaryUrl={ex.youtubeUrl} backupUrl="" title={ex.name} />
                     </div>
                   </div>
                 </SpotlightCard>

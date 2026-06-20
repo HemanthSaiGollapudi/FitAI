@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Heart, Flame, Dumbbell, 
   Apple, CheckSquare, AlertCircle, RefreshCw, Check,
-  Plus, Trash2, X, Clock, Award, Award as Trophy, Scale,
+  Plus, Trash2, Clock, Award, Award as Trophy, Scale,
   BookOpen, TrendingUp
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
@@ -10,26 +10,9 @@ import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
 import type { WorkoutRoutine } from './WorkoutBuilder';
 import type { LoggedScannedFood } from './FoodScanner';
 import type { LoggedWorkout } from './ProgressTracker';
+import type { ActiveWorkout } from './ActiveWorkoutSession';
 
-export interface ActiveWorkoutSet {
-  weight: number;
-  reps: number;
-  completed: boolean;
-}
-
-export interface ActiveWorkoutExercise {
-  id: string;
-  name: string;
-  sets: ActiveWorkoutSet[];
-  notes?: string;
-}
-
-export interface ActiveWorkout {
-  id: string;
-  name: string;
-  exercises: ActiveWorkoutExercise[];
-  startTime: number;
-}
+export type { ActiveWorkout, ActiveWorkoutExercise, ActiveWorkoutSet } from './ActiveWorkoutSession';
 
 // Full meal dataset with calories and protein for checklist lookup
 const DIET_LOOKUP: Record<string, Record<string, { title: string; name: string; kcal: number; protein: number }[]>> = {
@@ -162,9 +145,6 @@ interface DashboardViewProps {
   
   // Active Workout Logger Props
   activeWorkout: ActiveWorkout | null;
-  onUpdateActiveWorkout: (workout: ActiveWorkout) => void;
-  onFinishActiveWorkout: () => void;
-  onCancelActiveWorkout: () => void;
   onStartEmptyWorkout: () => void;
   
   // Diet checklist state
@@ -196,9 +176,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   savedFats,
   onOpenOnboarding,
   activeWorkout,
-  onUpdateActiveWorkout,
-  onFinishActiveWorkout,
-  onCancelActiveWorkout,
   onStartEmptyWorkout,
   completedMeals,
   onToggleMeal,
@@ -216,10 +193,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate
 }) => {
 
-  // Active workout stopwatch state
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isActiveSearchOpen, setIsActiveSearchOpen] = useState(false);
-  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+
 
   const getGreeting = () => {
     const hrs = new Date().getHours();
@@ -253,121 +227,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const targetWater = Number(localStorage.getItem('fitai_water_goal') || '3000');
   const remainingWater = Math.max(0, targetWater - todayWater);
 
-  useEffect(() => {
-    if (!activeWorkout) return;
-    setElapsedSeconds(Math.round((Date.now() - activeWorkout.startTime) / 1000));
-    
-    const interval = setInterval(() => {
-      setElapsedSeconds(Math.round((Date.now() - activeWorkout.startTime) / 1000));
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [activeWorkout]);
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Workout Set Handlers
-  const handleUpdateSet = (exIdx: number, setIdx: number, fields: Partial<ActiveWorkoutSet>) => {
-    if (!activeWorkout) return;
-    const updatedEx = [...activeWorkout.exercises];
-    updatedEx[exIdx].sets[setIdx] = {
-      ...updatedEx[exIdx].sets[setIdx],
-      ...fields
-    };
-    onUpdateActiveWorkout({
-      ...activeWorkout,
-      exercises: updatedEx
-    });
-  };
-
-  const handleAddSet = (exIdx: number) => {
-    if (!activeWorkout) return;
-    const updatedEx = [...activeWorkout.exercises];
-    const prevSet = updatedEx[exIdx].sets[updatedEx[exIdx].sets.length - 1];
-    updatedEx[exIdx].sets.push({
-      weight: prevSet ? prevSet.weight : 0,
-      reps: prevSet ? prevSet.reps : 0,
-      completed: false
-    });
-    onUpdateActiveWorkout({
-      ...activeWorkout,
-      exercises: updatedEx
-    });
-  };
-
-  const handleRemoveSet = (exIdx: number, setIdx: number) => {
-    if (!activeWorkout) return;
-    const updatedEx = [...activeWorkout.exercises];
-    updatedEx[exIdx].sets.splice(setIdx, 1);
-    
-    if (updatedEx[exIdx].sets.length === 0) {
-      updatedEx.splice(exIdx, 1);
-    }
-    
-    onUpdateActiveWorkout({
-      ...activeWorkout,
-      exercises: updatedEx
-    });
-  };
-
-  const handleAddExerciseToActive = (exId: string, exName: string) => {
-    if (!activeWorkout) return;
-    if (activeWorkout.exercises.some(e => e.id === exId)) return;
-    onUpdateActiveWorkout({
-      ...activeWorkout,
-      exercises: [
-        ...activeWorkout.exercises,
-        {
-          id: exId,
-          name: exName,
-          sets: [{ weight: 0, reps: 0, completed: false }],
-          notes: ''
-        }
-      ]
-    });
-    setIsActiveSearchOpen(false);
-    setActiveSearchQuery('');
-  };
-
-  const handleRemoveExercise = (exIdx: number) => {
-    if (!activeWorkout) return;
-    const updatedEx = [...activeWorkout.exercises];
-    updatedEx.splice(exIdx, 1);
-    onUpdateActiveWorkout({
-      ...activeWorkout,
-      exercises: updatedEx
-    });
-  };
-
-  // ----------------------------------------------------
-  // COMPARISON AND HEVY/STRONG-STYLE STATS HELPERS
-  // ----------------------------------------------------
-  const getPreviousSessionSets = (exId: string) => {
-    for (const log of workoutHistory) {
-      const found = log.exercises.find(e => e.id === exId);
-      if (found && found.sets.length > 0) {
-        return found.sets;
-      }
-    }
-    return null;
-  };
-
-  const getAllTimeMaxWeight = (exId: string) => {
-    let max = 0;
-    workoutHistory.forEach(log => {
-      const found = log.exercises.find(e => e.id === exId);
-      if (found) {
-        found.sets.forEach(s => {
-          if (s.weight > max) max = s.weight;
-        });
-      }
-    });
-    return max;
-  };
 
   // Get total completed Personal Records (unique exercises where a heavy set is logged)
   const getPersonalRecordsCount = () => {
@@ -440,11 +300,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const carbPercentage = Math.min(100, Math.round((consumedCarbs / targetCarbSplit) * 100));
   const fatPercentage = Math.min(100, Math.round((consumedFats / targetFatSplit) * 100));
 
-  // Filter exercises
-  const filteredActiveSearch = EXERCISE_DATABASE.filter(ex => 
-    ex.name.toLowerCase().includes(activeSearchQuery.toLowerCase()) || 
-    ex.group.toLowerCase().includes(activeSearchQuery.toLowerCase())
-  );
+
 
   return (
     <section id="dashboard" className="relative py-24 overflow-hidden border-t border-white/5 bg-[#03000a]">
@@ -638,226 +494,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* ACTIVE WORKOUT SESSION LOGGER SCREEN */}
-        {activeWorkout && (
-          <div className="max-w-6xl mx-auto mb-12 bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 p-6 rounded-2xl border border-brand-violet/40 text-left shadow-glass">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/5 pb-4 mb-6 gap-4">
-              <div>
-                <span className="text-[10px] text-brand-cyan font-black uppercase tracking-widest bg-brand-cyan/10 px-2.5 py-0.5 rounded-full">
-                  Active Logging Panel
-                </span>
-                <h3 className="text-2xl font-display font-black text-white mt-1.5 flex items-center gap-2">
-                  <Dumbbell className="h-6 w-6 text-brand-violet" /> {activeWorkout.name}
-                </h3>
-              </div>
 
-              {/* Stopwatch & Action Controls */}
-              <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                <div className="flex items-center gap-2 text-white font-mono bg-white/5 px-4 py-2.5 rounded-xl border border-white/5 text-sm">
-                  <Clock className="h-4 w-4 text-brand-cyan animate-pulse" /> {formatTime(elapsedSeconds)}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsActiveSearchOpen(true)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all border border-white/5 flex items-center gap-1.5"
-                  >
-                    <Plus className="h-4 w-4" /> Add Exercise
-                  </button>
-                  <button
-                    onClick={onCancelActiveWorkout}
-                    className="p-2.5 rounded-xl border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition-all"
-                    title="Cancel Workout"
-                  >
-                    <Trash2 className="h-4.5 w-4.5" />
-                  </button>
-                  <button
-                    onClick={onFinishActiveWorkout}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black shadow-glow-lime hover:scale-102 transition-transform"
-                  >
-                    Finish Workout
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Exercise Logger rows */}
-            {activeWorkout.exercises.length === 0 ? (
-              <div className="py-12 text-center text-xs text-zinc-500 border border-dashed border-white/5 rounded-xl">
-                Plate empty. Tap "Add Exercise" above to construct active logging split.
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {activeWorkout.exercises.map((ex, exIdx) => {
-                  const prevSets = getPreviousSessionSets(ex.id);
-                  const allTimeMax = getAllTimeMaxWeight(ex.id);
-                  
-                  return (
-                    <div key={ex.id} className="p-4 bg-dark-950/40 border border-white/5 rounded-xl space-y-4">
-                      
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <div>
-                          <h4 className="text-sm font-bold text-brand-cyan flex items-center gap-2">
-                            <span className="h-5 w-5 rounded-full bg-brand-violet/20 text-brand-violet text-[10px] font-bold flex items-center justify-center">
-                              {exIdx + 1}
-                            </span>
-                            {ex.name}
-                          </h4>
-                          
-                          {/* Previous ghost guides reference (Hevy/Strong style) */}
-                          {prevSets && (
-                            <span className="text-[10px] text-zinc-500 font-semibold block mt-1">
-                              Prev Session: {prevSets.map(ps => `${ps.weight}kg x ${ps.reps}`).join(' | ')}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <button
-                          onClick={() => handleRemoveExercise(exIdx)}
-                          className="text-[10px] text-zinc-500 hover:text-red-400 font-semibold flex items-center gap-0.5 self-end sm:self-auto"
-                        >
-                          <X className="h-3 w-3" /> Remove
-                        </button>
-                      </div>
-
-                      {/* Notes input */}
-                      <input 
-                        type="text"
-                        placeholder="Add notes, e.g. felt light, RPE 8..."
-                        value={ex.notes || ''}
-                        onChange={(e) => {
-                          const updatedEx = [...activeWorkout.exercises];
-                          updatedEx[exIdx].notes = e.target.value;
-                          onUpdateActiveWorkout({ ...activeWorkout, exercises: updatedEx });
-                        }}
-                        className="w-full px-3 py-2 bg-dark-900 border border-white/5 rounded-xl text-xs text-zinc-300 focus:outline-none focus:border-brand-violet"
-                      />
-
-                      {/* Sets Table */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs font-semibold text-zinc-400">
-                          <thead>
-                            <tr className="border-b border-white/5 text-[9px] uppercase tracking-wider text-zinc-500 text-left">
-                              <th className="py-2 px-1">Set</th>
-                              <th className="py-2 px-1">Weight (kg)</th>
-                              <th className="py-2 px-1">Reps</th>
-                              <th className="py-2 px-1 text-center">Completed</th>
-                              <th className="py-2 px-1 text-center">Set Feedback Progress</th>
-                              <th className="py-2 px-1 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ex.sets.map((set, setIdx) => {
-                              const prevSet = prevSets?.[setIdx];
-                              
-                              // Calculate comparison badge
-                              let feedbackBadge = null;
-                              if (set.completed && set.weight > 0) {
-                                if (set.weight > allTimeMax && allTimeMax > 0) {
-                                  feedbackBadge = (
-                                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded text-[9px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1 w-fit mx-auto">
-                                      👑 New PR! 🔥
-                                    </span>
-                                  );
-                                } else if (prevSet) {
-                                  if (set.weight > prevSet.weight) {
-                                    feedbackBadge = (
-                                      <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold flex items-center gap-0.5 w-fit mx-auto">
-                                        📈 +{set.weight - prevSet.weight} kg improvement
-                                      </span>
-                                    );
-                                  } else if (set.weight === prevSet.weight && set.reps > prevSet.reps) {
-                                    feedbackBadge = (
-                                      <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[9px] font-bold flex items-center gap-0.5 w-fit mx-auto">
-                                        📈 +{set.reps - prevSet.reps} reps improvement
-                                      </span>
-                                    );
-                                  } else {
-                                    feedbackBadge = (
-                                      <span className="px-2 py-0.5 bg-white/5 border border-white/5 text-zinc-500 rounded text-[9px] font-medium w-fit mx-auto">
-                                        Equalled Previous
-                                      </span>
-                                    );
-                                  }
-                                } else {
-                                  feedbackBadge = (
-                                    <span className="px-2 py-0.5 bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan rounded text-[9px] font-medium w-fit mx-auto">
-                                      First Set Entry
-                                    </span>
-                                  );
-                                }
-                              }
-
-                              return (
-                                <tr key={setIdx} className={`border-b border-white/5 ${set.completed ? 'bg-brand-lime/5' : ''}`}>
-                                  <td className="py-3 px-1 text-white">{setIdx + 1}</td>
-                                  <td className="py-2 px-1">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.5"
-                                      value={set.weight || ''}
-                                      onChange={(e) => handleUpdateSet(exIdx, setIdx, { weight: parseFloat(e.target.value) || 0 })}
-                                      placeholder={prevSet ? String(prevSet.weight) : "0"}
-                                      className="w-16 px-2 py-1.5 bg-dark-900 border border-white/5 rounded focus:outline-none focus:border-brand-violet text-white text-xs"
-                                      disabled={set.completed}
-                                    />
-                                  </td>
-                                  <td className="py-2 px-1">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={set.reps || ''}
-                                      onChange={(e) => handleUpdateSet(exIdx, setIdx, { reps: parseInt(e.target.value) || 0 })}
-                                      placeholder={prevSet ? String(prevSet.reps) : "0"}
-                                      className="w-16 px-2 py-1.5 bg-dark-900 border border-white/5 rounded focus:outline-none focus:border-brand-violet text-white text-xs"
-                                      disabled={set.completed}
-                                    />
-                                  </td>
-                                  <td className="py-2 px-1 text-center">
-                                    <button
-                                      onClick={() => handleUpdateSet(exIdx, setIdx, { completed: !set.completed })}
-                                      className={`mx-auto h-5 w-5 rounded border flex items-center justify-center transition-colors ${
-                                        set.completed
-                                          ? 'bg-brand-lime border-brand-lime text-dark-950'
-                                          : 'border-white/20 hover:border-brand-lime/50'
-                                      }`}
-                                    >
-                                      {set.completed && <Check className="h-3.5 w-3.5 stroke-[4]" />}
-                                    </button>
-                                  </td>
-                                  <td className="py-2 px-1 text-center">
-                                    {feedbackBadge}
-                                  </td>
-                                  <td className="py-2 px-1 text-right">
-                                    <button
-                                      onClick={() => handleRemoveSet(exIdx, setIdx)}
-                                      className="text-zinc-600 hover:text-red-400 p-1 rounded"
-                                      title="Delete set"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <button
-                        onClick={() => handleAddSet(exIdx)}
-                        className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-zinc-300 transition-all flex items-center gap-1.5 border border-white/5"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Add Set
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Core Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
@@ -1294,47 +931,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
       </div>
-
-      {/* ACTIVE WORKOUT EXERCISES SEARCH MODAL */}
-      {isActiveSearchOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div onClick={() => setIsActiveSearchOpen(false)} className="absolute inset-0 bg-dark-950/80 backdrop-blur-md" />
-          <div className="relative w-full max-w-xl max-h-[70vh] bg-dark-900 border border-white/10 rounded-2xl shadow-glass flex flex-col z-10 overflow-hidden text-left">
-            <div className="p-4 bg-dark-950/50 border-b border-white/5 flex justify-between items-center">
-              <h3 className="font-display font-bold text-white text-base">Select Exercise to Add</h3>
-              <button onClick={() => setIsActiveSearchOpen(false)} className="p-1 rounded text-zinc-500 hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            
-            <div className="p-4 bg-dark-950/50 border-b border-white/5">
-              <input
-                type="text"
-                placeholder="Search exercise..."
-                value={activeSearchQuery}
-                onChange={(e) => setActiveSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {filteredActiveSearch.map((ex) => (
-                <div
-                  key={ex.id}
-                  onClick={() => handleAddExerciseToActive(ex.id, ex.name)}
-                  className="p-3 bg-dark-950/30 border border-white/5 rounded-xl flex items-center justify-between cursor-pointer hover:border-brand-violet/40 transition-colors"
-                >
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{ex.name}</h4>
-                    <span className="text-[9px] text-zinc-500">{ex.group} • {ex.equipment}</span>
-                  </div>
-                  <span className="text-[10px] text-brand-cyan font-bold">Add +</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
     </section>
   );

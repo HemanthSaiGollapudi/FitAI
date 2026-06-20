@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Check, Search, Info, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
-import { VideoPlayer } from './VideoPlayer';
+import { VideoPlayer, validateVideoUrl } from './VideoPlayer';
 import { SpotlightCard } from './SpotlightCard';
 
 type CategoryType = 'Chest' | 'Back' | 'Shoulders' | 'Biceps' | 'Triceps' | 'Legs' | 'Abs' | 'Calisthenics' | 'Flexibility';
@@ -193,21 +193,43 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                         {ex.desc}
                       </p>
 
-                      {/* Expand/Collapse Toggle details trigger */}
-                      <button
-                        onClick={() => toggleExpand(ex.id)}
-                        className="w-full flex items-center justify-center gap-1 py-2 bg-white/5 border border-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                      >
-                        {isExpanded ? (
-                          <>
-                            Hide Instructions <ChevronUp className="h-3.5 w-3.5" />
-                          </>
-                        ) : (
-                          <>
-                            View Form & Video Guide <ChevronDown className="h-3.5 w-3.5" />
-                          </>
-                        )}
-                      </button>
+                      {/* Card Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => toggleExpand(ex.id)}
+                          className="flex-1 flex items-center justify-center gap-1 py-2 bg-white/5 border border-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                        >
+                          {isExpanded ? (
+                            <>
+                              Hide Instructions <ChevronUp className="h-3.5 w-3.5" />
+                            </>
+                          ) : (
+                            <>
+                              View Form & Video Guide <ChevronDown className="h-3.5 w-3.5" />
+                            </>
+                          )}
+                        </button>
+                        {(() => {
+                          const hasValidVideo = validateVideoUrl(ex.youtubeUrl) || validateVideoUrl(ex.backupYoutubeUrl);
+                          return (
+                            <button
+                              disabled={!hasValidVideo}
+                              onClick={() => {
+                                console.log("Opening video:", ex.name, ex.youtubeUrl);
+                                window.open(ex.youtubeUrl, '_blank', 'noopener,noreferrer');
+                              }}
+                              className={`px-4.5 py-2 border rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
+                                hasValidVideo
+                                  ? 'bg-brand-violet/10 border-brand-violet/25 hover:border-brand-violet hover:bg-brand-violet/20 text-brand-cyan hover:text-white cursor-pointer'
+                                  : 'bg-zinc-800/40 border-zinc-700/25 text-zinc-500 cursor-not-allowed opacity-50'
+                              }`}
+                              title={hasValidVideo ? "Watch on YouTube" : "Video unavailable"}
+                            >
+                              {hasValidVideo ? "Watch on YouTube" : "Video unavailable"}
+                            </button>
+                          );
+                        })()}
+                      </div>
 
                       {/* Expanded content */}
                       {isExpanded && (
@@ -221,8 +243,8 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
                           <div className="space-y-1.5">
                             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Video Demonstration</span>
                             <VideoPlayer
-                              primaryUrl={ex.videoUrl}
-                              backupUrl={ex.backupVideoUrl}
+                              primaryUrl={ex.youtubeUrl}
+                              backupUrl={ex.backupYoutubeUrl}
                               title={ex.name}
                             />
                           </div>

@@ -25,9 +25,19 @@ import { BodyFatEstimator } from './components/BodyFatEstimator';
 import { AccessoriesStore } from './components/AccessoriesStore';
 import { NutritionHub } from './components/NutritionHub';
 import { TrainingHub } from './components/TrainingHub';
+import { Trophy } from 'lucide-react';
+import { ActiveWorkoutSession } from './components/ActiveWorkoutSession';
 
 function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isWorkoutSessionExpanded, setIsWorkoutSessionExpanded] = useState(() => {
+    return localStorage.getItem('fitai_active_workout_expanded') === 'true';
+  });
+  const [workoutSummaryData, setWorkoutSummaryData] = useState<LoggedWorkout | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('fitai_active_workout_expanded', String(isWorkoutSessionExpanded));
+  }, [isWorkoutSessionExpanded]);
   
   // 1. Favorites and Checked checklist lists
   const [savedExercises, setSavedExercises] = useState<string[]>(() => {
@@ -217,6 +227,11 @@ function App() {
     localStorage.setItem('fitai_diet_fats', String(settings.fats));
   };
 
+  const handleChangeDietType = (type: string) => {
+    setSavedDietType(type);
+    localStorage.setItem('fitai_diet_type', type);
+  };
+
   // Toggle meal checklist item
   const handleToggleMeal = (mealTitle: string) => {
     setCompletedMeals((prev) => {
@@ -258,22 +273,32 @@ function App() {
   };
 
   // Active Logger Handlers
+  // Active Logger Handlers
   const handleStartWorkout = (routine: WorkoutRoutine) => {
+    if (!routine.exercises || routine.exercises.length === 0) {
+      alert("Please add at least one exercise before starting.");
+      return;
+    }
+
     setActiveWorkout({
       id: routine.id,
       name: routine.name,
       startTime: Date.now(),
+      isPaused: false,
+      pausedTime: 0,
+      totalPausedDuration: 0,
       exercises: routine.exercises.map((eid) => {
-        const exName = EXERCISE_DATABASE.find(e => e.id === eid)?.name || 'Exercise';
+        const ex = EXERCISE_DATABASE.find(e => e.id === eid);
+        const exName = ex?.name || 'Exercise';
+        const defaultReps = ex ? parseInt(ex.setsReps.match(/\d+\s*Reps/)?.[0] || '10') : 10;
         return {
           id: eid,
           name: exName,
-          sets: [{ weight: 0, reps: 0, completed: false }]
+          sets: [{ weight: 0, reps: defaultReps, completed: false }]
         };
       })
     });
-    // Scroll to dashboard where active workout log sheet is presented
-    document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
+    setIsWorkoutSessionExpanded(true);
   };
 
   const handleStartEmptyWorkout = () => {
@@ -281,9 +306,12 @@ function App() {
       id: `session-${Date.now()}`,
       name: 'Quick Log Workout',
       startTime: Date.now(),
+      isPaused: false,
+      pausedTime: 0,
+      totalPausedDuration: 0,
       exercises: []
     });
-    document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
+    setIsWorkoutSessionExpanded(true);
   };
 
   const handleUpdateActiveWorkout = (workout: ActiveWorkout) => {
@@ -293,6 +321,7 @@ function App() {
   const handleCancelActiveWorkout = () => {
     if (window.confirm("Are you sure you want to discard this workout session?")) {
       setActiveWorkout(null);
+      setIsWorkoutSessionExpanded(false);
     }
   };
 
@@ -333,9 +362,9 @@ function App() {
       }
     });
 
+    setWorkoutSummaryData(newLog);
     setActiveWorkout(null);
-    alert("Workout logged successfully! High five!");
-    document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' });
+    setIsWorkoutSessionExpanded(false);
   };
 
   // Biometrics Handlers
@@ -527,6 +556,17 @@ function App() {
         <AICoach 
           onSaveRoutine={handleSaveRoutine}
           savedExercises={savedExercises}
+          userWeight={userWeight}
+          savedDietGoal={savedDietGoal}
+          workoutHistory={workoutHistory}
+          savedDietCalories={savedDietCalories}
+          savedDietProtein={savedDietProtein}
+          savedDietType={savedDietType}
+          userName={userName}
+          onSaveDiet={handleSaveDiet}
+          onNavigate={handleNavigate}
+          onStartWorkout={handleStartWorkout}
+          onChangeDietType={handleChangeDietType}
         />
       ) : activeView === 'body-fat' ? (
         <BodyFatEstimator />
@@ -553,9 +593,6 @@ function App() {
             savedFats={savedDietFats}
             onOpenOnboarding={openOnboarding}
             activeWorkout={activeWorkout}
-            onUpdateActiveWorkout={handleUpdateActiveWorkout}
-            onFinishActiveWorkout={handleFinishActiveWorkout}
-            onCancelActiveWorkout={handleCancelActiveWorkout}
             onStartEmptyWorkout={handleStartEmptyWorkout}
             completedMeals={completedMeals}
             onToggleMeal={handleToggleMeal}
@@ -608,6 +645,87 @@ function App() {
           <OnboardingWizard isOpen={isOnboardingOpen} onClose={closeOnboarding} />
         )}
       </AnimatePresence>
+
+      {/* Active Workout Session Logger */}
+      {activeWorkout && (
+        <ActiveWorkoutSession
+          activeWorkout={activeWorkout}
+          onUpdateActiveWorkout={handleUpdateActiveWorkout}
+          onFinishActiveWorkout={handleFinishActiveWorkout}
+          onCancelActiveWorkout={handleCancelActiveWorkout}
+          isExpanded={isWorkoutSessionExpanded}
+          setIsExpanded={setIsWorkoutSessionExpanded}
+        />
+      )}
+
+      {/* Workout Summary Modal */}
+      {workoutSummaryData && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div onClick={() => setWorkoutSummaryData(null)} className="absolute inset-0 bg-dark-950/80 backdrop-blur-md" />
+          <div className="relative w-full max-w-xl bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 border border-brand-violet/40 p-6 rounded-2xl shadow-glass z-10 text-left space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 rounded-full bg-brand-violet/15 text-brand-cyan border border-brand-violet/30 animate-bounce">
+                <Trophy className="h-8 w-8" />
+              </div>
+              <h3 className="text-2xl font-display font-black text-white">Workout Complete! 🏆</h3>
+              <p className="text-xs text-zinc-400">Excellent job! Here is your session summary.</p>
+            </div>
+
+            <div className="p-4 bg-dark-950/50 border border-white/5 rounded-xl text-center">
+              <h4 className="text-base font-bold text-brand-cyan">{workoutSummaryData.name}</h4>
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mt-1">
+                {new Date(workoutSummaryData.timestamp).toLocaleDateString()} at {new Date(workoutSummaryData.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center space-y-0.5">
+                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Total Volume</span>
+                <span className="text-lg font-black text-white text-center block">
+                  {workoutSummaryData.exercises.reduce((sum, ex) => 
+                    sum + ex.sets.reduce((setSum, s) => setSum + (s.weight * s.reps), 0)
+                  , 0)} kg
+                </span>
+              </div>
+              <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center space-y-0.5">
+                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block text-center">Sets Completed</span>
+                <span className="text-lg font-black text-white text-center block">
+                  {workoutSummaryData.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Exercises list */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Exercise Breakdown</span>
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                {workoutSummaryData.exercises.map((ex, idx) => (
+                  <div key={idx} className="p-3 bg-dark-950/40 border border-white/5 rounded-xl flex justify-between items-center text-xs">
+                    <div>
+                      <h5 className="font-bold text-white">{ex.name}</h5>
+                      <span className="text-[10px] text-zinc-500">{ex.sets.length} sets completed</span>
+                    </div>
+                    <div className="text-right text-zinc-400 font-mono">
+                      {ex.sets.map((s) => `${s.weight}kg x ${s.reps}`).join(' | ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setWorkoutSummaryData(null);
+                handleNavigate('training', 'progress');
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl shadow-glow-purple hover:scale-[1.02] transition-transform text-center block uppercase tracking-wider cursor-pointer"
+            >
+              View in Progress Tracker
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

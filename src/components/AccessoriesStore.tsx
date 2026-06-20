@@ -5,317 +5,346 @@ import {
   Plus, Minus, X, Check, CreditCard, Truck, Star, ChevronRight, Sparkles
 } from 'lucide-react';
 
+interface Variant {
+  name: string;      // e.g. '1 kg', 'S', 'Set of 3'
+  price: number;     // Price for this variant
+}
+
 interface Product {
   id: string;
   name: string;
-  price: number;
-  rating: number;
-  category: 'Supplements' | 'Gym Accessories' | 'Clothing' | 'Hydration' | 'Healthy Snacks';
+  brand: 'MuscleBlaze' | 'Boldfit';
+  category: 'Supplements' | 'Gym Accessories' | 'Clothing' | 'Hydration';
   description: string;
-  subType: 'whey' | 'creatine' | 'grip' | 'wraps' | 'belt' | 'sleeves' | 'bands' | 'tshirt' | 'pants' | 'shorts' | 'bottle' | 'bar' | 'butter';
+  rating: number;
   image: string;
+  variants: Variant[];
+  colors?: string[]; // Specifically for clothing
+  sizes?: string[];  // Specifically for clothing
 }
 
 interface CartItem {
   product: Product;
   quantity: number;
+  selectedVariant?: string; // variant name (e.g. '1 kg')
+  selectedSize?: string;    // clothing size (e.g. 'S')
+  selectedColor?: string;   // clothing color (e.g. 'Black')
+  unitPrice: number;        // The price for this specific variant/size
 }
 
 const PRODUCTS_DATABASE: Product[] = [
-  // Supplements - Whey
+  // Supplements (MuscleBlaze only)
   {
-    id: 'supp-on-whey',
-    name: 'Optimum Nutrition Gold Standard Whey',
-    price: 4999,
+    id: 'mb-biozyme-whey',
+    name: 'MuscleBlaze Biozyme Whey Protein',
+    brand: 'MuscleBlaze',
+    category: 'Supplements',
+    description: 'Clinically tested Enhanced Absorption Formula (EAF) to maximize protein assimilation and minimize bloating.',
     rating: 4.8,
-    category: 'Supplements',
-    description: 'High-quality isolate primary source whey protein. 24g protein, 5.5g BCAA per serving.',
-    subType: 'whey',
-    image: '/products/supp-on-whey.jpg'
+    image: '/products/mb-biozyme-whey.jpg',
+    variants: [
+      { name: '1 kg', price: 2999 },
+      { name: '2 kg', price: 5499 },
+      { name: '4 kg', price: 10499 }
+    ]
   },
   {
-    id: 'supp-mb-whey',
-    name: 'MuscleBlaze Biozyme Whey',
-    price: 2999,
-    rating: 4.6,
+    id: 'mb-raw-whey',
+    name: 'MuscleBlaze Raw Whey Protein',
+    brand: 'MuscleBlaze',
     category: 'Supplements',
-    description: 'Clinically tested Enhanced Absorption Formula (EAF) to maximize protein assimilation.',
-    subType: 'whey',
-    image: '/products/supp-mb-whey.jpg'
-  },
-  {
-    id: 'supp-mp-whey',
-    name: 'MyProtein Impact Whey',
-    price: 3499,
-    rating: 4.7,
-    category: 'Supplements',
-    description: 'Premium grade whey concentrate. Ideal for daily post-workout recovery muscle cycles.',
-    subType: 'whey',
-    image: '/products/supp-mp-whey.jpg'
-  },
-  {
-    id: 'supp-avv-whey',
-    name: 'Avvatar Whey Protein',
-    price: 2799,
+    description: '100% pure unsweetened whey concentrate with added digestive enzymes for fast recovery.',
     rating: 4.5,
+    image: '/products/mb-raw-whey.jpg',
+    variants: [
+      { name: '1 kg', price: 2299 },
+      { name: '2 kg', price: 4299 }
+    ]
+  },
+  {
+    id: 'mb-beginners-whey',
+    name: 'MuscleBlaze Beginner\'s Whey Protein',
+    brand: 'MuscleBlaze',
     category: 'Supplements',
-    description: '100% double filtered grass-fed whey. Made fresh from fresh milk within 24 hours.',
-    subType: 'whey',
-    image: '/products/supp-avv-whey.jpg'
-  },
-  // Supplements - Creatine
-  {
-    id: 'supp-on-creatine',
-    name: 'Optimum Nutrition Creatine',
-    price: 1299,
-    rating: 4.8,
-    category: 'Supplements',
-    description: 'Micronized creatine monohydrate. Promotes ATP synthesis and high-intensity cellular power.',
-    subType: 'creatine',
-    image: '/products/supp-on-creatine.jpg'
-  },
-  {
-    id: 'supp-mb-creatine',
-    name: 'MuscleBlaze Creatine Monohydrate',
-    price: 799,
-    rating: 4.6,
-    category: 'Supplements',
-    description: 'Pure micronized creatine to boost explosive power and structural muscle hydration.',
-    subType: 'creatine',
-    image: '/products/supp-mb-creatine.jpg'
-  },
-  {
-    id: 'supp-mp-creatine',
-    name: 'MyProtein Creatine',
-    price: 999,
-    rating: 4.7,
-    category: 'Supplements',
-    description: 'Convenient pure monohydrate powder to increase physical strength limits during lifts.',
-    subType: 'creatine',
-    image: '/products/supp-mp-creatine.jpg'
-  },
-  // Gym Accessories - Grips
-  {
-    id: 'acc-adj-grip',
-    name: 'Adjustable Hand Grip',
-    price: 399,
-    rating: 4.5,
-    category: 'Gym Accessories',
-    description: 'Adjustable resistance range (10kg-60kg). Sturdy steel springs to build forearm density.',
-    subType: 'grip',
-    image: '/products/acc-adj-grip.jpg'
-  },
-  {
-    id: 'acc-met-grip',
-    name: 'Premium Metal Hand Grip',
-    price: 699,
-    rating: 4.8,
-    category: 'Gym Accessories',
-    description: 'Heavy knurled aluminum handles with high-tension steel springs for advanced grip strength.',
-    subType: 'grip',
-    image: '/products/acc-met-grip.jpg'
-  },
-  // Gym Accessories - Lifting Accessories
-  {
-    id: 'acc-wrist-wraps',
-    name: 'Wrist Wraps',
-    price: 499,
-    rating: 4.6,
-    category: 'Gym Accessories',
-    description: 'Heavy duty thumb loop wraps. Offers maximal structural wrist safety during bench presses.',
-    subType: 'wraps',
-    image: '/products/acc-wrist-wraps.jpg'
-  },
-  {
-    id: 'acc-lift-straps',
-    name: 'Lifting Straps',
-    price: 599,
-    rating: 4.7,
-    category: 'Gym Accessories',
-    description: 'Neoprene padded heavy cotton straps. Eliminates grip fatigue during heavy deadlifts.',
-    subType: 'wraps',
-    image: '/products/acc-lift-straps.jpg'
-  },
-  {
-    id: 'acc-belt',
-    name: 'Weightlifting Belt',
-    price: 1499,
-    rating: 4.8,
-    category: 'Gym Accessories',
-    description: '4-inch contoured leather belt with double buckle. Maximizes intra-abdominal load pressure.',
-    subType: 'belt',
-    image: '/products/acc-belt.jpg'
-  },
-  {
-    id: 'acc-sleeves',
-    name: 'Knee Sleeves',
-    price: 999,
-    rating: 4.7,
-    category: 'Gym Accessories',
-    description: '7mm premium neoprene compression sleeves to keep knees warm and secure during squat cycles.',
-    subType: 'sleeves',
-    image: '/products/acc-sleeves.jpg'
-  },
-  {
-    id: 'acc-bands',
-    name: 'Resistance Bands Set',
-    price: 799,
-    rating: 4.5,
-    category: 'Gym Accessories',
-    description: 'Set of 5 loop bands with stackable loads. Perfect for glute activation and warmup stretches.',
-    subType: 'bands',
-    image: '/products/acc-bands.jpg'
-  },
-  // Clothing
-  {
-    id: 'clot-perf-t',
-    name: 'FitAI Performance T-Shirt',
-    price: 799,
-    rating: 4.7,
-    category: 'Clothing',
-    description: 'Ultra lightweight, anti-odor performance blend. Engineered with a supportive athletic fit.',
-    subType: 'tshirt',
-    image: '/products/clot-perf-t.jpg'
-  },
-  {
-    id: 'clot-dry-t',
-    name: 'Premium Dry-Fit T-Shirt',
-    price: 999,
-    rating: 4.8,
-    category: 'Clothing',
-    description: 'Sweat-wicking dry-fit weave with reflective safety liners. High flexibility stretch zones.',
-    subType: 'tshirt',
-    image: '/products/clot-dry-t.jpg'
-  },
-  {
-    id: 'clot-pants',
-    name: 'FitAI Training Track Pants',
-    price: 1299,
-    rating: 4.6,
-    category: 'Clothing',
-    description: 'Sleek tapered joggers with secure zipper pocket compartments. Perfect for cooler training.',
-    subType: 'pants',
-    image: '/products/clot-pants.jpg'
-  },
-  {
-    id: 'clot-shorts-base',
-    name: 'FitAI Gym Shorts',
-    price: 699,
-    rating: 4.5,
-    category: 'Clothing',
-    description: 'Lightweight double-layered compression shorts with phone sleeve. Complete quad flexibility.',
-    subType: 'shorts',
-    image: '/products/clot-shorts-base.jpg'
-  },
-  {
-    id: 'clot-shorts-prem',
-    name: 'Premium Training Shorts',
-    price: 899,
-    rating: 4.7,
-    category: 'Clothing',
-    description: 'Flexible split leg design for weightlifters. Water-resistant dry weave shell.',
-    subType: 'shorts',
-    image: '/products/clot-shorts-prem.jpg'
-  },
-  // Hydration
-  {
-    id: 'hydr-steel',
-    name: 'Premium Stainless Steel Bottle',
-    price: 999,
-    rating: 4.8,
-    category: 'Hydration',
-    description: 'Double walled vacuum insulated. Keeps water ice cold for 24 hours. Matte black finish.',
-    subType: 'bottle',
-    image: '/products/hydr-steel.jpg'
-  },
-  {
-    id: 'hydr-smart',
-    name: 'Smart Insulated Bottle',
-    price: 1499,
-    rating: 4.6,
-    category: 'Hydration',
-    description: 'LED temp gauge lid indicator. Hourly buzz reminders to lock your water targets.',
-    subType: 'bottle',
-    image: '/products/hydr-smart.jpg'
-  },
-  {
-    id: 'hydr-shaker',
-    name: 'Gym Shaker Bottle',
-    price: 499,
-    rating: 4.7,
-    category: 'Hydration',
-    description: 'Leak-proof screw caps with metallic wire whisk. Prepares lump-free whey protein logs.',
-    subType: 'bottle',
-    image: '/products/hydr-shaker.jpg'
-  },
-  // Healthy Snacks
-  {
-    id: 'snack-bite',
-    name: 'RiteBite Protein Bar',
-    price: 99,
+    description: 'Ideal starter whey protein with zero added sugar and essential micronutrients.',
     rating: 4.4,
-    category: 'Healthy Snacks',
-    description: '20g protein snack bar. Zero added sugar. Rich in dietary fiber & active prebiotics.',
-    subType: 'bar',
-    image: '/products/snack-bite.jpg'
+    image: '/products/mb-beginners-whey.jpg',
+    variants: [
+      { name: '1 kg', price: 1999 },
+      { name: '2 kg', price: 3699 }
+    ]
   },
   {
-    id: 'snack-yoga',
-    name: 'Yoga Bar Protein Bar',
-    price: 89,
+    id: 'mb-creatine',
+    name: 'MuscleBlaze Creatine Monohydrate',
+    brand: 'MuscleBlaze',
+    category: 'Supplements',
+    description: 'Pure micronized creatine monohydrate to improve explosive strength and lean muscle mass.',
+    rating: 4.7,
+    image: '/products/mb-creatine.jpg',
+    variants: [
+      { name: '100 g', price: 799 },
+      { name: '250 g', price: 1299 }
+    ]
+  },
+  {
+    id: 'mb-protein-bar',
+    name: 'MuscleBlaze Protein Bar',
+    brand: 'MuscleBlaze',
+    category: 'Supplements',
+    description: 'Rich chocolate protein bar packed with 20g protein and zero added sugar for on-the-go fuel.',
     rating: 4.3,
-    category: 'Healthy Snacks',
-    description: 'All-natural seeds, oats, and whey bars. Free from artificial preservatives.',
-    subType: 'bar',
-    image: '/products/snack-yoga.jpg'
+    image: '/products/mb-protein-bar.jpg',
+    variants: [
+      { name: 'Single Bar', price: 99 },
+      { name: 'Pack of 6', price: 549 },
+      { name: 'Pack of 12', price: 999 }
+    ]
   },
   {
-    id: 'snack-truth',
-    name: 'The Whole Truth Protein Bar',
-    price: 120,
+    id: 'mb-peanut-butter',
+    name: 'MuscleBlaze Peanut Butter',
+    brand: 'MuscleBlaze',
+    category: 'Supplements',
+    description: 'High protein peanut butter made with premium roasted peanuts. Creamy, delicious, and unsweetened.',
+    rating: 4.6,
+    image: '/products/mb-peanut-butter.jpg',
+    variants: [
+      { name: '340 g', price: 249 },
+      { name: '510 g', price: 349 },
+      { name: '1 kg', price: 599 }
+    ]
+  },
+  // Gym Accessories (Boldfit only)
+  {
+    id: 'boldfit-hand-grip',
+    name: 'Boldfit Hand Grip',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Ergonomic hand gripper with adjustable resistance and steel springs for grip strength training.',
+    rating: 4.5,
+    image: '/products/boldfit-hand-grip.jpg',
+    variants: [
+      { name: 'Single', price: 399 },
+      { name: 'Premium Version', price: 699 }
+    ]
+  },
+  {
+    id: 'boldfit-wrist-wraps',
+    name: 'Boldfit Wrist Wraps',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Heavy duty wrist support bands with thumb loops for bench press and lifting stability.',
+    rating: 4.6,
+    image: '/products/boldfit-wrist-wraps.jpg',
+    variants: [
+      { name: '1 Pair', price: 499 }
+    ]
+  },
+  {
+    id: 'boldfit-lifting-straps',
+    name: 'Boldfit Lifting Straps',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Neoprene padded heavy-duty lifting straps to eliminate grip fatigue during heavy deadlifts.',
     rating: 4.7,
-    category: 'Healthy Snacks',
-    description: 'Cleanest ingredients list. No fillers, sweetened only with dates. Incredible taste.',
-    subType: 'bar',
-    image: '/products/snack-truth.jpg'
+    image: '/products/boldfit-lifting-straps.jpg',
+    variants: [
+      { name: '1 Pair', price: 599 }
+    ]
   },
   {
-    id: 'snack-myfit',
-    name: 'MyFitness Peanut Butter',
-    price: 349,
+    id: 'boldfit-belt',
+    name: 'Boldfit Weightlifting Belt',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Contoured leather gym belt with double prong metal buckle for core support and spine protection.',
     rating: 4.8,
-    category: 'Healthy Snacks',
-    description: 'Original American recipe. High protein roasted brown skin peanuts. Unsweetened.',
-    subType: 'butter',
-    image: '/products/snack-myfit.jpg'
+    image: '/products/boldfit-belt.jpg',
+    variants: [
+      { name: 'S', price: 1299 },
+      { name: 'M', price: 1399 },
+      { name: 'L', price: 1499 },
+      { name: 'XL', price: 1599 }
+    ]
   },
   {
-    id: 'snack-pintola',
-    name: 'Pintola Peanut Butter',
-    price: 399,
+    id: 'boldfit-sleeves',
+    name: 'Boldfit Knee Sleeves',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: '7mm premium neoprene compression sleeves to keep knees warm and supported during squats.',
     rating: 4.7,
-    category: 'Healthy Snacks',
-    description: 'Organic certified crunchy peanut butter. 30g protein per serving. Pure oil separation.',
-    subType: 'butter',
-    image: '/products/snack-pintola.jpg'
+    image: '/products/boldfit-sleeves.jpg',
+    variants: [
+      { name: 'S', price: 899 },
+      { name: 'M', price: 999 },
+      { name: 'L', price: 1099 },
+      { name: 'XL', price: 1199 }
+    ]
+  },
+  {
+    id: 'boldfit-bands',
+    name: 'Boldfit Resistance Bands',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Set of loop resistance bands perfect for glute activation, stretching, and physical therapy.',
+    rating: 4.6,
+    image: '/products/boldfit-bands.jpg',
+    variants: [
+      { name: 'Set of 3', price: 499 },
+      { name: 'Set of 5', price: 799 }
+    ]
+  },
+  {
+    id: 'boldfit-gloves',
+    name: 'Boldfit Gym Gloves',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Breathable weightlifting gloves with integrated wrist support wrap and silicone padding.',
+    rating: 4.5,
+    image: '/products/boldfit-gloves.jpg',
+    variants: [
+      { name: 'S', price: 499 },
+      { name: 'M', price: 549 },
+      { name: 'L', price: 599 }
+    ]
+  },
+  {
+    id: 'boldfit-rope',
+    name: 'Boldfit Skipping Rope',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'High-speed ball bearing jump rope with adjustable steel cable for cardio workouts.',
+    rating: 4.4,
+    image: '/products/boldfit-rope.jpg',
+    variants: [
+      { name: 'Standard', price: 299 }
+    ]
+  },
+  {
+    id: 'boldfit-mat',
+    name: 'Boldfit Yoga Mat',
+    brand: 'Boldfit',
+    category: 'Gym Accessories',
+    description: 'Anti-tear premium TPE yoga mat with alignment lines and dual non-slip textures.',
+    rating: 4.6,
+    image: '/products/boldfit-mat.jpg',
+    variants: [
+      { name: '6mm', price: 699 },
+      { name: '8mm', price: 899 }
+    ]
+  },
+  // Hydration (Boldfit only)
+  {
+    id: 'boldfit-shaker',
+    name: 'Boldfit Shaker Bottle',
+    brand: 'Boldfit',
+    category: 'Hydration',
+    description: 'Leak-proof shaker bottle with integrated storage compartments and metal wire whisk ball.',
+    rating: 4.6,
+    image: '/products/boldfit-shaker.jpg',
+    variants: [
+      { name: '500 ml', price: 399 },
+      { name: '700 ml', price: 499 }
+    ]
+  },
+  {
+    id: 'boldfit-steel-bottle',
+    name: 'Boldfit Stainless Steel Bottle',
+    brand: 'Boldfit',
+    category: 'Hydration',
+    description: 'Premium grade single-walled stainless steel bottle for everyday hydration. Matte black finish.',
+    rating: 4.5,
+    image: '/products/boldfit-steel-bottle.jpg',
+    variants: [
+      { name: '750 ml', price: 799 },
+      { name: '1 litre', price: 999 }
+    ]
+  },
+  {
+    id: 'boldfit-insulated-bottle',
+    name: 'Boldfit Insulated Water Bottle',
+    brand: 'Boldfit',
+    category: 'Hydration',
+    description: 'Double-walled vacuum insulated smart bottle. Keeps cold for 24h and displays current temperature.',
+    rating: 4.7,
+    image: '/products/boldfit-insulated-bottle.jpg',
+    variants: [
+      { name: '500 ml', price: 899 },
+      { name: '750 ml', price: 1099 }
+    ]
+  },
+  // Clothing (Boldfit only)
+  {
+    id: 'boldfit-tshirt',
+    name: 'Boldfit Dry-Fit T-Shirt',
+    brand: 'Boldfit',
+    category: 'Clothing',
+    description: 'Ultra-lightweight sweat-wicking dry-fit polyester weave. Features 4-way stretch flex zones.',
+    rating: 4.7,
+    image: '/products/boldfit-tshirt.jpg',
+    variants: [
+      { name: 'S', price: 699 },
+      { name: 'M', price: 699 },
+      { name: 'L', price: 749 },
+      { name: 'XL', price: 749 },
+      { name: 'XXL', price: 799 }
+    ],
+    colors: ['Black', 'Navy Blue', 'Grey', 'White'],
+    sizes: ['S', 'M', 'L', 'XL', 'XXL']
+  },
+  {
+    id: 'boldfit-shorts',
+    name: 'Boldfit Gym Shorts',
+    brand: 'Boldfit',
+    category: 'Clothing',
+    description: 'Breathable mesh gym shorts with zipper pockets and athletic length for maximum mobility.',
+    rating: 4.5,
+    image: '/products/boldfit-shorts.jpg',
+    variants: [
+      { name: 'S', price: 599 },
+      { name: 'M', price: 599 },
+      { name: 'L', price: 649 },
+      { name: 'XL', price: 649 },
+      { name: 'XXL', price: 699 }
+    ],
+    colors: ['Black', 'Grey', 'Navy Blue'],
+    sizes: ['S', 'M', 'L', 'XL', 'XXL']
+  },
+  {
+    id: 'boldfit-pants',
+    name: 'Boldfit Track Pants',
+    brand: 'Boldfit',
+    category: 'Clothing',
+    description: 'Comfortable tapered joggers with deep zippered pockets and elastic waistband.',
+    rating: 4.6,
+    image: '/products/boldfit-pants.jpg',
+    variants: [
+      { name: 'S', price: 899 },
+      { name: 'M', price: 899 },
+      { name: 'L', price: 949 },
+      { name: 'XL', price: 999 },
+      { name: 'XXL', price: 1049 }
+    ],
+    colors: ['Black', 'Charcoal Grey', 'Navy Blue'],
+    sizes: ['S', 'M', 'L', 'XL', 'XXL']
   }
 ];
 
-const ProductImage: React.FC<{ src: string; name: string; subType: Product['subType'] }> = ({ src, name, subType }) => {
+const ProductImage: React.FC<{ src: string; name: string; category: Product['category'] }> = ({ src, name, category }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   let colorClass = "from-brand-violet/20 to-brand-violet/5 text-brand-violet border-brand-violet/20";
-  if (subType === 'whey' || subType === 'creatine') {
+  if (category === 'Supplements') {
     colorClass = "from-brand-violet/25 to-brand-violet/5 text-brand-violet border-brand-violet/20";
-  } else if (subType === 'grip' || subType === 'wraps' || subType === 'belt' || subType === 'sleeves' || subType === 'bands') {
+  } else if (category === 'Gym Accessories') {
     colorClass = "from-brand-pink/25 to-brand-pink/5 text-brand-pink border-brand-pink/20";
-  } else if (subType === 'tshirt' || subType === 'pants' || subType === 'shorts') {
+  } else if (category === 'Clothing') {
     colorClass = "from-amber-500/25 to-amber-500/5 text-amber-500 border-amber-500/20";
-  } else if (subType === 'bottle') {
+  } else if (category === 'Hydration') {
     colorClass = "from-brand-cyan/25 to-brand-cyan/5 text-brand-cyan border-brand-cyan/20";
-  } else if (subType === 'bar' || subType === 'butter') {
-    colorClass = "from-brand-lime/25 to-brand-lime/5 text-brand-lime border-brand-lime/20";
   }
 
   return (
@@ -343,7 +372,7 @@ const ProductImage: React.FC<{ src: string; name: string; subType: Product['subT
       ) : (
         /* Standardized Fallback when image is unavailable */
         <div className="flex flex-col items-center justify-center p-3 w-full h-full text-center select-none animate-fadeIn">
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Product image unavailable</span>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Product Image Unavailable</span>
         </div>
       )}
     </div>
@@ -357,7 +386,7 @@ export const AccessoriesStore: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('fitai_store_cart');
+      const saved = localStorage.getItem('fitai_store_cart_v2');
       if (saved) return JSON.parse(saved);
     } catch {}
     return [];
@@ -373,6 +402,12 @@ export const AccessoriesStore: React.FC = () => {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+
+  // Promo Code State
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0); // discount in percentage
+  const [promoError, setPromoError] = useState('');
+  const [promoSuccess, setPromoSuccess] = useState('');
 
   // Checkout modal wizard
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -390,24 +425,26 @@ export const AccessoriesStore: React.FC = () => {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('fitai_store_cart', JSON.stringify(cart));
+    localStorage.setItem('fitai_store_cart_v2', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
     localStorage.setItem('fitai_store_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  const categories = ['All', 'Supplements', 'Gym Accessories', 'Clothing', 'Hydration', 'Healthy Snacks'];
+  const categories = ['All', 'Supplements', 'Gym Accessories', 'Clothing', 'Hydration'];
 
   // Filters and sorts
   const filteredProducts = PRODUCTS_DATABASE.filter(prod => {
     const matchesSearch = prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          prod.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          prod.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          prod.brand.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'All' || prod.category === activeCategory;
     return matchesSearch && matchesCategory;
   }).sort((a, b) => {
-    if (priceSort === 'low-high') return a.price - b.price;
-    if (priceSort === 'high-low') return b.price - a.price;
+    const getMinPrice = (p: Product) => p.variants[0]?.price || 0;
+    if (priceSort === 'low-high') return getMinPrice(a) - getMinPrice(b);
+    if (priceSort === 'high-low') return getMinPrice(b) - getMinPrice(a);
     return 0; // Default sorting
   });
 
@@ -416,39 +453,115 @@ export const AccessoriesStore: React.FC = () => {
     setTimeout(() => setAlertMessage(null), 1500);
   };
 
-  const handleAddToCart = (product: Product, buyNow = false) => {
+  const handleAddToCart = (
+    product: Product,
+    variantName?: string,
+    sizeName?: string,
+    colorName?: string,
+    buyNow = false
+  ) => {
+    // Resolve variant and unit price
+    const resolvedVariant = variantName || product.variants[0]?.name;
+    const variantObj = product.variants.find(v => v.name === resolvedVariant) || product.variants[0];
+    const unitPrice = variantObj?.price || 0;
+
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.product.id === product.id 
+      // Find matching item index in the cart
+      const existingIdx = prev.findIndex(item => 
+        item.product.id === product.id &&
+        item.selectedVariant === resolvedVariant &&
+        item.selectedSize === sizeName &&
+        item.selectedColor === colorName
+      );
+
+      if (existingIdx > -1) {
+        return prev.map((item, idx) => 
+          idx === existingIdx 
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+
+      return [...prev, {
+        product,
+        quantity: 1,
+        selectedVariant: resolvedVariant,
+        selectedSize: sizeName,
+        selectedColor: colorName,
+        unitPrice
+      }];
     });
 
     if (buyNow) {
       setIsCartOpen(true);
       handleCheckoutOpen();
     } else {
-      showAlert(`"${product.name}" added to cart!`);
+      const details = `${resolvedVariant}${sizeName ? ` / Size ${sizeName}` : ''}${colorName ? ` / ${colorName}` : ''}`;
+      showAlert(`"${product.name}" (${details}) added to cart!`);
     }
   };
 
-  const handleRemoveFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+  const handleRemoveFromCart = (index: number) => {
+    setCart(prev => prev.filter((_, idx) => idx !== index));
   };
 
-  const handleUpdateQuantity = (productId: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.product.id === productId) {
+  const handleUpdateQuantity = (index: number, delta: number) => {
+    setCart(prev => prev.map((item, idx) => {
+      if (idx === index) {
         const newQty = item.quantity + delta;
         return { ...item, quantity: newQty > 0 ? newQty : 1 };
       }
       return item;
     }));
+  };
+
+  const handleUpdateCartItem = (
+    index: number,
+    updates: { selectedSize?: string; selectedColor?: string; selectedVariant?: string }
+  ) => {
+    setCart(prev => {
+      const currentItem = prev[index];
+      if (!currentItem) return prev;
+
+      const newSize = updates.selectedSize !== undefined ? updates.selectedSize : currentItem.selectedSize;
+      const newColor = updates.selectedColor !== undefined ? updates.selectedColor : currentItem.selectedColor;
+      const newVariant = updates.selectedVariant !== undefined ? updates.selectedVariant : currentItem.selectedVariant;
+
+      // Find matching variant/size and get correct price
+      const matchedVariantName = newSize || newVariant;
+      const targetVariant = currentItem.product.variants.find(v => v.name === matchedVariantName) || currentItem.product.variants[0];
+      const newPrice = targetVariant ? targetVariant.price : currentItem.unitPrice;
+
+      // Check if there is another matching item in the cart to merge with
+      const matchIdx = prev.findIndex((item, idx) => 
+        idx !== index &&
+        item.product.id === currentItem.product.id &&
+        item.selectedVariant === matchedVariantName &&
+        item.selectedSize === newSize &&
+        item.selectedColor === newColor
+      );
+
+      if (matchIdx > -1) {
+        return prev.map((item, idx) => {
+          if (idx === matchIdx) {
+            return { ...item, quantity: item.quantity + currentItem.quantity };
+          }
+          return item;
+        }).filter((_, idx) => idx !== index);
+      }
+
+      return prev.map((item, idx) => 
+        idx === index 
+          ? { 
+              ...item, 
+              selectedSize: newSize, 
+              selectedColor: newColor, 
+              selectedVariant: matchedVariantName,
+              unitPrice: newPrice 
+            }
+          : item
+      );
+    });
   };
 
   const handleToggleWishlist = (productId: string) => {
@@ -473,23 +586,50 @@ export const AccessoriesStore: React.FC = () => {
     setIsCheckingOut(true);
   };
 
+  const handleApplyPromo = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = promoCode.toUpperCase().trim();
+    if (code === 'FITAI10') {
+      setAppliedDiscount(10);
+      setPromoSuccess('10% Coupon Discount Applied! 🎉');
+      setPromoError('');
+    } else if (code === 'WELCOME') {
+      setAppliedDiscount(5);
+      setPromoSuccess('5% Welcome Discount Applied! 🎁');
+      setPromoError('');
+    } else {
+      setPromoError('Invalid coupon code.');
+      setPromoSuccess('');
+    }
+  };
+
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (checkoutStep === 1) {
       setCheckoutStep(2);
     } else if (checkoutStep === 2) {
       setCheckoutStep(3);
-      // Generate order number
       const orderNum = `FITAI-${Math.floor(100000 + Math.random() * 900000)}`;
       setCheckoutSuccessMessage(`Order #${orderNum} successfully authorized. Delivery expected in 2-3 Days via FitAI Express.`);
-      setCart([]); // Clear cart on completion
+      setCart([]); // Clear cart
+      setPromoCode('');
+      setAppliedDiscount(0);
+      setPromoSuccess('');
     }
   };
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartSubtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const cartTax = Math.round(cartSubtotal * 0.05); // 5% GST
-  const cartTotal = cartSubtotal + cartTax;
+  const cartSubtotal = cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  
+  // Calculate dynamic shipping (Free shipping above 999, else 99)
+  const cartShipping = cartSubtotal > 999 ? 0 : 99;
+  
+  // Calculate promo discount
+  const discountAmount = Math.round(cartSubtotal * (appliedDiscount / 100));
+  
+  // 5% GST
+  const cartTax = Math.round((cartSubtotal - discountAmount) * 0.05);
+  const cartTotal = cartSubtotal - discountAmount + cartShipping + cartTax;
 
   return (
     <section className="relative py-24 overflow-hidden min-h-screen text-zinc-100 bg-[#03000a] text-left">
@@ -509,11 +649,11 @@ export const AccessoriesStore: React.FC = () => {
               Accessories Store
             </h2>
             <p className="text-zinc-400 text-sm max-w-xl font-normal leading-relaxed">
-              Equip your active training cycles with premium grade sports nutrition, elite mechanical lifting gear, and compression clothing.
+              Equip your active training cycles with premium grade sports nutrition from <strong className="text-brand-violet">MuscleBlaze</strong> and elite fitness gear from <strong className="text-brand-cyan">Boldfit</strong>.
             </p>
           </div>
 
-          {/* Cart & Wishlist action anchors */}
+          {/* Cart & Wishlist actions */}
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => setIsWishlistOpen(true)}
@@ -533,19 +673,19 @@ export const AccessoriesStore: React.FC = () => {
 
         {/* Toolbar: Search, Filters, Sorters */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center mb-8 border-b border-white/5 pb-6">
-          {/* Search bar (4 cols) */}
+          {/* Search bar */}
           <div className="lg:col-span-4 relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search gear, proteins, shaker caps..."
+              placeholder="Search MuscleBlaze whey, Boldfit belts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-dark-900 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
             />
           </div>
 
-          {/* Sort bar (2 cols) */}
+          {/* Sort bar */}
           <div className="lg:col-span-3 relative">
             <div className="flex items-center gap-2 w-full">
               <ArrowUpDown className="h-4 w-4 text-zinc-500 shrink-0" />
@@ -561,7 +701,7 @@ export const AccessoriesStore: React.FC = () => {
             </div>
           </div>
 
-          {/* Category Tabs (5 cols) */}
+          {/* Category Tabs */}
           <div className="lg:col-span-5 flex overflow-x-auto gap-2 py-1 scrollbar-thin">
             {categories.map((cat) => (
               <button
@@ -574,7 +714,7 @@ export const AccessoriesStore: React.FC = () => {
                     : 'bg-dark-900 border-white/5 text-zinc-400 hover:text-white'
                 }`}
               >
-                {cat.replace('Healthy ', '')}
+                {cat}
               </button>
             ))}
           </div>
@@ -585,67 +725,13 @@ export const AccessoriesStore: React.FC = () => {
           {filteredProducts.map((prod) => {
             const isInWishlist = wishlist.includes(prod.id);
             return (
-              <div 
-                key={prod.id} 
-                className="group p-4 bg-dark-900/40 border border-white/5 hover:border-brand-violet/20 rounded-2xl backdrop-blur-md flex flex-col justify-between h-[400px] transition-all hover:scale-[1.01]"
-              >
-                <div className="space-y-3 relative">
-                  
-                  {/* Heart wishlist toggle absolute overlay */}
-                  <button
-                    onClick={() => handleToggleWishlist(prod.id)}
-                    className={`absolute top-2.5 right-2.5 p-2 bg-dark-950/70 border rounded-lg transition-all z-10 ${
-                      isInWishlist 
-                        ? 'border-brand-pink/30 text-brand-pink' 
-                        : 'border-white/5 text-zinc-500 hover:text-white'
-                    }`}
-                  >
-                    <Heart className={`h-3.5 w-3.5 ${isInWishlist ? 'fill-brand-pink' : ''}`} />
-                  </button>
-
-                  <div className="h-36">
-                    <ProductImage src={prod.image} name={prod.name} subType={prod.subType} />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[8px] text-zinc-500 font-bold uppercase tracking-widest">
-                      <span>{prod.category}</span>
-                      <span className="flex items-center text-amber-400"><Star className="h-3 w-3 fill-amber-400 mr-0.5" /> {prod.rating}</span>
-                    </div>
-                    
-                    <h4 className="text-xs font-black text-white line-clamp-1 group-hover:text-brand-cyan transition-colors">
-                      {prod.name}
-                    </h4>
-                    
-                    <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
-                      {prod.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-3 border-t border-white/5">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Price</span>
-                    <span className="text-sm font-display font-black text-white">₹{prod.price.toLocaleString('en-IN')}</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleAddToCart(prod)}
-                      className="py-2.5 bg-white/5 border border-white/10 hover:border-brand-violet/40 hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all text-center"
-                    >
-                      Add to Cart
-                    </button>
-                    
-                    <button
-                      onClick={() => handleAddToCart(prod, true)}
-                      className="py-2.5 bg-brand-violet text-white rounded-xl text-[10px] font-black hover:scale-102 hover:shadow-glow-purple transition-all text-center"
-                    >
-                      Buy Now
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ProductCard
+                key={prod.id}
+                prod={prod}
+                isInWishlist={isInWishlist}
+                onToggleWishlist={handleToggleWishlist}
+                onAddToCart={handleAddToCart}
+              />
             );
           })}
 
@@ -658,11 +744,10 @@ export const AccessoriesStore: React.FC = () => {
         </div>
       </div>
 
-      {/* SHOPPING CART DRAWER (Slide in from right) */}
+      {/* SHOPPING CART DRAWER */}
       <AnimatePresence>
         {isCartOpen && (
           <div className="fixed inset-0 z-[100] flex justify-end">
-            {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -671,7 +756,6 @@ export const AccessoriesStore: React.FC = () => {
               className="absolute inset-0 bg-dark-950/70 backdrop-blur-sm"
             />
 
-            {/* Cart Body */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -696,47 +780,111 @@ export const AccessoriesStore: React.FC = () => {
                     <p className="text-xs text-zinc-500 italic">Your cart is currently empty.</p>
                   </div>
                 ) : (
-                  cart.map((item) => (
-                    <div key={item.product.id} className="p-3 bg-dark-950/40 border border-white/5 rounded-xl flex items-center gap-3">
-                      <div className="h-14 w-14 shrink-0">
-                        <ProductImage src={item.product.image} name={item.product.name} subType={item.product.subType} />
-                      </div>
-                      
-                      <div className="flex-1 space-y-1">
-                        <h4 className="text-[11px] font-black text-white line-clamp-1">{item.product.name}</h4>
-                        <span className="text-[10px] text-zinc-400 font-mono">₹{item.product.price.toLocaleString('en-IN')}</span>
+                  cart.map((item, idx) => {
+                    const isClothing = item.product.category === 'Clothing';
+                    return (
+                      <div key={`${item.product.id}-${item.selectedVariant}-${item.selectedSize}-${item.selectedColor}`} className="p-3 bg-dark-950/40 border border-white/5 rounded-xl flex items-center gap-3">
+                        <div className="h-14 w-14 shrink-0">
+                          <ProductImage src={item.product.image} name={item.product.name} category={item.product.category} />
+                        </div>
                         
-                        <div className="flex items-center justify-between mt-1.5">
-                          <div className="flex items-center gap-1.5 bg-dark-950 border border-white/5 rounded-lg px-1 py-0.5">
-                            <button onClick={() => handleUpdateQuantity(item.product.id, -1)} className="p-1 rounded text-zinc-500 hover:text-white">
-                              <Minus className="h-3 w-3" />
-                            </button>
-                            <span className="text-[10px] font-bold px-1 text-white">{item.quantity}</span>
-                            <button onClick={() => handleUpdateQuantity(item.product.id, 1)} className="p-1 rounded text-zinc-500 hover:text-white">
-                              <Plus className="h-3 w-3" />
+                        <div className="flex-1 space-y-1">
+                          <h4 className="text-[11px] font-black text-white line-clamp-1">{item.product.name}</h4>
+                          
+                          {/* Display and Edit Attributes */}
+                          <div className="flex flex-wrap gap-2 text-[9px] text-zinc-400">
+                            {/* Variant / Size selection */}
+                            <div className="flex items-center gap-1">
+                              <span className="font-bold text-zinc-500">Option:</span>
+                              <select 
+                                value={item.selectedVariant || ''}
+                                onChange={(e) => handleUpdateCartItem(idx, isClothing ? { selectedSize: e.target.value } : { selectedVariant: e.target.value })}
+                                className="bg-dark-950 border border-white/10 rounded px-1 text-white font-bold"
+                              >
+                                {item.product.variants.map(v => (
+                                  <option key={v.name} value={v.name}>{v.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Color Selector (for clothing) */}
+                            {isClothing && item.product.colors && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-bold text-zinc-500">Color:</span>
+                                <select
+                                  value={item.selectedColor || ''}
+                                  onChange={(e) => handleUpdateCartItem(idx, { selectedColor: e.target.value })}
+                                  className="bg-dark-950 border border-white/10 rounded px-1 text-white font-bold"
+                                >
+                                  {item.product.colors.map(col => (
+                                    <option key={col} value={col}>{col}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-white/5">
+                            <span className="text-[10px] text-zinc-400 font-mono">₹{item.unitPrice.toLocaleString('en-IN')} x {item.quantity}</span>
+                            
+                            <div className="flex items-center gap-1.5 bg-dark-950 border border-white/5 rounded-lg px-1 py-0.5">
+                              <button onClick={() => handleUpdateQuantity(idx, -1)} className="p-1 rounded text-zinc-500 hover:text-white">
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="text-[10px] font-bold px-1 text-white">{item.quantity}</span>
+                              <button onClick={() => handleUpdateQuantity(idx, 1)} className="p-1 rounded text-zinc-500 hover:text-white">
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                            
+                            <button 
+                              onClick={() => handleRemoveFromCart(idx)}
+                              className="text-[10px] text-zinc-600 hover:text-red-400 font-bold flex items-center gap-0.5 ml-2"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                          
-                          <button 
-                            onClick={() => handleRemoveFromCart(item.product.id)}
-                            className="text-[10px] text-zinc-600 hover:text-red-400 font-bold flex items-center gap-0.5"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Remove
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
               {/* Bill Details */}
               {cart.length > 0 && (
                 <div className="p-4 bg-dark-950/80 border-t border-white/5 space-y-4">
+                  {/* Coupon Code Input */}
+                  <form onSubmit={handleApplyPromo} className="grid grid-cols-4 gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Promo (FITAI10, WELCOME)" 
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      className="col-span-3 px-3 py-2 bg-dark-950 border border-white/10 rounded-xl text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-brand-violet"
+                    />
+                    <button type="submit" className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-[10px] font-bold">
+                      Apply
+                    </button>
+                  </form>
+                  
+                  {promoError && <p className="text-[10px] text-red-400 font-bold">{promoError}</p>}
+                  {promoSuccess && <p className="text-[10px] text-green-400 font-bold">{promoSuccess}</p>}
+
                   <div className="space-y-2 text-xs font-semibold text-zinc-400">
                     <div className="flex justify-between">
                       <span>Items Subtotal:</span>
                       <span className="text-white">₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    {appliedDiscount > 0 && (
+                      <div className="flex justify-between text-green-400">
+                        <span>Discount ({appliedDiscount}%):</span>
+                        <span>- ₹{discountAmount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Shipping:</span>
+                      <span className="text-white">{cartShipping === 0 ? 'FREE' : `₹${cartShipping}`}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>GST (5%):</span>
@@ -761,7 +909,7 @@ export const AccessoriesStore: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* WISHLIST DRAWER (Slide in from right) */}
+      {/* WISHLIST DRAWER */}
       <AnimatePresence>
         {isWishlistOpen && (
           <div className="fixed inset-0 z-[100] flex justify-end">
@@ -802,11 +950,11 @@ export const AccessoriesStore: React.FC = () => {
                       <div key={prod.id} className="p-3 bg-dark-950/40 border border-white/5 rounded-xl flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 shrink-0">
-                            <ProductImage src={prod.image} name={prod.name} subType={prod.subType} />
+                            <ProductImage src={prod.image} name={prod.name} category={prod.category} />
                           </div>
                           <div>
                             <h4 className="text-[11px] font-black text-white line-clamp-1">{prod.name}</h4>
-                            <span className="text-[10px] text-brand-cyan font-bold">₹{prod.price.toLocaleString('en-IN')}</span>
+                            <span className="text-[10px] text-brand-cyan font-bold">₹{(prod.variants[0]?.price || 0).toLocaleString('en-IN')}</span>
                           </div>
                         </div>
 
@@ -814,7 +962,7 @@ export const AccessoriesStore: React.FC = () => {
                           <button
                             onClick={() => {
                               handleAddToCart(prod);
-                              handleToggleWishlist(prod.id); // Remove from wishlist on cart add
+                              handleToggleWishlist(prod.id);
                             }}
                             className="px-2.5 py-1.5 bg-brand-violet text-white text-[9px] font-black rounded-lg"
                           >
@@ -919,7 +1067,6 @@ export const AccessoriesStore: React.FC = () => {
                         <input
                           type="text"
                           required
-                          pattern="[0-9]{6}"
                           value={shippingAddress.pincode}
                           onChange={(e) => setShippingAddress(prev => ({ ...prev, pincode: e.target.value }))}
                           className="w-full px-3.5 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet font-mono"
@@ -1047,7 +1194,156 @@ export const AccessoriesStore: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
     </section>
+  );
+};
+
+interface ProductCardProps {
+  prod: Product;
+  isInWishlist: boolean;
+  onToggleWishlist: (id: string) => void;
+  onAddToCart: (prod: Product, variantName?: string, sizeName?: string, colorName?: string, buyNow?: boolean) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ prod, isInWishlist, onToggleWishlist, onAddToCart }) => {
+  const isClothing = prod.category === 'Clothing';
+
+  // State for selectors
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
+  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
+
+  const selectedVariant = prod.variants[selectedVariantIdx];
+  const selectedColor = prod.colors ? prod.colors[selectedColorIdx] : undefined;
+
+  // Selected size corresponds to selected variant name for clothing
+  const selectedSize = isClothing ? selectedVariant.name : undefined;
+  const currentPrice = selectedVariant?.price || 0;
+
+  // Let's create an aesthetic brand badge color
+  const brandBadgeClass = prod.brand === 'MuscleBlaze' 
+    ? 'bg-brand-violet/10 border-brand-violet/20 text-brand-violet' 
+    : 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan';
+
+  return (
+    <div 
+      className="group p-4 bg-dark-900/40 border border-white/5 hover:border-brand-violet/20 rounded-2xl backdrop-blur-md flex flex-col justify-between min-h-[460px] transition-all hover:scale-[1.01] overflow-hidden"
+    >
+      <div className="space-y-3 relative">
+        {/* Wishlist toggle */}
+        <button
+          onClick={() => onToggleWishlist(prod.id)}
+          className={`absolute top-2.5 right-2.5 p-2 bg-dark-950/70 border rounded-lg transition-all z-10 ${
+            isInWishlist 
+              ? 'border-brand-pink/30 text-brand-pink' 
+              : 'border-white/5 text-zinc-500 hover:text-white'
+          }`}
+        >
+          <Heart className={`h-3.5 w-3.5 ${isInWishlist ? 'fill-brand-pink' : ''}`} />
+        </button>
+
+        <div className="h-36 relative">
+          <ProductImage src={prod.image} name={prod.name} category={prod.category} />
+          {/* Brand Badge */}
+          <div className={`absolute bottom-2 left-2 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md border ${brandBadgeClass}`}>
+            {prod.brand}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-[8px] text-zinc-500 font-bold uppercase tracking-widest">
+            <span>{prod.category}</span>
+            <span className="flex items-center text-amber-400">
+              <Star className="h-3 w-3 fill-amber-400 mr-0.5" /> {prod.rating}
+            </span>
+          </div>
+          
+          <h4 className="text-xs font-black text-white line-clamp-1 group-hover:text-brand-cyan transition-colors">
+            {prod.name}
+          </h4>
+          
+          <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed min-h-[30px]">
+            {prod.description}
+          </p>
+        </div>
+
+        {/* SELECTORS BLOCK */}
+        <div className="space-y-2 pt-2">
+          {/* Size / Option Selector */}
+          <div className="space-y-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">
+              {isClothing ? 'Select Size' : 'Select Option'}
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {prod.variants.map((v, idx) => (
+                <button
+                  key={v.name}
+                  type="button"
+                  onClick={() => setSelectedVariantIdx(idx)}
+                  className={`px-2 py-1 rounded-lg text-[9px] font-bold border transition-all ${
+                    selectedVariantIdx === idx
+                      ? 'bg-brand-violet/20 border-brand-violet text-white'
+                      : 'bg-dark-950 border-white/5 text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color Selector (only for clothing) */}
+          {isClothing && prod.colors && (
+            <div className="space-y-1 pt-1">
+              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Select Color</span>
+              <div className="flex flex-wrap gap-1">
+                {prod.colors.map((c, idx) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setSelectedColorIdx(idx)}
+                    className={`px-2 py-1 rounded-lg text-[9px] font-bold border transition-all ${
+                      selectedColorIdx === idx
+                        ? 'bg-brand-cyan/20 border-brand-cyan text-white'
+                        : 'bg-dark-950 border-white/5 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stock Status */}
+          <div className="flex items-center gap-1.5 text-[9px] font-bold text-green-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            In Stock (Ready to Ship)
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 pt-3 border-t border-white/5">
+        <div className="flex justify-between items-baseline">
+          <span className="text-[10px] text-zinc-500 font-bold uppercase">Price</span>
+          <span className="text-sm font-display font-black text-white">₹{currentPrice.toLocaleString('en-IN')}</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => onAddToCart(prod, selectedVariant.name, selectedSize, selectedColor)}
+            className="py-2.5 bg-white/5 border border-white/10 hover:border-brand-violet/40 hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all text-center"
+          >
+            Add to Cart
+          </button>
+          
+          <button
+            onClick={() => onAddToCart(prod, selectedVariant.name, selectedSize, selectedColor, true)}
+            className="py-2.5 bg-brand-violet text-white rounded-xl text-[10px] font-black hover:scale-102 hover:shadow-glow-purple transition-all text-center"
+          >
+            Buy Now
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

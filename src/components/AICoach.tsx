@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Dumbbell, Send, Plus, Trash2, 
-  Copy, Check, Sparkles, ShieldAlert, Clock, ArrowRight, User
+  Copy, Check, Sparkles, ShieldAlert, Clock, ArrowRight, User, X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SpotlightCard } from './SpotlightCard';
 import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
 import type { WorkoutRoutine } from './WorkoutBuilder';
@@ -12,12 +13,24 @@ export interface Message {
   sender: 'user' | 'ai';
   text: string;
   timestamp: number;
-  // Structured elements to render separately
+  
+  // Phase 1 structured sections
   directAnswer?: string;
-  reasoning?: string;
-  actionSteps?: string[];
-  warnings?: string[];
-  recommendations?: { name: string; type: 'exercise' | 'meal'; id?: string }[];
+  actionPlanItems?: string[];
+  recommendationItems?: string[];
+  followUpSuggestions?: string[];
+  
+  // Action state flags
+  showDietPrompt?: boolean;
+  dietPromptAnswered?: boolean;
+  selectedPreference?: string;
+  
+  hasWorkoutContent?: boolean;
+  hasDietContent?: boolean;
+  
+  generatedRoutine?: WorkoutRoutine;
+  suggestedDiet?: { calories: number; protein: number; goal: string };
+  originalQuery?: string;
 }
 
 export interface ChatConversation {
@@ -30,311 +43,309 @@ export interface ChatConversation {
 interface AICoachProps {
   onSaveRoutine: (routine: WorkoutRoutine) => void;
   savedExercises: string[];
+  userWeight: number;
+  savedDietGoal: string;
+  workoutHistory: any[];
+  savedDietCalories: number;
+  savedDietProtein: number;
+  savedDietType: string;
+  userName: string;
+  onSaveDiet: (settings: any) => void;
+  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
+  onStartWorkout: (routine: WorkoutRoutine) => void;
+  onChangeDietType: (type: string) => void;
 }
 
-// Complete mock response library for preset queries
-const PRESET_ANSWERS: Record<string, Omit<Message, 'id' | 'sender' | 'timestamp'>> = {
-  "Create a 4-day fat-loss split.": {
-    text: "Here is an optimized 4-day Upper/Lower hypertrophy split to preserve muscle mass while creating a metabolic deficit.",
-    directAnswer: "Preserving muscle through heavy compound lifting is key for fat loss. This 4-day Upper/Lower split maximizes energy expenditure while offering 72 hours of recovery per muscle group.",
-    reasoning: "Hypertrophy training (8-12 reps) signals to the body that muscle tissue is essential, preventing muscle catabolism during a caloric deficit. Higher frequency (2x/week) maintains a higher metabolic rate.",
-    actionSteps: [
-      "Day 1: Upper Body Power (Bench Press, Rows, Overhead Press)",
-      "Day 2: Lower Body Power (Squats, RDLs, Leg Press, Calves)",
-      "Day 3: Active Rest / LISS Cardio (30-45 mins walk/cycle)",
-      "Day 4: Upper Body Hypertrophy (DB Press, Pullups, Lateral Raises)",
-      "Day 5: Lower Body Hypertrophy (Leg Extensions, Curls, Lunges)"
-    ],
-    warnings: [
-      "Do not cut your calories by more than 500 kcal below TDEE, or you risk significant strength loss.",
-      "Avoid excessive steady-state cardio on lift days to protect recovery reserves."
-    ],
-    recommendations: [
-      { name: "Flat Bench Press", type: "exercise", id: "flat-bb-press" },
-      { name: "Flat Dumbbell Press", type: "exercise", id: "flat-db-press" },
-      { name: "Pull-Ups", type: "exercise", id: "pullups" },
-      { name: "High-Protein Soya Chunk Salad", type: "meal" }
-    ]
-  },
-  "I only have dumbbells.": {
-    text: "You can build an excellent physique with just dumbbells. Here is a high-volume dumbbell-only routing.",
-    directAnswer: "A full-body dumbbell split utilizing mechanical tension and high volume will stimulate hypertrophy effectively without gym machines.",
-    reasoning: "Dumbbells allow for unilateral training, which fixes muscle imbalances, and offers a greater range of motion at the shoulders and hips than barbells.",
-    actionSteps: [
-      "Focus on progressive overload by slowly increasing reps (e.g. from 8 to 12) before adding weight.",
-      "Perform Bulgarian Split Squats and Dumbbell Romanian Deadlifts for lower body mechanical tension.",
-      "Utilize Dumbbell Floor Presses or DB Incline Presses to target chest fibers."
-    ],
-    warnings: [
-      "Dumbbells place higher demands on stabilizing muscles; ensure strict form to avoid shoulder strain."
-    ],
-    recommendations: [
-      { name: "Flat Dumbbell Press", type: "exercise", id: "flat-db-press" },
-      { name: "Dumbbell Rows", type: "exercise", id: "db-rows" },
-      { name: "Lunges", type: "exercise", id: "lunge" }
-    ]
-  },
-  "Give me a beginner calisthenics routine.": {
-    text: "Welcome to bodyweight training! Here is a simple, highly effective calisthenics routine.",
-    directAnswer: "A full-body calisthenics structure focusing on pushups, pullups (or assisted variations), squats, and planks is the ideal foundation.",
-    reasoning: "Calisthenics builds relative body strength, improves joint stability, and enhances core connectivity through closed-kinetic chain movements.",
-    actionSteps: [
-      "Perform Push-Ups: 3 sets x 8-12 reps (modify to incline pushups if needed).",
-      "Perform Pull-Ups or Chin-Ups: 3 sets x 5-8 reps (use resistance bands or negatives if beginner).",
-      "Perform Bodyweight Squats: 3 sets x 15-20 reps.",
-      "Hold Planks: 3 sets x 30-45 seconds."
-    ],
-    warnings: [
-      "Rotator cuffs and elbows take a beating in calisthenics. Ensure a thorough warm-up before pulling exercises."
-    ],
-    recommendations: [
-      { name: "Push-Ups", type: "exercise", id: "push-ups" },
-      { name: "Pull-Ups", type: "exercise", id: "pullups" },
-      { name: "Plank", type: "exercise", id: "plank" }
-    ]
-  },
-  "Suggest chest exercises without machines.": {
-    text: "Here are the top chest builders using free weights and bodyweight.",
-    directAnswer: "The flat bench press, dumbbell floor press, parallel dips, and pushups are superior chest builders that do not require specialized gym machines.",
-    reasoning: "Free weight and bodyweight movements allow your joints to travel through natural paths, recruiting stabilizing muscles that machines isolate out.",
-    actionSteps: [
-      "Barbell Bench Press: Keep shoulder blades retracted and elbows tucked at 45 degrees.",
-      "Chest Dips: Lean slightly forward to emphasize chest fibers rather than triceps.",
-      "Deficit Pushups: Place hands on blocks/dumbbells to increase the stretch at the bottom."
-    ],
-    warnings: [
-      "Do not flare elbows to 90 degrees on bench or dips, as it heavily loads the rotator cuffs."
-    ],
-    recommendations: [
-      { name: "Flat Bench Press", type: "exercise", id: "flat-bb-press" },
-      { name: "Chest Dips", type: "exercise", id: "chest-dips" },
-      { name: "Push-Ups", type: "exercise", id: "push-ups" }
-    ]
-  },
-  "Build a Push Pull Legs routine.": {
-    text: "Push-Pull-Legs (PPL) is one of the most effective training routines. Here is a high-level breakdown.",
-    directAnswer: "A 3-day or 6-day PPL routine structures workouts by movement patterns: pushing (chest/shoulders/triceps), pulling (back/biceps), and legs/abs.",
-    reasoning: "PPL organizes training so that muscles worked in one session (e.g. pushing muscles) get complete rest during the next sessions (pulling and leg days).",
-    actionSteps: [
-      "Push Day: Flat Bench Press, Overhead Press, Incline DB Press, Tricep Pushdowns.",
-      "Pull Day: Deadlifts, Dumbbell Rows, Lat Pulldowns, Bicep Curls.",
-      "Leg Day: Squats, Romanian Deadlifts, Leg Press, Calf Raises."
-    ],
-    warnings: [
-      "If running PPL 6 days a week, keep volume moderate (4-5 exercises per workout) to avoid central nervous system fatigue."
-    ],
-    recommendations: [
-      { name: "Flat Bench Press", type: "exercise", id: "flat-bb-press" },
-      { name: "Dumbbell Rows", type: "exercise", id: "db-rows" },
-      { name: "Barbell Squats", type: "exercise", id: "barbell-squats" },
-      { name: "Deadlift", type: "exercise", id: "deadlift" }
-    ]
-  },
-  "Give me a 2,300-calorie Indian diet.": {
-    text: "Here is a balanced 2,300-calorie Indian meal plan with a focus on high protein.",
-    directAnswer: "This plan integrates complex carbs (oats, roti) and high-quality protein (paneer, egg whites, soya) to hit 2,300 kcal with ~135g of protein.",
-    reasoning: "Indian diets can easily become carb-dominant. Partitioning protein across five meals ensures continuous muscle protein synthesis.",
-    actionSteps: [
-      "Breakfast: oats oatmeal, banana, scoop of whey protein (450 kcal, 30g protein)",
-      "Mid-Snack: 3 boiled egg whites + 1 cup sprouts salad (200 kcal, 18g protein)",
-      "Lunch: 2 multigrain rotis, paneer bhurji (150g paneer), dal (650 kcal, 38g protein)",
-      "Evening: Masala buttermilk, roasted makhana & almonds (220 kcal, 8g protein)",
-      "Dinner: Steamed brown rice (1.5 cups), chicken breast curry or tofu stir-fry (150g), salad (780 kcal, 41g protein)"
-    ],
-    warnings: [
-      "Watch cooking oil usage (limit to 2 tbsp daily). Indian curries often carry hidden fats that increase calories quickly."
-    ],
-    recommendations: [
-      { name: "Paneer Curry", type: "meal" },
-      { name: "Whey Protein Shake & Almonds", type: "meal" },
-      { name: "Chicken Breast Curry & Basmati Rice", type: "meal" }
-    ]
-  },
-  "High-protein vegetarian meals.": {
-    text: "Vegetarians can easily hit their protein targets with these high-yield food selections.",
-    directAnswer: "Top Indian vegetarian protein sources include Paneer, Soya Chunks, Greek Yogurt, Tempeh, Tofu, lentils, and Whey protein.",
-    reasoning: "Vegetarian plant-proteins are often incomplete (lacking certain amino acids). Combining grains and legumes (like rice and dal) creates complete protein profiles.",
-    actionSteps: [
-      "Soya chunks carry 52g of protein per 100g. Boil and add to salads or rice curries.",
-      "Low-fat paneer gives 18-20g protein per 100g. Excellent for quick scrambles (bhurji).",
-      "Supplement with one scoop of high-quality Whey protein to easily add 25g of clean protein."
-    ],
-    warnings: [
-      "Soya chunks contain phytoestrogens, which are completely safe in moderate amounts, but limit intake to under 75g daily."
-    ],
-    recommendations: [
-      { name: "Paneer Bhurji & 1 Missi Roti", type: "meal" },
-      { name: "Soya Chunks Curry & Quinoa", type: "meal" },
-      { name: "Dal Tadka, Paneer Bhurji & 2 Rotis", type: "meal" }
-    ]
-  },
-  "Fat-loss meal plans.": {
-    text: "Here is a meal planning strategy designed for sustainable fat loss.",
-    directAnswer: "A fat-loss plan must operate in a caloric deficit. Focus on high-volume, low-density foods (fiber-rich salads, clear soups, sprouts).",
-    reasoning: "Fiber and protein trigger satiety hormones (leptin, peptide YY) which help control hunger cravings during a deficit.",
-    actionSteps: [
-      "Keep calories at a 300-500 kcal deficit relative to your TDEE.",
-      "Drink 1 glass of masala buttermilk or water before meals to promote pre-satiety.",
-      "Cut down on visible sugars, sweet beverages, and heavy cream curries."
-    ],
-    warnings: [
-      "Do not skip meals completely as it usually leads to overeating later in the day."
-    ],
-    recommendations: [
-      { name: "Sprouts & Pomegranate Salad", type: "meal" },
-      { name: "Spinach & Egg White Scramble", type: "meal" },
-      { name: "High-Protein Soya Chunk Salad", type: "meal" }
-    ]
-  },
-  "Muscle gain diets.": {
-    text: "Here is a dietary setup to maximize muscle building (hypertrophy).",
-    directAnswer: "A muscle gain plan requires a mild caloric surplus (TDEE + 300-500 kcal) and high protein intake (~1.6 to 2.2g per kg of body weight).",
-    reasoning: "The body needs extra energy (calories) to build new muscle tissue. A clean surplus ensures muscle synthesis without excessive fat gains.",
-    actionSteps: [
-      "Aim for a steady weight gain rate of 1 to 1.5 kg per month.",
-      "Base meals around protein (chicken, paneer, fish, eggs) and complex carbohydrates (rice, oats, sweet potatoes) for gym energy.",
-      "Eat a protein-rich snack before bed (like casein/milk or paneer) to prevent overnight catabolism."
-    ],
-    warnings: [
-      "Avoid 'dirty bulking' (junk food calories) as it mostly gains body fat and causes sluggish workouts."
-    ],
-    recommendations: [
-      { name: "Paneer Parathas & Greek Yogurt", type: "meal" },
-      { name: "Chicken Breast Curry & Basmati Rice", type: "meal" },
-      { name: "Egg Omelette & Banana Oatmeal", type: "meal" }
-    ]
-  },
-  "Healthy snack suggestions.": {
-    text: "Snacking can make or break a diet. Here are nutrient-dense options.",
-    directAnswer: "Healthy snacks include roasted Foxnuts (Makhana), boiled egg whites, roasted chickpeas (Chana), mixed nuts, Greek yogurt, or buttermilk.",
-    reasoning: "Snacks should curb hunger without overloading calories. High-protein, high-fiber snacks digest slowly and keep insulin levels stable.",
-    actionSteps: [
-      "Roasted Makhana: Low in calories, satisfying crunch, source of antioxidants.",
-      "3 Boiled Egg Whites: Just 50 kcal and 12g of pure protein.",
-      "Sprouts Salad: Rich in enzymes, fiber, and B-vitamins."
-    ],
-    warnings: [
-      "Watch nut portions (almonds/walnuts). They are healthy but highly caloric; limit to 1 handful."
-    ],
-    recommendations: [
-      { name: "Roasted Spicy Chickpeas (Chana)", type: "meal" },
-      { name: "Roasted Foxnuts (Makhana)", type: "meal" },
-      { name: "Masala Buttermilk & Flax Seeds", type: "meal" }
-    ]
-  },
-  "My shoulders hurt during bench press.": {
-    text: "Shoulder discomfort is common but completely fixable with form tweaks.",
-    directAnswer: "Bench press shoulder pain usually stems from flaring elbows to 90 degrees, failing to retract shoulder blades, or poor rotator cuff stability.",
-    reasoning: "Retracting the scapula creates a stable arch, protecting the anterior deltoids and allowing the pectoral fibers to take the load.",
-    actionSteps: [
-      "Retract and depress your scapula (imagine tucking your shoulder blades into your back pockets).",
-      "Tuck elbows at a 45-degree angle relative to your torso as you lower the bar.",
-      "Perform warm-up rotator cuff rotations (y-t-w raises) before benching."
-    ],
-    warnings: [
-      "If pain is sharp, stop bench press immediately. Substitute with Dumbbell Floor Press or pushups."
-    ],
-    recommendations: [
-      { name: "Flat Dumbbell Press", type: "exercise", id: "flat-db-press" },
-      { name: "Push-Ups", type: "exercise", id: "push-ups" }
-    ]
-  },
-  "How many rest days do I need?": {
-    text: "Rest is when growth happens. Let's optimize your recovery schedule.",
-    directAnswer: "An active lifter needs 1 to 2 rest days per week. Calisthenics or beginner lifters might benefit from 2 to 3 rest days.",
-    reasoning: "Weightlifting creates micro-tears in muscle fibers. Sleep and rest days allow muscle protein synthesis to rebuild them stronger.",
-    actionSteps: [
-      "Never train the same muscle group on consecutive days (allow 48 hours recovery).",
-      "Utilize active rest days: take a 45-minute light walk or perform dynamic flexibility stretches.",
-      "Monitor resting heart rate: a sudden elevation can indicate systemic overtraining."
-    ],
-    warnings: [
-      "Overtraining decreases immune response and stops hypertrophy progress. More is not always better."
-    ],
-    recommendations: [
-      { name: "Plank", type: "exercise", id: "plank" }
-    ]
-  },
-  "I have DOMS.": {
-    text: "Delayed Onset Muscle Soreness (DOMS) is normal. Here is how to speed up relief.",
-    directAnswer: "Relieve DOMS through light active recovery (walking), hot/cold showers, foam rolling, proper hydration, and meeting your protein targets.",
-    reasoning: "DOMS is caused by microscopic muscle tearing and localized inflammatory responses, not lactic acid buildup.",
-    actionSteps: [
-      "Do not remain completely sedentary; light walking increases blood flow and carries nutrients to sore tissues.",
-      "Stay hydrated: drink at least 3-4 liters of water daily.",
-      "Get 8 hours of deep sleep to trigger growth hormone release."
-    ],
-    warnings: [
-      "Do not stretch sore muscles aggressively as it can worsen micro-tears."
-    ],
-    recommendations: [
-      { name: "Plank", type: "exercise", id: "plank" }
-    ]
-  },
-  "How much sleep should I get?": {
-    text: "Sleep is the ultimate anabolic steroid. Let's discuss rest requirements.",
-    directAnswer: "Aim for 7 to 9 hours of quality sleep per night. Hard-training athletes may require closer to 9 or 10 hours.",
-    reasoning: "Deep sleep (Stage 3 & 4) is when the pituitary gland releases the majority of Human Growth Hormone (HGH) to repair tissues.",
-    actionSteps: [
-      "Maintain a consistent sleep-wake schedule, even on weekends.",
-      "Avoid caffeine within 6 hours of bedtime.",
-      "Turn off screens/blue light 45 minutes before attempting sleep."
-    ],
-    warnings: [
-      "Sleeping under 6 hours decreases testosterone levels and increases cortisol, which breaks down muscle tissue."
-    ],
-    recommendations: []
-  },
-  "Why has my weight stalled?": {
-    text: "Weight plateaus are standard. Let's analyze the potential causes.",
-    directAnswer: "Weight stalls are caused by metabolic adaptation, inaccurate food logging (undercounting calories), or temporary water retention.",
-    reasoning: "As you lose weight, your body burns fewer calories because there is less tissue to support. This decreases your baseline TDEE.",
-    actionSteps: [
-      "Re-calculate your BMR and TDEE based on your new lower weight.",
-      "Weigh all raw food ingredients on a digital scale to identify hidden calorie leaks.",
-      "Ensure you are getting 7-8 hours of sleep, as high stress increases cortisol and holds water."
-    ],
-    warnings: [
-      "Do not drop your calories extremely low (under 1,200 for women, 1,500 for men) to break a plateau."
-    ],
-    recommendations: []
-  },
-  "Should I increase calories?": {
-    text: "Let's check if a caloric bump is appropriate for your fitness goal.",
-    directAnswer: "Increase calories by 150-250 kcal if your weight has stalled during a bulk, or if you feel consistently weak during heavy gym lifts.",
-    reasoning: "If you are trying to gain muscle but your weight is unchanged for 3+ weeks, your body has adapted and matched your current intake as maintenance.",
-    actionSteps: [
-      "Add calories via healthy carbs (oats, rice, sweet potato) or fats (almonds, peanut butter).",
-      "Ensure you are lifting with progressive overload; otherwise, extra calories will just store as body fat.",
-      "If cutting, do not increase calories unless you are planning a strategic 1-week diet break."
-    ],
-    warnings: [
-      "Increasing calories too fast leads to rapid fat gain. Keep adjustments to 15% of total intake."
-    ],
-    recommendations: []
-  },
-  "Why is my bench press stuck?": {
-    text: "Bench press plateaus are frustrating but common. Let's break it down.",
-    directAnswer: "A stuck bench press is usually due to weak triceps/shoulders, stagnant training volume, or failing to overload progressively.",
-    reasoning: "Muscles adapt to stress quickly. If you bench the same weight and reps every week, there is no adaptive signal for strength gains.",
-    actionSteps: [
-      "Incorporate accessory movements: Close Grip Bench Press (for triceps) and Overhead Press (for front delts).",
-      "Try a volume deload: drop weight by 10% for a week, then return to progress.",
-      "Bench twice a week (one heavy day, one high-volume speed day)."
-    ],
-    warnings: [
-      "Do not attempt dangerous heavy sets without a spotter or safety bars in place."
-    ],
-    recommendations: [
-      { name: "Flat Bench Press", type: "exercise", id: "flat-bb-press" },
-      { name: "Overhead Press", type: "exercise", id: "overhead-press" }
-    ]
+// -------------------------------------------------------------
+// DYNAMIC RESPONSE BUILDERS & STAT ANALYZERS
+// -------------------------------------------------------------
+
+const getStrengthProgress = (history: any[]) => {
+  let benchPR = 0;
+  let squatPR = 0;
+  let deadliftPR = 0;
+
+  if (history && Array.isArray(history)) {
+    history.forEach(workout => {
+      if (workout.exercises && Array.isArray(workout.exercises)) {
+        workout.exercises.forEach((ex: any) => {
+          const nameLower = (ex.name || '').toLowerCase();
+          const idLower = (ex.id || '').toLowerCase();
+          
+          const isBench = nameLower.includes('bench') || idLower.includes('bench') || idLower.includes('press');
+          const isSquat = nameLower.includes('squat') || idLower.includes('squat');
+          const isDeadlift = nameLower.includes('deadlift') || idLower.includes('deadlift');
+
+          if (ex.sets && Array.isArray(ex.sets)) {
+            ex.sets.forEach((set: any) => {
+              const w = Number(set.weight) || 0;
+              if (isBench && w > benchPR) benchPR = w;
+              if (isSquat && w > squatPR) squatPR = w;
+              if (isDeadlift && w > deadliftPR) deadliftPR = w;
+            });
+          }
+        });
+      }
+    });
   }
+
+  return { benchPR, squatPR, deadliftPR };
 };
 
-export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises: _savedExercises }) => {
+const buildDirectAnswer = (
+  intents: string[],
+  userStats: {
+    name: string;
+    weight: number;
+    goal: string;
+    activity: string;
+    calories: number;
+    protein: number;
+    historyCount: number;
+    benchPR: number;
+    squatPR: number;
+    deadliftPR: number;
+    dietType: string;
+  }
+) => {
+  let intro = `Hey ${userStats.name || 'Champion'}! Let's coach you through this. Based on your current stats—weighing **${userStats.weight} kg** with a goal of **${userStats.goal || 'Muscle Gain'}** and maintaining a **${userStats.activity || 'Moderately Active'}** lifestyle—here is my expert coach strategy for you. `;
+
+  if (userStats.historyCount > 0) {
+    intro += `I see you have already logged **${userStats.historyCount} workouts** in your training history. `;
+  } else {
+    intro += `Let's get your first workout logged in the tracker soon so we can track your consistency! `;
+  }
+
+  if (userStats.benchPR > 0 || userStats.squatPR > 0 || userStats.deadliftPR > 0) {
+    const prDetails = [
+      userStats.benchPR > 0 ? `Bench Press: ${userStats.benchPR}kg` : null,
+      userStats.squatPR > 0 ? `Squats: ${userStats.squatPR}kg` : null,
+      userStats.deadliftPR > 0 ? `Deadlifts: ${userStats.deadliftPR}kg` : null
+    ].filter(Boolean).join(', ');
+    intro += `Your current personal records stand at: **${prDetails}**. Let's aim to push these numbers up safely! `;
+  } else {
+    intro += `For your strength progress, we'll establish your baseline Bench Press, Squat, and Deadlift PRs as you log workouts. `;
+  }
+
+  let body = "";
+  if (intents.includes('workout')) {
+    body += `To maximize your training efficiency, I've outlined a tailored training split. Since your goal is **${userStats.goal || 'Muscle Gain'}**, focusing on compound movements with progressive overload will yield the best hypertrophy adaptation. `;
+  }
+  if (intents.includes('diet') || intents.includes('snacks')) {
+    if (userStats.dietType) {
+      body += `On the nutrition side, you're targeting **${userStats.calories || 2000} kcal** and **${userStats.protein || 120}g of protein** as a **${userStats.dietType}**. I have laid out a balanced meal structure to hit these macros. `;
+    } else {
+      body += `To customize your diet, let's select your preference first (Vegetarian, Non-Vegetarian, Eggetarian, or Both) so I can build your customized meal logs. `;
+    }
+  }
+  if (intents.includes('troubleshooting')) {
+    body += `Regarding the physical discomfort or plateau you mentioned, it's very common but easily solved. We need to prioritize joint stability, tweak your elbow tuck, or incorporate a deload week to let your tendons recover. `;
+  }
+  
+  if (!body) {
+    body = `I'm ready to help you with workout routine builders, diet macro allocations, snack hacks, and troubleshooting plateaus. Just tell me what you need!`;
+  }
+
+  return intro + body;
+};
+
+const buildActionPlan = (
+  intents: string[],
+  userStats: {
+    weight: number;
+    goal: string;
+    calories: number;
+    protein: number;
+    dietType: string;
+  },
+  daysCount: number,
+  isDumbbell: boolean
+) => {
+  let plans: string[] = [];
+
+  if (intents.includes('workout')) {
+    plans.push(`**Workout Routine:** Custom ${daysCount}-Day ${isDumbbell ? 'Dumbbells-Only' : 'Gym'} Routine:`);
+    if (daysCount === 3) {
+      plans.push(`• Day 1: **Push Day** (Bench Press, Overhead Press, Incline DB Press) - 3 sets x 8-12 reps (2 min rest)`);
+      plans.push(`• Day 2: **Pull Day** (Deadlifts, Dumbbell Rows, Bicep Curls) - 3 sets x 8-12 reps (2 min rest)`);
+      plans.push(`• Day 3: **Leg Day & Core** (Squats, Lunges, Plank holds) - 3 sets x 10-15 reps (90s rest)`);
+    } else {
+      plans.push(`• Day 1: **Upper Body Focus** (Barbell Bench Press, DB Rows, Overhead Press) - 3-4 sets x 8-10 reps`);
+      plans.push(`• Day 2: **Lower Body Focus** (Barbell Squats, Lunges, Calf Raises) - 3-4 sets x 10-12 reps`);
+      plans.push(`• Day 3: **Active Recovery / Core** (Plank holds, cardio, mobility stretches) - 3 sets x 45s`);
+      plans.push(`• Day 4: **Full Body Hypertrophy** (Dumbbell Floor Press, DB Rows, Goblet Squats) - 3 sets x 10-12 reps`);
+    }
+  }
+
+  if (intents.includes('diet')) {
+    if (userStats.dietType) {
+      plans.push(`**Meal Schedule:** Tailored for a **${userStats.dietType}** diet at **${userStats.calories} kcal** / **${userStats.protein}g Protein**:`);
+      if (userStats.dietType === 'Veg') {
+        plans.push(`• **Breakfast (08:00)**: Soya cheela or Paneer toast + 1 glass double-toned milk (450 kcal, 28g protein)`);
+        plans.push(`• **Lunch (13:00)**: 150g Low-fat Paneer Bhurji cooked in 1 tsp olive oil + 2 multigrain rotis + raw cucumber salad (650 kcal, 38g protein)`);
+        plans.push(`• **Evening Snack (17:00)**: 1 scoop Whey Protein in water + 15 almonds (220 kcal, 28g protein)`);
+        plans.push(`• **Dinner (20:00)**: 150g Stir-fried Tofu with broccoli and capsicum over 1 cup cooked brown rice (680 kcal, 36g protein)`);
+      } else if (userStats.dietType === 'Non-Veg') {
+        plans.push(`• **Breakfast (08:00)**: 3 egg whites + 2 whole eggs scrambled with spinach + 2 slices whole wheat toast (480 kcal, 32g protein)`);
+        plans.push(`• **Lunch (13:00)**: 150g juicy grilled Chicken breast + 1.5 cups cooked Basmati rice + mixed dal tadka (720 kcal, 54g protein)`);
+        plans.push(`• **Evening Snack (17:00)**: 1 cup low-fat Greek yogurt with chia seeds + 1 apple (200 kcal, 15g protein)`);
+        plans.push(`• **Dinner (20:00)**: 150g pan-seared Salmon or Basa fish fillet + roasted sweet potato mash + steamed green beans (600 kcal, 44g protein)`);
+      } else if (userStats.dietType === 'Eggetarian') {
+        plans.push(`• **Breakfast (08:00)**: 3 scrambled eggs seasoned with black pepper + 2 slices wheat toast (450 kcal, 24g protein)`);
+        plans.push(`• **Lunch (13:00)**: 100g low-fat Paneer stir-fry + mixed sprouts salad + 2 multigrain flatbreads (620 kcal, 30g protein)`);
+        plans.push(`• **Evening Snack (17:00)**: 1 scoop Whey Protein shake + 1 medium banana (250 kcal, 26g protein)`);
+        plans.push(`• **Dinner (20:00)**: Egg bhurji curry (3 eggs) cooked with onions/tomatoes + 1 cup brown rice or quinoa (650 kcal, 32g protein)`);
+      } else if (userStats.dietType === 'Both') {
+        plans.push(`• **Breakfast (08:00)**: 3 egg whites scrambled with spinach + 1 scoop whey protein shake (380 kcal, 38g protein)`);
+        plans.push(`• **Lunch (13:00)**: 150g grilled chicken breast or 150g Paneer bhurji + 2 multigrain rotis + mixed dal (680 kcal, 48g protein)`);
+        plans.push(`• **Evening Snack (17:00)**: 1 handful roasted foxnuts (makhana) + 1 glass masala buttermilk (150 kcal, 6g protein)`);
+        plans.push(`• **Dinner (20:00)**: 150g baked fish fillet or grilled tofu + 1 cup cooked brown rice + stir-fried veggies (590 kcal, 38g protein)`);
+      }
+    } else {
+      plans.push(`**Diet Setup Stopped**: Please select your dietary preference below so I can output your custom daily meals.`);
+    }
+  }
+
+  if (intents.includes('snacks')) {
+    if (userStats.dietType) {
+      plans.push(`**Satiety Snacks:** High-protein snacks to prevent cravings:`);
+      if (userStats.dietType === 'Veg') {
+        plans.push(`• Roasted foxnuts (Makhana) - 50g (180 kcal, 4g protein)`);
+        plans.push(`• Sprouted moong salad with lime and chaat masala (150 kcal, 9g protein)`);
+        plans.push(`• Low-fat paneer slices with cucumber (180 kcal, 18g protein)`);
+      } else if (userStats.dietType === 'Non-Veg') {
+        plans.push(`• Hard-boiled egg whites (3 pcs) seasoned with salt/pepper (50 kcal, 12g protein)`);
+        plans.push(`• Shredded chicken salad with light yogurt dressing (120 kcal, 22g protein)`);
+        plans.push(`• Low-fat turkey breast roll-ups (90 kcal, 15g protein)`);
+      } else if (userStats.dietType === 'Eggetarian') {
+        plans.push(`• Boiled eggs (2 whole) (140 kcal, 12g protein)`);
+        plans.push(`• Sprouts salad with boiled egg white dressing (160 kcal, 15g protein)`);
+      } else {
+        plans.push(`• Roasted black chickpeas (Chana) - 50g (180 kcal, 10g protein)`);
+        plans.push(`• Hard-boiled egg whites (3 pcs) (50 kcal, 12g protein)`);
+        plans.push(`• Low-fat paneer bhurji - 80g (140 kcal, 15g protein)`);
+      }
+    } else {
+      plans.push(`**Snack Plan:** Choose your dietary preference below to get clean snacking recommendations.`);
+    }
+  }
+
+  if (intents.includes('troubleshooting')) {
+    plans.push(`**Form & Joint Corrections:**`);
+    plans.push(`• **Retract the Scapula**: Squeeze your shoulder blades together and tuck them down before lying on the bench.`);
+    plans.push(`• **Tuck Your Elbows**: Keep your elbows at a 45-degree angle to your body. Flaring them to 90 degrees causes impingement.`);
+    plans.push(`• **Incorporate Accessory Exercises**: Work on facepulls, rotator cuff external rotations, and dumbbell floor presses to build joint stability.`);
+  }
+
+  if (plans.length === 0) {
+    plans.push(`• Define a goal in your profile to initialize custom workout and diet plans.`);
+    plans.push(`• Start tracking daily weight entries in the progress dashboard.`);
+    plans.push(`• Check your nutrition logs to ensure you meet protein requirements.`);
+  }
+
+  return plans;
+};
+
+const buildAdditionalRecommendations = (intents: string[], dietType: string) => {
+  let recs: string[] = [];
+
+  if (intents.includes('workout') || intents.includes('equipment')) {
+    recs.push(`**Active Recovery**: Do 30-45 minutes of low-intensity steady-state cardio (LISS) like brisk walking on rest days to speed up recovery.`);
+    recs.push(`**Time Under Tension**: Slow down the lowering (eccentric) phase of your exercises to 3 seconds to trigger greater muscle hypertrophy.`);
+  }
+
+  if (intents.includes('diet') || intents.includes('snacks')) {
+    recs.push(`**Hydration Target**: Drink at least 3-4 liters of water daily to maintain metabolic performance and muscle fullness.`);
+    recs.push(`**Prep Your Meals**: Cook your protein sources in bulk on Sundays to ensure you never fall short of your daily macros.`);
+    if (dietType === 'Veg') {
+      recs.push(`**Protein Complementarity**: Combine grains and legumes (like rice and dal) to create complete amino acid profiles.`);
+    }
+  }
+
+  if (intents.includes('troubleshooting')) {
+    recs.push(`**Deload Cycles**: Every 6-8 weeks of heavy training, reduce your working weights by 15-20% for 1 week to let joints and ligaments repair.`);
+    recs.push(`**Quality Sleep**: Sleep is the ultimate recovery tool. Get 7-9 hours of deep sleep to optimize growth hormone production.`);
+  }
+
+  if (recs.length === 0) {
+    recs.push(`Ensure you sleep 8 hours per night to maximize central nervous system recovery.`);
+    recs.push(`Keep records of your weight entries on a weekly basis to track trends.`);
+  }
+
+  return recs;
+};
+
+const buildFollowUpSuggestions = (intents: string[]) => {
+  let suggestions: string[] = [];
+
+  if (intents.includes('workout')) {
+    suggestions.push("How do I calculate my 1-Rep Max (1RM)?");
+    suggestions.push("Should I train to failure on every set?");
+    suggestions.push("What exercises build wider shoulders?");
+  }
+  if (intents.includes('diet')) {
+    suggestions.push("How can I hit my protein goal without whey?");
+    suggestions.push("Is creatine safe to take daily?");
+    suggestions.push("Should I eat carbs before my workout?");
+  }
+  if (intents.includes('troubleshooting')) {
+    suggestions.push("How do I fix a strength plateau?");
+    suggestions.push("What is the best way to deal with DOMS?");
+    suggestions.push("How do I test my shoulder mobility?");
+  }
+  
+  if (suggestions.length < 3) {
+    suggestions.push("Suggest healthy snacks.");
+    suggestions.push("Give me a 3-day split.");
+    suggestions.push("Explain weight stalls.");
+  }
+
+  return [...new Set(suggestions)].slice(0, 4);
+};
+
+const PRESET_QUERIES = [
+  "Create a 4-day fat-loss split.",
+  "I only have dumbbells.",
+  "Give me a beginner calisthenics routine.",
+  "Suggest chest exercises without machines.",
+  "Build a Push Pull Legs routine.",
+  "Give me a 2,300-calorie Indian diet.",
+  "High-protein vegetarian meals.",
+  "Fat-loss meal plans.",
+  "Muscle gain diets.",
+  "Healthy snack suggestions.",
+  "My shoulders hurt during bench press.",
+  "How many rest days do I need?",
+  "I have DOMS.",
+  "How much sleep should I get?",
+  "Why has my weight stalled?",
+  "Should I increase calories?",
+  "Why is my bench press stuck?"
+];
+
+export const AICoach: React.FC<AICoachProps> = ({ 
+  onSaveRoutine, 
+  savedExercises: _savedExercises,
+  userWeight,
+  savedDietGoal,
+  workoutHistory,
+  savedDietCalories,
+  savedDietProtein,
+  savedDietType,
+  userName,
+  onSaveDiet,
+  onNavigate,
+  onStartWorkout,
+  onChangeDietType
+}) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'generator'>('chat');
   
+  // Shopping list modal state
+  const [shoppingListModalOpen, setShoppingListModalOpen] = useState(false);
+  const [shoppingListItems, setShoppingListItems] = useState<{ category: string; items: { name: string; qty: string }[] }[]>([]);
+  const [shoppingListType, setShoppingListType] = useState<string>('Veg');
+  const [shoppingListCopied, setShoppingListCopied] = useState(false);
+
   // ====================================================
   // CHAT STATE & FUNCTIONS
   // ====================================================
@@ -362,14 +373,40 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
           {
             id: 'msg-2',
             sender: 'ai',
+            text: 'Hey Champ! Let\'s coach you through this.',
             timestamp: Date.now() - 3590000 * 2,
-            ...PRESET_ANSWERS['Create a 4-day fat-loss split.']
+            directAnswer: 'Preserving muscle through heavy compound lifting is key for fat loss. This 4-day Upper/Lower split maximizes energy expenditure while offering 72 hours of recovery per muscle group.',
+            actionPlanItems: [
+              'Day 1: Upper Body Power (Bench Press, Rows, Overhead Press) - 3 sets x 8 reps',
+              'Day 2: Lower Body Power (Squats, RDLs, Leg Press) - 3 sets x 10 reps',
+              'Day 3: Active Rest / LISS Cardio (30-45 mins walk/cycle)',
+              'Day 4: Upper Body Hypertrophy (DB Press, Pullups, Lateral Raises) - 3 sets x 10 reps',
+              'Day 5: Lower Body Hypertrophy (Leg Extensions, Curls, Lunges) - 3 sets x 12 reps'
+            ],
+            recommendationItems: [
+              'Flat Bench Press - 3 sets of 8 reps',
+              'Dumbbell Rows - 3 sets of 10 reps',
+              'Quality Sleep: 7-9 hours to rebuild muscle fibers',
+              'Hydration: 3-4L water daily'
+            ],
+            followUpSuggestions: [
+              'Should I do cardio on rest days?',
+              'How many calories should I eat to lose fat?',
+              'What exercises build chest width?'
+            ],
+            hasWorkoutContent: true,
+            generatedRoutine: {
+              id: 'ai-routine-preset-1',
+              name: 'AI: 4-Day Upper/Lower Split',
+              desc: 'Custom 4-day fat-loss program built for your profile.',
+              exercises: ['flat-bb-press', 'db-rows', 'barbell-squats', 'deadlift']
+            }
           }
         ]
       },
       {
         id: 'chat-2',
-        title: 'High Protein Vegetarian Meal Planning',
+        title: 'High Protein Vegetarian Meals',
         timestamp: Date.now() - 3600000 * 24,
         messages: [
           {
@@ -381,8 +418,26 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
           {
             id: 'msg-4',
             sender: 'ai',
+            text: 'Hey Champ! Let\'s coach you through this.',
             timestamp: Date.now() - 3590000 * 24,
-            ...PRESET_ANSWERS['High-protein vegetarian meals.']
+            directAnswer: 'Vegetarians can easily hit their protein targets. We focus on low-fat paneer, Greek yogurt, tofu, lentils, and high-protein soya chunks to target 120-140g of protein daily.',
+            actionPlanItems: [
+              'Meal 1: High-protein Soya cheela (2 pcs) with low-fat curd (450 kcal, 28g protein)',
+              'Meal 2: Low-fat paneer (150g) bhurji + 2 multigrain rotis (650 kcal, 38g protein)',
+              'Meal 3: Stir-fried Tofu (150g) with green broccoli and brown rice (680 kcal, 36g protein)'
+            ],
+            recommendationItems: [
+              'Whey Protein: Supplement 1 scoop to hit clean target',
+              'Protein Complementarity: Rice and Dal combine for complete amino profiles',
+              'Prep meals in bulk on Sundays'
+            ],
+            followUpSuggestions: [
+              'Give me a shopping list for these vegetarian meals.',
+              'What vegetarian snacks have the most protein?',
+              'Should I take creatine?'
+            ],
+            hasDietContent: true,
+            suggestedDiet: { calories: 2200, protein: 120, goal: 'Muscle Gain' }
           }
         ]
       }
@@ -430,53 +485,558 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
     });
   };
 
+  const handleSetDietPreference = (pref: string, msgId: string) => {
+    onChangeDietType(pref);
+    
+    setConversations(prev => prev.map(c => {
+      if (c.id === activeChatId) {
+        return {
+          ...c,
+          messages: c.messages.map(m => {
+            if (m.id === msgId) {
+              const updatedFields = generateResponseFields(m.originalQuery || m.text, pref);
+              return {
+                ...m,
+                dietPromptAnswered: true,
+                selectedPreference: pref,
+                showDietPrompt: false,
+                ...updatedFields
+              };
+            }
+            return m;
+          })
+        };
+      }
+      return c;
+    }));
+  };
+
+  const handleSaveRoutineFromChat = (msg: Message) => {
+    if (msg.generatedRoutine) {
+      onSaveRoutine(msg.generatedRoutine);
+      alert("Routine saved successfully to your dashboard!");
+    }
+  };
+
+  const handleStartWorkoutFromChat = (msg: Message) => {
+    if (msg.generatedRoutine) {
+      onStartWorkout(msg.generatedRoutine);
+      document.getElementById('dashboard')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleSaveDietFromChat = (msg: Message) => {
+    if (msg.suggestedDiet) {
+      onSaveDiet({
+        goal: msg.suggestedDiet.goal,
+        type: savedDietType || msg.selectedPreference || 'Veg',
+        calories: msg.suggestedDiet.calories,
+        protein: msg.suggestedDiet.protein,
+        carbs: Math.round((msg.suggestedDiet.calories * 0.45) / 4),
+        fats: Math.round((msg.suggestedDiet.calories * 0.25) / 9),
+        age: Number(localStorage.getItem('fitai_user_age') || '25'),
+        weight: userWeight,
+        height: Number(localStorage.getItem('fitai_user_height') || '175'),
+        goalWeight: Number(localStorage.getItem('fitai_user_goal_weight') || '65'),
+        gender: (localStorage.getItem('fitai_user_gender') || 'Male') as 'Male' | 'Female',
+        activity: localStorage.getItem('fitai_user_activity') || 'Moderately Active',
+        subGoalName: 'AI Coach Recommendation',
+        expectedChange: msg.suggestedDiet.goal === 'Fat Loss' ? '-0.50 kg / week' : '+0.25 kg / week'
+      });
+      alert("Diet targets updated on your dashboard!");
+    }
+  };
+
+  const handleAddToNutritionHub = (msg: Message) => {
+    if (msg.suggestedDiet) {
+      handleSaveDietFromChat(msg);
+      onNavigate('nutrition', 'diet');
+    }
+  };
+
+  const handleGenerateShoppingList = (dietType: string) => {
+    let items: { category: string; items: { name: string; qty: string }[] }[] = [];
+    const type = dietType || savedDietType || 'Veg';
+
+    if (type === 'Veg') {
+      items = [
+        {
+          category: 'Protein Sources 🥦',
+          items: [
+            { name: 'Low-fat Paneer', qty: '1.5 kg' },
+            { name: 'Tofu (Extra Firm)', qty: '1.0 kg' },
+            { name: 'Whey Protein Isolate', qty: '1 tub (approx. 30 servings)' },
+            { name: 'Soya Chunks / Granules', qty: '500 g' },
+            { name: 'Greek Yogurt (Unsweetened)', qty: '1.5 kg' },
+            { name: 'Mixed Lentils (Moong/Masoor Dal)', qty: '1.0 kg' }
+          ]
+        },
+        {
+          category: 'Complex Carbs 🌾',
+          items: [
+            { name: 'Rolled Oats', qty: '1.0 kg' },
+            { name: 'Brown Rice / Quinoa', qty: '1.5 kg' },
+            { name: 'Multigrain Atta (Flour)', qty: '2.0 kg' },
+            { name: 'Sweet Potatoes', qty: '1.0 kg' }
+          ]
+        },
+        {
+          category: 'Vitamins & Fiber 🥗',
+          items: [
+            { name: 'Fresh Broccoli', qty: '1.0 kg' },
+            { name: 'Baby Spinach leaves', qty: '500 g' },
+            { name: 'English Cucumbers', qty: '1.5 kg' },
+            { name: 'Lemon, Ginger, & Garlic', qty: 'As needed' }
+          ]
+        }
+      ];
+    } else if (type === 'Non-Veg') {
+      items = [
+        {
+          category: 'Protein Sources 🍗',
+          items: [
+            { name: 'Boneless Chicken Breast', qty: '2.0 kg' },
+            { name: 'Salmon or Basa fish fillets', qty: '1.2 kg' },
+            { name: 'Fresh Eggs (Large)', qty: '3 dozen' },
+            { name: 'Whey Protein Isolate', qty: '1 tub' },
+            { name: 'Lean Ground Turkey / Beef', qty: '800 g' }
+          ]
+        },
+        {
+          category: 'Complex Carbs 🌾',
+          items: [
+            { name: 'Rolled Oats', qty: '1.0 kg' },
+            { name: 'Basmati Rice', qty: '2.0 kg' },
+            { name: 'Sweet Potatoes', qty: '1.5 kg' },
+            { name: 'Whole Wheat Toast Bread', qty: '2 loaves' }
+          ]
+        },
+        {
+          category: 'Vitamins & Fiber 🥗',
+          items: [
+            { name: 'Fresh Broccoli & Asparagus', qty: '1.5 kg' },
+            { name: 'Spinach / Mixed salad greens', qty: '750 g' },
+            { name: 'English Cucumbers & Tomatoes', qty: '2.0 kg' },
+            { name: 'Avocados', qty: '4 pcs' }
+          ]
+        }
+      ];
+    } else if (type === 'Eggetarian') {
+      items = [
+        {
+          category: 'Protein Sources 🍳',
+          items: [
+            { name: 'Fresh Eggs (Large)', qty: '4 dozen' },
+            { name: 'Low-fat Paneer', qty: '1.0 kg' },
+            { name: 'Whey Protein Isolate', qty: '1 tub' },
+            { name: 'Greek Yogurt (Unsweetened)', qty: '1.5 kg' },
+            { name: 'Black Chickpeas (Kala Chana)', qty: '1.0 kg' }
+          ]
+        },
+        {
+          category: 'Complex Carbs 🌾',
+          items: [
+            { name: 'Rolled Oats', qty: '1.0 kg' },
+            { name: 'Brown Rice', qty: '1.5 kg' },
+            { name: 'Multigrain Atta (Flour)', qty: '2.0 kg' }
+          ]
+        },
+        {
+          category: 'Vitamins & Fiber 🥗',
+          items: [
+            { name: 'Spinach & Kale', qty: '600 g' },
+            { name: 'English Cucumbers', qty: '1.5 kg' },
+            { name: 'Fresh Broccoli', qty: '1.0 kg' }
+          ]
+        }
+      ];
+    } else {
+      items = [
+        {
+          category: 'Protein Sources 🥚🥩',
+          items: [
+            { name: 'Chicken Breast / Fish Fillets', qty: '1.5 kg' },
+            { name: 'Fresh Eggs (Large)', qty: '2 dozen' },
+            { name: 'Low-fat Paneer or Tofu', qty: '1.0 kg' },
+            { name: 'Whey Protein Isolate', qty: '1 tub' }
+          ]
+        },
+        {
+          category: 'Complex Carbs 🌾',
+          items: [
+            { name: 'Rolled Oats / Muesli', qty: '1.0 kg' },
+            { name: 'Basmati / Brown Rice', qty: '2.0 kg' },
+            { name: 'Whole Wheat Flatbread Flour', qty: '1.5 kg' }
+          ]
+        },
+        {
+          category: 'Vitamins & Fiber 🥗',
+          items: [
+            { name: 'Fresh Broccoli & Peppers', qty: '1.5 kg' },
+            { name: 'English Cucumbers & Spinach', qty: '1.5 kg' }
+          ]
+        }
+      ];
+    }
+
+    setShoppingListItems(items);
+    setShoppingListType(type);
+    setShoppingListModalOpen(true);
+  };
+
+  const handleCopyShoppingList = () => {
+    let text = `🛒 FitAI Coach Custom Shopping List (${shoppingListType})\n\n`;
+    shoppingListItems.forEach(cat => {
+      text += `--- ${cat.category} ---\n`;
+      cat.items.forEach(item => {
+        text += `- ${item.name}: ${item.qty}\n`;
+      });
+      text += `\n`;
+    });
+    text += `Generated by FitAI Coach. Stay disciplined! 💪`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      setShoppingListCopied(true);
+      setTimeout(() => setShoppingListCopied(false), 2000);
+    });
+  };
+
   const triggerAIResponse = (userText: string, chatId: string) => {
     setIsTyping(true);
     
-    // Simulate AI thinking and typing delay
     setTimeout(() => {
-      // Look up preset answers, or build a fuzzy match response
-      let match = PRESET_ANSWERS[userText];
+      const textLower = userText.toLowerCase();
       
-      if (!match) {
-        const textLower = userText.toLowerCase();
-        // Fuzzy search keywords
-        if (textLower.includes('chest') || textLower.includes('pushup')) {
-          match = PRESET_ANSWERS['Suggest chest exercises without machines.'];
-        } else if (textLower.includes('veg') || textLower.includes('protein')) {
-          match = PRESET_ANSWERS['High-protein vegetarian meals.'];
-        } else if (textLower.includes('calorie') || textLower.includes('diet') || textLower.includes('indian')) {
-          match = PRESET_ANSWERS['Give me a 2,300-calorie Indian diet.'];
-        } else if (textLower.includes('bench') || textLower.includes('shoulder') || textLower.includes('hurt')) {
-          match = PRESET_ANSWERS['My shoulders hurt during bench press.'];
-        } else if (textLower.includes('sleep') || textLower.includes('rest')) {
-          match = PRESET_ANSWERS['How much sleep should I get.'] || PRESET_ANSWERS['How much sleep should I get?'];
-        } else if (textLower.includes('stall') || textLower.includes('plateau') || textLower.includes('weight')) {
-          match = PRESET_ANSWERS['Why has my weight stalled?'];
-        } else if (textLower.includes('dumbbell') || textLower.includes('db')) {
-          match = PRESET_ANSWERS['I only have dumbbells.'];
-        } else if (textLower.includes('calisthenic') || textLower.includes('bodyweight')) {
-          match = PRESET_ANSWERS['Give me a beginner calisthenics routine.'];
-        } else {
-          // Fallback detailed template
-          match = {
-            text: "That is a great coaching question. Let's analyze it from a biomechanical and metabolic standpoint.",
-            directAnswer: `To address "${userText}", we must prioritize progressive overload in your exercises and ensure your nutrition matches your active metabolic requirements.`,
-            reasoning: "Hypertrophy and biological adaptations are directly triggered by progressive tension and mechanical loads. Nutrition fuels this recovery loop.",
-            actionSteps: [
-              "Track your compound sets carefully, ensuring you stop 1-2 reps before failure (RPE 8-9).",
-              "Maintain a steady protein distribution of 1.6 to 2.2g per kg of bodyweight.",
-              "Track metrics and weight averages on a weekly basis to isolate trendlines."
-            ],
-            warnings: [
-              "Avoid rapid spikes in volume or extreme caloric deficits, which can damage joint and hormone health."
-            ],
-            recommendations: [
-              { name: "Flat Bench Press", type: "exercise", id: "flat-bb-press" },
-              { name: "Pull-Ups", type: "exercise", id: "pullups" }
-            ]
+      const detectedIntents: string[] = [];
+      if (textLower.includes('split') || textLower.includes('routine') || textLower.includes('program') || textLower.includes('workout') || textLower.includes('day')) {
+        detectedIntents.push('workout');
+      }
+      if (textLower.includes('dumbbell') || textLower.includes('db') || textLower.includes('equipment') || textLower.includes('calisthenic') || textLower.includes('bodyweight') || textLower.includes('home') || textLower.includes('only')) {
+        detectedIntents.push('equipment');
+      }
+      if (textLower.includes('diet') || textLower.includes('calorie') || textLower.includes('kcal') || textLower.includes('meal') || textLower.includes('nutrition') || textLower.includes('food') || textLower.includes('protein') || textLower.includes('veg')) {
+        detectedIntents.push('diet');
+      }
+      if (textLower.includes('bench') || textLower.includes('shoulder') || textLower.includes('hurt') || textLower.includes('pain') || textLower.includes('stuck') || textLower.includes('plateau') || textLower.includes('press')) {
+        detectedIntents.push('troubleshooting');
+      }
+      if (textLower.includes('snack') || textLower.includes('snacks') || textLower.includes('snacking')) {
+        detectedIntents.push('snacks');
+      }
+
+      let match = PRESET_ANSWERS[userText];
+      let sections: Section[] = [];
+      let showDietPrompt = false;
+      let generatedRoutine: WorkoutRoutine | undefined = undefined;
+      let suggestedDiet: { calories: number; protein: number; goal: string } | undefined = undefined;
+      let coachIntroduction = `Hey ${userName || 'Champion'}! Let's break down your goals. I've analyzed your profile and query to design this tailored strategy.`;
+
+      if (!match && detectedIntents.length > 0) {
+        if (detectedIntents.includes('workout')) {
+          const daysMatch = userText.match(/(\d+)\s*-?\s*day/i);
+          const daysCount = daysMatch ? parseInt(daysMatch[1]) : 4;
+          const hasDumbbells = textLower.includes('dumbbell') || textLower.includes('db');
+          
+          let splitExercises = hasDumbbells 
+            ? [
+                { name: 'Flat Dumbbell Press', id: 'flat-db-press' },
+                { name: 'Dumbbell Rows', id: 'db-rows' },
+                { name: 'Lunges', id: 'lunge' },
+                { name: 'Plank', id: 'plank' }
+              ]
+            : [
+                { name: 'Flat Bench Press', id: 'flat-bb-press' },
+                { name: 'Dumbbell Rows', id: 'db-rows' },
+                { name: 'Barbell Squats', id: 'barbell-squats' },
+                { name: 'Deadlift', id: 'deadlift' }
+              ];
+
+          let dayDetails = "";
+          if (daysCount === 4) {
+            dayDetails = `- **Day 1**: Upper Body Focus (Dumbbell Bench Press, Dumbbell Rows, Lateral Raises)
+- **Day 2**: Lower Body Focus (Goblet Squats, Dumbbell Romanian Deadlifts, Lunges)
+- **Day 3**: Active Recovery / Core (Plank holds, mobility stretches)
+- **Day 4**: Full Body Hypertrophy (Dumbbell Floor Press, Lunges, Dumbbell Rows)`;
+          } else {
+            dayDetails = `- **Day 1**: Push Day (Bench Press variations, overhead press, tricep extensions)
+- **Day 2**: Pull Day (Deadlifts, dumbbell rows, curls)
+- **Day 3**: Legs & Core (Squats, lunges, plank circuits)`;
+          }
+
+          generatedRoutine = {
+            id: `ai-routine-${Date.now()}`,
+            name: `Coach's ${daysCount}d ${hasDumbbells ? 'DB' : 'Gym'} Split`,
+            desc: `Custom ${daysCount}-day program built for ${savedDietGoal || 'Muscle Gain'} targeting your weight of ${userWeight || 70} kg.`,
+            exercises: splitExercises.map(ex => ex.id)
           };
+
+          sections.push({
+            id: 'sect-workout',
+            title: `🏋️ Custom ${daysCount}-Day ${savedDietGoal || 'Muscle Gain'} Split`,
+            content: `Since your goal is **${savedDietGoal || 'Muscle Gain'}** and you weigh **${userWeight || 70} kg**, I've designed a specialized hypertrophy program tailored to your stats. 
+            
+            **Weekly Structure:**
+            ${dayDetails}
+            
+            *Progression strategy: Keep the intensity high (RPE 8-9) and aim to add 1 rep or slightly increase the load weekly.*`,
+            type: 'workout',
+            actionButtons: ['save_routine', 'start_workout'],
+            exercises: splitExercises
+          });
         }
+
+        if (detectedIntents.includes('equipment')) {
+          const isDumbbell = textLower.includes('dumbbell') || textLower.includes('db');
+          const isCali = textLower.includes('calisthenic') || textLower.includes('bodyweight');
+          
+          let eqName = "limited equipment";
+          let tips = "";
+          
+          if (isDumbbell) {
+            eqName = "Dumbbells Only";
+            tips = `- **Time Under Tension**: Slow down the negative (eccentric) phase to 3 seconds to increase muscle recruitment.
+- **Unilateral Focus**: Exercise variations like Bulgarian Split Squats and Single-Arm DB Rows help correct asymmetries and demand high stabilization.
+- **Mechanical Drop Sets**: Move from a harder variation (e.g. Incline DB Press) directly to a flatter angle to exhaust fibers.`;
+          } else if (isCali) {
+            eqName = "Bodyweight Calisthenics";
+            tips = `- **Leverage Adjustments**: Make pushups harder by elevating your feet or doing decline pushups.
+- **Volume & Rest**: Keep rest times shorter (45-60s) to maintain a higher metabolic stress.
+- **Core Stability**: Focus on active hollow-body positions during pull-ups and planks.`;
+          } else {
+            eqName = "Home Equipment";
+            tips = `- Utilize resistance bands to add tension at the peak contraction of lifts.
+- Focus on high velocity concentric movements to recruit fast-twitch fibers.`;
+          }
+
+          sections.push({
+            id: 'sect-equipment',
+            title: `⚙️ Training Adaptation: ${eqName}`,
+            content: `Training with ${eqName} is highly effective. Here's how to maximize your biological adaptation:
+            
+            ${tips}`,
+            type: 'equipment'
+          });
+        }
+
+        if (detectedIntents.includes('diet')) {
+          const calMatch = userText.match(/(\d{3,4})\s*-?\s*(calorie|kcal)/i);
+          const caloriesTarget = calMatch ? parseInt(calMatch[1]) : (savedDietCalories || 2300);
+          const proteinTarget = Math.round(userWeight * 2) || savedDietProtein || 140;
+
+          suggestedDiet = {
+            calories: caloriesTarget,
+            protein: proteinTarget,
+            goal: savedDietGoal || 'Muscle Gain'
+          };
+
+          let dietContent = `To support your target of **${caloriesTarget} kcal** and **${proteinTarget}g protein**, here is a nutrient-dense Indian meal template. `;
+          
+          if (savedDietType === 'Veg') {
+            dietContent += `I've personalized this to your **Vegetarian** preferences:
+            
+- **Meal 1 (Breakfast)**: High-protein Soya flour cheela (2 pcs) with low-fat curd (450 kcal, 28g protein)
+- **Meal 2 (Lunch)**: Paneer Bhurji (150g low-fat paneer) with 2 multigrain rotis and cucumber raita (650 kcal, 36g protein)
+- **Meal 3 (Dinner)**: Stir-fried Tofu (150g) and broccoli over 1 cup cooked brown rice or quinoa (680 kcal, 34g protein)
+- **Daily Totals**: ~2300 kcal, ~138g protein. Fits your goal perfectly!`;
+          } else if (savedDietType === 'Non-Veg') {
+            dietContent += `I've personalized this to your **Non-Vegetarian** preferences:
+            
+- **Meal 1 (Breakfast)**: Egg Omelette (3 whole eggs + 2 whites) with sliced whole wheat toast (480 kcal, 32g protein)
+- **Meal 2 (Lunch)**: Juicy Chicken Breast Curry (150g breast) served with basmati rice (1.5 cups) and dal (720 kcal, 54g protein)
+- **Meal 3 (Dinner)**: Pan-grilled Salmon or Basa fish fillet with sautéed green beans and sweet potato mash (600 kcal, 44g protein)
+- **Daily Totals**: ~2300 kcal, ~145g protein. Built for muscle repair!`;
+          } else if (savedDietType === 'Eggetarian') {
+            dietContent += `I've personalized this to your **Eggetarian** preferences:
+            
+- **Meal 1 (Breakfast)**: Scrambled eggs (3 whole) with sliced wheat toast (450 kcal, 24g protein)
+- **Meal 2 (Lunch)**: Low-fat paneer (100g) stir-fry with mixed lentils and multigrain flatbread (620 kcal, 30g protein)
+- **Meal 3 (Dinner)**: Egg bhurji curry (3 eggs) served with cooked quinoa or brown rice (650 kcal, 32g protein)
+- **Daily Totals**: ~2300 kcal, ~135g protein. High bioavailability!`;
+          } else {
+            showDietPrompt = true;
+            dietContent += `Since your diet type is not selected in your profile, here are both options:
+            
+#### 🥦 Option A: Vegetarian meal plan (~2300 kcal, ~130g protein)
+- **Breakfast**: Rolled oats blended with skimmed milk, banana, and a scoop of whey protein (480 kcal, 32g protein)
+- **Lunch**: Paneer Bhurji (150g paneer) cooked with minimal oil, served with 2 multigrain rotis and green salad (650 kcal, 36g protein)
+- **Dinner**: High-protein soya chunk curry (75g soya) with steamed brown rice and mixed lentil dal (700 kcal, 42g protein)
+
+#### 🍗 Option B: Non-Vegetarian meal plan (~2300 kcal, ~140g protein)
+- **Breakfast**: 3 egg whites + 2 whole eggs scrambled with spinach, served with 2 slices of whole wheat toast (490 kcal, 30g protein)
+- **Lunch**: Tandoori Grilled Chicken breast (150g) with basmati rice (1 cup) and a hot bowl of Toor dal (680 kcal, 52g protein)
+- **Dinner**: Baked herb-crusted fish fillet (180g white fish) served with mashed sweet potatoes and steam-sautéed broccoli (620 kcal, 40g protein)`;
+          }
+
+          sections.push({
+            id: 'sect-diet',
+            title: `🍽️ Nutrition Plan: ${caloriesTarget} kcal / ${proteinTarget}g Protein`,
+            content: dietContent,
+            type: 'diet',
+            actionButtons: ['add_diet']
+          });
+        }
+
+        if (detectedIntents.includes('troubleshooting')) {
+          let problem = "bench press sticking";
+          let advice = "";
+          
+          if (textLower.includes('bench') || textLower.includes('press')) {
+            problem = "Bench Press Plateau";
+            advice = `- **Retract the Scapula**: Squeeze your shoulder blades together and pull them down (as if putting them in back pockets) before lying down. This stabilizes the shoulder capsule and places load on the pecs.
+- **Elbow Angle**: Tuck your elbows at 45 degrees relative to your torso. Never flare them to 90 degrees, which causes rotator cuff impingement.
+- **Triceps Support**: Incorporate Close Grip Bench Press or Dumbbell Floor Presses. Stronger triceps help drive through the midpoint lockout.`;
+          } else if (textLower.includes('shoulder') || textLower.includes('pain') || textLower.includes('hurt')) {
+            problem = "Shoulder Impingement / Pain";
+            advice = `- **Form Check**: Pain during press movements usually means the front deltoids are overloaded. Reduce the weight by 20% and focus on a slow, controlled trajectory.
+- **Warm-Up**: Allocate 5 minutes to dynamic joint circles and rotator cuff band face-pulls.
+- **Alternative Exercises**: Switch to Dumbbell Floor Presses or Chest Dips where elbow angle is naturally constrained.`;
+          } else {
+            problem = "Strength Plateaus";
+            advice = `- **Progressive Overload**: Ensure you are aiming for one extra rep or a tiny increment in load rather than using the same weight every week.
+- **Deload Week**: Drop working weights by 15% for one week to allow neurological and tendon structures to fully repair.
+- **Sleep & Protein**: Ensure you hit 8 hours of sleep. Soreness and stagnation are usually recovery-based.`;
+          }
+
+          let historyNotes = workoutHistory && workoutHistory.length > 0 
+            ? `Your workout history shows **${workoutHistory.length}** logged workouts. You're building solid consistency! Keep executing, let's break this barrier.`
+            : `I see you haven't logged workouts in your history yet. Let's get started on the tracker to log your baseline weights.`;
+
+          sections.push({
+            id: 'sect-troubleshoot',
+            title: `🔍 Biomechanical Troubleshooter: ${problem}`,
+            content: `${advice}
+            
+            ${historyNotes}`,
+            type: 'troubleshooting',
+            actionButtons: ['open_library']
+          });
+        }
+
+        if (detectedIntents.includes('snacks')) {
+          let snackContent = "Here are high-protein, satiating snack ideas. ";
+          
+          if (savedDietType === 'Veg') {
+            snackContent += `Optimized for your **Vegetarian** lifestyle:
+            
+- **Roasted Makhana (Foxnuts)**: Seasoned with turmeric and black pepper. Low calorie, great crunch. (100 kcal, 2g protein)
+- **Roasted Chana (Chickpeas)**: A handful provides complex carbs and fiber. (180 kcal, 10g protein)
+- **Low-Fat Paneer Bhurji / Cubes**: 100g pan-seared with salt and pepper. (180 kcal, 18g protein)
+- **Greek Yogurt / Sprouts**: Mixed with cucumber and pomegranate. (150 kcal, 12g protein)`;
+          } else if (savedDietType === 'Non-Veg') {
+            snackContent += `Optimized for your **Non-Vegetarian** lifestyle:
+            
+- **Hard-Boiled Egg Whites**: 3 egg whites seasoned with chaat masala and black pepper. (50 kcal, 12g protein)
+- **Shredded Chicken Breast Salad**: 100g breast tossed with cucumbers and fresh lime. (120 kcal, 22g protein)
+- **Chicken Skewers / Kebabs**: 3 small cubes of low-fat grilled chicken. (160 kcal, 18g protein)
+- **Whey Protein Shake**: Mixed with water. (120 kcal, 25g protein)`;
+          } else {
+            showDietPrompt = true;
+            snackContent += `Here are options for both preferences:
+            
+#### 🥦 Vegetarian Snacks
+- **Roasted Foxnuts (Makhana)**: Tossed in 1 tsp olive oil and pepper (120 kcal, 2g protein)
+- **Roasted Black Chana (Chickpeas)**: Excellent source of fiber and energy (150 kcal, 8g protein)
+- **Low-fat Paneer Cubes (100g)**: Seasoned with roasted cumin powder (180 kcal, 18g protein)
+
+#### 🍗 Non-Vegetarian / Egg Snacks
+- **Boiled Egg Whites (3 pcs)**: Quick, clean, and zero carb (50 kcal, 12g protein)
+- **Tandoori Chicken Skewers (100g)**: Baked or pan-seared chicken breast (140 kcal, 22g protein)
+- **Whey Isolate Shake**: 1 scoop mixed with water (120 kcal, 25g protein)`;
+          }
+
+          sections.push({
+            id: 'sect-snacks',
+            title: `🥜 High-Protein Coach Snacks`,
+            content: snackContent,
+            type: 'snacks'
+          });
+        }
+
+        match = {
+          text: coachIntroduction,
+          sections,
+          showDietPrompt,
+          generatedRoutine,
+          suggestedDiet
+        };
+
+      } else {
+        const baseMatch = match || PRESET_ANSWERS['Suggest chest exercises without machines.'];
+        
+        let sectionsList: Section[] = [
+          {
+            id: 'sect-general',
+            title: '🏋️ Coach Strategy Notes',
+            content: baseMatch.directAnswer || baseMatch.text,
+            type: 'workout'
+          }
+        ];
+        
+        if (baseMatch.reasoning) {
+          sectionsList.push({
+            id: 'sect-reasoning',
+            title: '🧠 Physiological Breakdown',
+            content: baseMatch.reasoning,
+            type: 'troubleshooting'
+          });
+        }
+
+        if (baseMatch.actionSteps && baseMatch.actionSteps.length > 0) {
+          sectionsList.push({
+            id: 'sect-actions',
+            title: '📋 Recommended Action Plan',
+            content: baseMatch.actionSteps.map(step => `- ${step}`).join('\n'),
+            type: 'workout'
+          });
+        }
+
+        if (baseMatch.warnings && baseMatch.warnings.length > 0) {
+          sectionsList.push({
+            id: 'sect-safety',
+            title: '⚠️ Coach Safety Guidelines',
+            content: baseMatch.warnings.join('\n'),
+            type: 'troubleshooting'
+          });
+        }
+
+        let actionButtons: ('save_routine' | 'add_diet' | 'open_library' | 'start_workout')[] = [];
+        let exercises: { id: string; name: string }[] = [];
+
+        if (baseMatch.recommendations && baseMatch.recommendations.length > 0) {
+          exercises = baseMatch.recommendations
+            .filter(r => r.type === 'exercise')
+            .map(r => ({ id: r.id || 'push-ups', name: r.name }));
+          
+          if (exercises.length > 0) {
+            actionButtons.push('save_routine', 'start_workout', 'open_library');
+            generatedRoutine = {
+              id: `ai-routine-${Date.now()}`,
+              name: `Coach's Recommended Split`,
+              desc: `AI recommended exercises for your fitness progression.`,
+              exercises: exercises.map(ex => ex.id)
+            };
+          }
+          
+          if (baseMatch.recommendations.some(r => r.type === 'meal')) {
+            actionButtons.push('add_diet');
+            suggestedDiet = {
+              calories: savedDietCalories || 2200,
+              protein: savedDietProtein || 120,
+              goal: savedDietGoal || 'Muscle Gain'
+            };
+          }
+        }
+
+        sectionsList[0].actionButtons = actionButtons;
+        sectionsList[0].exercises = exercises;
+
+        match = {
+          text: baseMatch.text,
+          sections: sectionsList,
+          generatedRoutine,
+          suggestedDiet,
+          showDietPrompt: (userText.toLowerCase().includes('diet') || userText.toLowerCase().includes('snack')) && !savedDietType
+        };
       }
 
       const newAIMessage: Message = {
@@ -933,15 +1493,15 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
                         <p className="font-semibold text-white">{msg.text}</p>
 
                         {/* Structured details (Only on Coach Responses if exist) */}
-                        {!isUser && msg.directAnswer && (
-                          <div className="space-y-3 pt-2 border-t border-white/5">
-                            {/* Direct Answer */}
-                            <div className="space-y-0.5">
-                              <span className="text-[9px] text-brand-cyan font-black uppercase tracking-wider block">Direct Answer</span>
-                              <p className="text-zinc-300 font-medium">{msg.directAnswer}</p>
-                            </div>
+                        {!isUser && (
+                          <div className="space-y-4 pt-2 border-t border-white/5">
+                            {msg.directAnswer && (
+                              <div className="space-y-0.5">
+                                <span className="text-[9px] text-brand-cyan font-black uppercase tracking-wider block">Direct Answer</span>
+                                <p className="text-zinc-300 font-medium">{msg.directAnswer}</p>
+                              </div>
+                            )}
 
-                            {/* Reasoning */}
                             {msg.reasoning && (
                               <div className="space-y-0.5 bg-dark-950/40 p-2.5 rounded-xl border border-white/5">
                                 <span className="text-[9px] text-brand-violet font-black uppercase tracking-wider block">Physiological Reasoning</span>
@@ -949,7 +1509,6 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
                               </div>
                             )}
 
-                            {/* Action Steps */}
                             {msg.actionSteps && msg.actionSteps.length > 0 && (
                               <div className="space-y-1">
                                 <span className="text-[9px] text-brand-lime font-black uppercase tracking-wider block">Coaching Actions Checklist</span>
@@ -961,7 +1520,6 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
                               </div>
                             )}
 
-                            {/* Warnings */}
                             {msg.warnings && msg.warnings.length > 0 && (
                               <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl space-y-1">
                                 <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
@@ -975,7 +1533,6 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
                               </div>
                             )}
 
-                            {/* Recommendations links */}
                             {msg.recommendations && msg.recommendations.length > 0 && (
                               <div className="space-y-1.5">
                                 <span className="text-[9px] text-amber-400 font-black uppercase tracking-wider block">Suggested Elements</span>
@@ -993,6 +1550,109 @@ export const AICoach: React.FC<AICoachProps> = ({ onSaveRoutine, savedExercises:
                                     </span>
                                   ))}
                                 </div>
+                              </div>
+                            )}
+
+                            {/* Upgraded Multi-Intent Sections Layout */}
+                            {msg.sections && msg.sections.length > 0 && (
+                              <div className="space-y-5">
+                                {msg.sections.map((section) => (
+                                  <div key={section.id} className="p-3.5 bg-dark-950/40 border border-white/5 rounded-xl space-y-2 text-left">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-brand-cyan border-b border-white/5 pb-1.5 flex items-center gap-1.5">
+                                      {section.title}
+                                    </h4>
+                                    <p className="text-zinc-300 font-normal whitespace-pre-line leading-relaxed text-xs">{section.content}</p>
+                                    
+                                    {section.exercises && section.exercises.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                        {section.exercises.map((ex, eidx) => (
+                                          <span key={eidx} className="px-2 py-0.5 bg-brand-cyan/15 border border-brand-cyan/20 text-brand-cyan rounded text-[9px] font-bold">
+                                            🏋️ {ex.name}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {section.actionButtons && section.actionButtons.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-white/5">
+                                        {section.actionButtons.includes('save_routine') && msg.generatedRoutine && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSaveRoutineFromChat(msg)}
+                                            className="px-2.5 py-1.5 rounded-lg bg-brand-violet/20 hover:bg-brand-violet/30 border border-brand-violet/30 hover:border-brand-violet text-brand-violet hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                          >
+                                            <Plus className="h-3 w-3" /> Save Routine
+                                          </button>
+                                        )}
+                                        {section.actionButtons.includes('start_workout') && msg.generatedRoutine && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleStartWorkoutFromChat(msg)}
+                                            className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-brand-violet to-brand-cyan hover:opacity-90 text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                          >
+                                            <ArrowRight className="h-3 w-3" /> Start Workout
+                                          </button>
+                                        )}
+                                        {section.actionButtons.includes('add_diet') && msg.suggestedDiet && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleSaveDietFromChat(msg)}
+                                            className="px-2.5 py-1.5 rounded-lg bg-brand-lime/20 hover:bg-brand-lime/30 border border-brand-lime/30 hover:border-brand-lime text-brand-lime hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                          >
+                                            <Check className="h-3 w-3" /> Save to Diet
+                                          </button>
+                                        )}
+                                        {section.actionButtons.includes('open_library') && (
+                                          <button
+                                            type="button"
+                                            onClick={() => onNavigate('training', 'library')}
+                                            className="px-2.5 py-1.5 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan/30 hover:border-brand-cyan text-brand-cyan hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
+                                          >
+                                            <Dumbbell className="h-3 w-3" /> Open Exercises
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Dietary preference interactive prompt check */}
+                            {msg.showDietPrompt && (
+                              <div className="p-3.5 bg-brand-violet/10 border border-brand-violet/20 rounded-xl space-y-2 text-left animate-fadeIn">
+                                <span className="text-[9px] text-brand-violet font-black uppercase tracking-widest block">Dietary Preference Required</span>
+                                <p className="text-white text-xs font-semibold">
+                                  {msg.dietPromptAnswered 
+                                    ? `Preference saved: ${msg.selectedPreference}` 
+                                    : "Before providing food recommendations, do you prefer Vegetarian, Non-Vegetarian, or Both?"
+                                  }
+                                </p>
+                                {!msg.dietPromptAnswered && (
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    <button 
+                                      type="button"
+                                      onClick={() => handleSetDietPreference('Veg', msg.id)}
+                                      className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-lg transition-all"
+                                    >
+                                      Vegetarian
+                                    </button>
+                                    <button 
+                                      type="button"
+                                      onClick={() => handleSetDietPreference('Non-Veg', msg.id)}
+                                      className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/30 text-rose-400 text-[10px] font-bold rounded-lg transition-all"
+                                    >
+                                      Non-Vegetarian
+                                    </button>
+                                    <button 
+                                      type="button"
+                                      onClick={() => handleSetDietPreference('Both', msg.id)}
+                                      className="px-3 py-1.5 bg-brand-cyan/20 hover:bg-brand-cyan/35 border border-brand-cyan/30 text-brand-cyan text-[10px] font-bold rounded-lg transition-all"
+                                    >
+                                      Both
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

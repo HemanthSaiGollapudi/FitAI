@@ -10,8 +10,8 @@ interface StretchItem {
   focus: string;
   reps: string;
   instructions: string;
-  videoUrl: string;
-  backupVideoUrl: string;
+  youtubeUrl: string;
+  backupYoutubeUrl: string;
 }
 
 export const WarmUpProtocol: React.FC = () => {
@@ -24,8 +24,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Hamstrings & Lower Back',
       reps: '2 Sets x 30s hold',
       instructions: 'Extend legs forward, fold chest from the hips reaching for your ankles or toes. Keep spine neutral.',
-      videoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8',
-      backupVideoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'hip-flexor-stretch',
@@ -33,8 +33,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Psoas & Quads',
       reps: '2 Sets x 30s / leg',
       instructions: 'Lunge kneeling on one knee. Lean pelvis forward slowly until you feel the stretch on the front of the hip.',
-      videoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0',
-      backupVideoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'butterfly-stretch',
@@ -42,8 +42,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Adductors & Groin',
       reps: '2 Sets x 40s hold',
       instructions: 'Sit, pull feet together, wrap hands around toes and gently press knees downward.',
-      videoUrl: 'https://www.youtube.com/embed/v9C2K8u4W0E',
-      backupVideoUrl: 'https://www.youtube.com/embed/JDdCc7jK6pU'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'cat-cow-stretch',
@@ -51,8 +51,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Spinal Extension & Flexion',
       reps: '2 Sets x 10 cycles',
       instructions: 'Alternating between arching and curling back on hands and knees to mobilize spine.',
-      videoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0',
-      backupVideoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'childs-pose',
@@ -60,8 +60,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Spine Decompression',
       reps: '2 Sets x 60s hold',
       instructions: 'Kneel, push hips back onto heels, reach arms forward fully resting forehead on floor.',
-      videoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw',
-      backupVideoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'cobra-stretch',
@@ -69,8 +69,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Abdominals & Lower Back',
       reps: '2 Sets x 30s hold',
       instructions: 'Lie flat on stomach. Press hands down under shoulders to arch spine up, keeping thighs down.',
-      videoUrl: 'https://www.youtube.com/embed/JDdCc7jK6pU',
-      backupVideoUrl: 'https://www.youtube.com/embed/v9C2K8u4W0E'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'shoulder-mobility-stretch',
@@ -78,8 +78,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Rotator Cuffs & Scapula',
       reps: '2 Sets x 12 cycles',
       instructions: 'Perform slow arm circles, shoulder dislocations using a resistance band or wall slides.',
-      videoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0',
-      backupVideoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'thoracic-rotation',
@@ -87,8 +87,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Upper Back Mobility',
       reps: '2 Sets x 8 / side',
       instructions: 'On hands and knees, place one hand behind head, rotate elbow up to sky, return under control.',
-      videoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0',
-      backupVideoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'quad-stretch',
@@ -96,8 +96,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Quadriceps',
       reps: '2 Sets x 30s / leg',
       instructions: 'Stand on one leg, pull ankle behind body close to glute, keeping thighs aligned.',
-      videoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8',
-      backupVideoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     },
     {
       id: 'calf-stretch',
@@ -105,8 +105,8 @@ export const WarmUpProtocol: React.FC = () => {
       focus: 'Gastrocnemius & Achilles',
       reps: '2 Sets x 30s / leg',
       instructions: 'Press foot up against a wall, leaning body forward to feel stretch in the calf fibers.',
-      videoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw',
-      backupVideoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0'
+      youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+      backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
     }
   ];
 
@@ -304,8 +304,8 @@ export const WarmUpProtocol: React.FC = () => {
                     {/* Integrated fallback video player */}
                     <div className="pt-2">
                       <VideoPlayer 
-                        primaryUrl={stretch.videoUrl} 
-                        backupUrl={stretch.backupVideoUrl} 
+                        primaryUrl={stretch.youtubeUrl} 
+                        backupUrl={stretch.backupYoutubeUrl} 
                         title={stretch.name} 
                       />
                     </div>

@@ -11,8 +11,8 @@ export interface ExerciseDetails {
   mistakes: string[];
   setsReps: string;
   alternative: string;
-  videoUrl: string;
-  backupVideoUrl: string;
+  youtubeUrl: string;
+  backupYoutubeUrl: string;
 }
 
 export const EXERCISE_DATABASE: ExerciseDetails[] = [
@@ -39,8 +39,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Flat Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/gRVjAtPip0Y',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=vcBig73ojpE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk'
   },
   {
     id: 'inc-bb-press',
@@ -62,8 +62,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Incline Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/8iPOrhGxqqs',
-    backupVideoUrl: 'https://www.youtube.com/embed/SrqOu55lrYU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'dec-bb-press',
@@ -85,8 +85,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Decline Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/LfyQBUKR8SE',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'flat-db-press',
@@ -109,8 +109,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Flat Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/VmB1G1K7v94',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'inc-db-press',
@@ -132,8 +132,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Incline Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/8iPOrhGxqqs',
-    backupVideoUrl: 'https://www.youtube.com/embed/SrqOu55lrYU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'dec-db-press',
@@ -154,8 +154,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Decline Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/LfyQBUKR8SE',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'seated-press-mach',
@@ -177,8 +177,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Flat Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/nwpg40V9m_E',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'supported-press-mach',
@@ -198,8 +198,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Seated Chest Press Machine',
-    videoUrl: 'https://www.youtube.com/embed/nwpg40V9m_E',
-    backupVideoUrl: 'https://www.youtube.com/embed/rT7DgCr-3pg'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'pec-deck',
@@ -221,8 +221,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Cable Fly',
-    videoUrl: 'https://www.youtube.com/embed/Fyyda58-pOM',
-    backupVideoUrl: 'https://www.youtube.com/embed/nwpg40V9m_E'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'db-fly',
@@ -244,8 +244,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Cable Fly',
-    videoUrl: 'https://www.youtube.com/embed/eGjt4lk6g34',
-    backupVideoUrl: 'https://www.youtube.com/embed/VmB1G1K7v94'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'cable-fly-high-low',
@@ -265,8 +265,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Decline Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/taI4XduLpKQ',
-    backupVideoUrl: 'https://www.youtube.com/embed/gRVjAtPip0Y'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'cable-fly-mid',
@@ -285,8 +285,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Pec Deck Fly',
-    videoUrl: 'https://www.youtube.com/embed/taI4XduLpKQ',
-    backupVideoUrl: 'https://www.youtube.com/embed/gRVjAtPip0Y'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
   {
     id: 'cable-fly-low-high',
@@ -305,8 +305,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Incline Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/taI4XduLpKQ',
-    backupVideoUrl: 'https://www.youtube.com/embed/gRVjAtPip0Y'
+    youtubeUrl: 'https://www.youtube.com/watch?v=fGm-ef-4PVk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=b6ouj88iBZs'
   },
 
   // ==================== TRICEPS ====================
@@ -329,8 +329,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Straight Bar Pushdown',
-    videoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME',
-    backupVideoUrl: 'https://www.youtube.com/embed/2-LAMgA91LU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'straight-bar-pushdown',
@@ -349,8 +349,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Rope Pushdown',
-    videoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME',
-    backupVideoUrl: 'https://www.youtube.com/embed/2-LAMgA91LU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'rev-grip-pushdown',
@@ -369,8 +369,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Rope Pushdown',
-    videoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME',
-    backupVideoUrl: 'https://www.youtube.com/embed/2-LAMgA91LU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'bench-dips',
@@ -390,8 +390,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Parallel Bar Dips',
-    videoUrl: 'https://www.youtube.com/embed/0326dy_-CzM',
-    backupVideoUrl: 'https://www.youtube.com/embed/2z8JmcrW-As'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'parallel-dips',
@@ -410,8 +410,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Bench Dips',
-    videoUrl: 'https://www.youtube.com/embed/2z8JmcrW-As',
-    backupVideoUrl: 'https://www.youtube.com/embed/0326dy_-CzM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'oh-db-ext',
@@ -431,8 +431,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Overhead Cable Extension',
-    videoUrl: 'https://www.youtube.com/embed/X-iV-CGGBt4',
-    backupVideoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'oh-cable-ext',
@@ -451,8 +451,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Overhead Dumbbell Extension',
-    videoUrl: 'https://www.youtube.com/embed/X-iV-CGGBt4',
-    backupVideoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'skull-crushers',
@@ -473,8 +473,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Overhead Dumbbell Extension',
-    videoUrl: 'https://www.youtube.com/embed/d_KZxkY_0cM',
-    backupVideoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'tricep-kickbacks',
@@ -493,8 +493,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Rope Pushdown',
-    videoUrl: 'https://www.youtube.com/embed/6SS6K3lAwWI',
-    backupVideoUrl: 'https://www.youtube.com/embed/vB5OHsJ3EME'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
   {
     id: 'close-grip-bench',
@@ -513,8 +513,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Flat Bench Press',
-    videoUrl: 'https://www.youtube.com/embed/nEF0buYFsPs',
-    backupVideoUrl: 'https://www.youtube.com/embed/gRVjAtPip0Y'
+    youtubeUrl: 'https://www.youtube.com/watch?v=OpRMRhr0Ycc',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=osUnjgwoh_Y'
   },
 
   // ==================== BACK ====================
@@ -538,8 +538,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Wide Grip Lat Pulldown',
-    videoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g',
-    backupVideoUrl: 'https://www.youtube.com/embed/y2cO5S620r8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8'
   },
   {
     id: 'chinups-back',
@@ -558,8 +558,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 8 Reps',
     alternative: 'Close Grip Lat Pulldown',
-    videoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g',
-    backupVideoUrl: 'https://www.youtube.com/embed/y2cO5S620r8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8'
   },
   {
     id: 'wide-lat-pulldown',
@@ -578,8 +578,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Pull-Ups',
-    videoUrl: 'https://www.youtube.com/embed/CAwf7n6Luuc',
-    backupVideoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
   {
     id: 'close-lat-pulldown',
@@ -598,8 +598,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Wide Grip Lat Pulldown',
-    videoUrl: 'https://www.youtube.com/embed/CAwf7n6Luuc',
-    backupVideoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
   {
     id: 'tbar-row',
@@ -619,8 +619,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Bent Over Barbell Row',
-    videoUrl: 'https://www.youtube.com/embed/KDbP2mH4w3g',
-    backupVideoUrl: 'https://www.youtube.com/embed/vT2GjYhNO2w'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
   {
     id: 'bb-row',
@@ -640,8 +640,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'T-Bar Row',
-    videoUrl: 'https://www.youtube.com/embed/vT2GjYhNO2w',
-    backupVideoUrl: 'https://www.youtube.com/embed/KDbP2mH4w3g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=kBWAon7ItDw',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8'
   },
   {
     id: 'pendlay-row',
@@ -660,8 +660,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 6 Reps',
     alternative: 'Bent Over Barbell Row',
-    videoUrl: 'https://www.youtube.com/embed/vT2GjYhNO2w',
-    backupVideoUrl: 'https://www.youtube.com/embed/KDbP2mH4w3g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=kBWAon7ItDw',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8'
   },
   {
     id: 'seated-cable-row',
@@ -680,8 +680,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Chest Supported Row',
-    videoUrl: 'https://www.youtube.com/embed/GZbfZ033f64',
-    backupVideoUrl: 'https://www.youtube.com/embed/vT2GjYhNO2w'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
   {
     id: 'supported-row-mach',
@@ -700,8 +700,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Seated Cable Row',
-    videoUrl: 'https://www.youtube.com/embed/GZbfZ033f64',
-    backupVideoUrl: 'https://www.youtube.com/embed/vT2GjYhNO2w'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
   {
     id: 'deadlift',
@@ -722,8 +722,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 5 Reps',
     alternative: 'Romanian Deadlift',
-    videoUrl: 'https://www.youtube.com/embed/XxWcirHIwVo',
-    backupVideoUrl: 'https://www.youtube.com/embed/op9kuPf8Yf8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=ZaTM37cfiDs',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=XxWcirHIwVo'
   },
   {
     id: 'romanian-deadlift',
@@ -743,8 +743,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Deadlift',
-    videoUrl: 'https://www.youtube.com/embed/op9kuPf8Yf8',
-    backupVideoUrl: 'https://www.youtube.com/embed/XxWcirHIwVo'
+    youtubeUrl: 'https://www.youtube.com/watch?v=ZaTM37cfiDs',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=XxWcirHIwVo'
   },
   {
     id: 'hyperextensions',
@@ -763,8 +763,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Romanian Deadlift',
-    videoUrl: 'https://www.youtube.com/embed/op9kuPf8Yf8',
-    backupVideoUrl: 'https://www.youtube.com/embed/XxWcirHIwVo'
+    youtubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII'
   },
 
   // ==================== SHOULDERS ====================
@@ -786,8 +786,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 6 Reps',
     alternative: 'Seated Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI',
-    backupVideoUrl: 'https://www.youtube.com/embed/qEwKCR5JCog'
+    youtubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A'
   },
   {
     id: 'seated-db-press',
@@ -807,8 +807,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Military Press',
-    videoUrl: 'https://www.youtube.com/embed/qEwKCR5JCog',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A'
   },
   {
     id: 'front-raises',
@@ -827,8 +827,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Seated Dumbbell Press',
-    videoUrl: 'https://www.youtube.com/embed/qEwKCR5JCog',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'db-lat-raise',
@@ -848,8 +848,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 15 Reps',
     alternative: 'Cable Lateral Raises',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'cable-lat-raise',
@@ -868,8 +868,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Dumbbell Lateral Raises',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'mach-lat-raise',
@@ -888,8 +888,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Dumbbell Lateral Raises',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'rev-pec-deck',
@@ -908,8 +908,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Rear Delt Fly',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'rear-delt-fly',
@@ -928,8 +928,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Reverse Pec Deck',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'face-pulls',
@@ -948,8 +948,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Reverse Pec Deck',
-    videoUrl: 'https://www.youtube.com/embed/3VcKaXvh3u8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'db-shrugs',
@@ -968,8 +968,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Barbell Shrugs',
-    videoUrl: 'https://www.youtube.com/embed/g6qGBK796v8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
   {
     id: 'bb-shrugs',
@@ -988,8 +988,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Dumbbell Shrugs',
-    videoUrl: 'https://www.youtube.com/embed/g6qGBK796v8',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=SgyUoY0IZ7A',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=_RlRDWO2jfg'
   },
 
   // ==================== BICEPS ====================
@@ -1010,8 +1010,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Straight Bar Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'straight-bar-curl',
@@ -1030,8 +1030,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'EZ Bar Curl',
-    videoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc',
-    backupVideoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'alt-db-curl',
@@ -1050,8 +1050,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Incline Dumbbell Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'hammer-curl',
@@ -1070,8 +1070,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'EZ Bar Curl',
-    videoUrl: 'https://www.youtube.com/embed/zC3nLlEvin4',
-    backupVideoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'inc-db-curl',
@@ -1090,8 +1090,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Alternating Dumbbell Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'conc-curl',
@@ -1110,8 +1110,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Preacher Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'preacher-curl',
@@ -1130,8 +1130,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Spider Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'spider-curl',
@@ -1150,8 +1150,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Preacher Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
   {
     id: 'cable-curl',
@@ -1170,11 +1170,36 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Straight Bar Curl',
-    videoUrl: 'https://www.youtube.com/embed/y2O7s-m11P4',
-    backupVideoUrl: 'https://www.youtube.com/embed/i1YgFZmeilc'
+    youtubeUrl: 'https://www.youtube.com/watch?v=GNO4OtYoCYk',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=lp6Mx6rCifA'
   },
 
   // ==================== LEGS ====================
+  {
+    id: 'barbell-squat',
+    name: 'Barbell Squat',
+    group: 'Legs',
+    equipment: 'Barbell',
+    difficulty: 'Intermediate',
+    compound: true,
+    target: 'Quadriceps, Glutes & Core',
+    desc: 'The king of lower body exercises. Squatting with a loaded barbell on your upper back.',
+    form: [
+      'Rest the barbell across your upper traps, feet shoulder-width apart.',
+      'Brace your core, push hips back, and bend knees to lower down.',
+      'Descend until thighs are parallel to the floor (or lower).',
+      'Drive upward through your heels, keeping chest up.'
+    ],
+    mistakes: [
+      'Rounding the lower back (butt wink).',
+      'Letting knees cave inward.',
+      'Lifting heels off the ground.'
+    ],
+    setsReps: '4 Sets x 8 Reps',
+    alternative: 'Leg Press',
+    youtubeUrl: 'https://www.youtube.com/watch?v=gcNh17Ckjgg',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
+  },
   {
     id: 'leg-ext',
     name: 'Leg Extensions',
@@ -1193,8 +1218,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Hack Squat',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'hack-squat',
@@ -1214,8 +1239,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Leg Press',
-    videoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'leg-press',
@@ -1235,8 +1260,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Hack Squat',
-    videoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'front-squat',
@@ -1255,8 +1280,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 6 Reps',
     alternative: 'Hack Squat',
-    videoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'bulg-split-squat-legs',
@@ -1275,8 +1300,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps / leg',
     alternative: 'Walking Lunges',
-    videoUrl: 'https://www.youtube.com/embed/2C-uNgKw12A',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'lying-leg-curl',
@@ -1295,8 +1320,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Seated Leg Curl',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'seated-leg-curl',
@@ -1315,8 +1340,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Lying Leg Curl',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'sumo-squat',
@@ -1335,8 +1360,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Leg Press',
-    videoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'hip-thrust',
@@ -1356,8 +1381,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10 Reps',
     alternative: 'Sumo Squat',
-    videoUrl: 'https://www.youtube.com/embed/SEdqeVa7-bs',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'standing-calf-raise',
@@ -1376,8 +1401,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 15 Reps',
     alternative: 'Seated Calf Raise',
-    videoUrl: 'https://www.youtube.com/embed/gW715v10N-M',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'seated-calf-raise',
@@ -1396,8 +1421,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Standing Calf Raise',
-    videoUrl: 'https://www.youtube.com/embed/gW715v10N-M',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'leg-press-calf-raise',
@@ -1416,8 +1441,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Standing Calf Raise',
-    videoUrl: 'https://www.youtube.com/embed/gW715v10N-M',
-    backupVideoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'abductor-mach',
@@ -1436,8 +1461,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Walking Lunges',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'adductor-mach',
@@ -1456,8 +1481,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Sumo Squat',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'walking-lunges',
@@ -1477,8 +1502,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Steps / leg',
     alternative: 'Bulgarian Split Squat',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'rev-lunges',
@@ -1497,8 +1522,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps / leg',
     alternative: 'Walking Lunges',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
   {
     id: 'step-ups',
@@ -1517,8 +1542,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps / leg',
     alternative: 'Bulgarian Split Squat',
-    videoUrl: 'https://www.youtube.com/embed/m0OdBUSJmEY',
-    backupVideoUrl: 'https://www.youtube.com/embed/YyvSfV9dP30'
+    youtubeUrl: 'https://www.youtube.com/watch?v=hRZ5MM6gmlE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=kIXcoivzGf8'
   },
 
   // ==================== ABS ====================
@@ -1540,8 +1565,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 20 Reps',
     alternative: 'Russian Twists',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'leg-raises-abs',
@@ -1560,8 +1585,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Hanging Leg Raises',
-    videoUrl: 'https://www.youtube.com/embed/e1A5Ew6W9Y4',
-    backupVideoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'hanging-leg-raises-abs',
@@ -1580,8 +1605,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 8 Reps',
     alternative: 'Leg Raises',
-    videoUrl: 'https://www.youtube.com/embed/e1A5Ew6W9Y4',
-    backupVideoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'crunches',
@@ -1600,8 +1625,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Bicycle Crunches',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'flutter-kicks',
@@ -1620,8 +1645,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 40s Hold',
     alternative: 'Leg Raises',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'russian-twists',
@@ -1640,8 +1665,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 20 Reps',
     alternative: 'Bicycle Crunches',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'ankle-taps',
@@ -1660,8 +1685,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 20 Reps',
     alternative: 'Russian Twists',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'mountain-climbers',
@@ -1680,8 +1705,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 30s Hold',
     alternative: 'Plank',
-    videoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c',
-    backupVideoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'plank-abs',
@@ -1700,8 +1725,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 60s Hold',
     alternative: 'Side Plank',
-    videoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c',
-    backupVideoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'side-plank',
@@ -1720,8 +1745,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 30s / side',
     alternative: 'Plank',
-    videoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c',
-    backupVideoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   {
     id: 'rev-crunches',
@@ -1740,8 +1765,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15 Reps',
     alternative: 'Leg Raises',
-    videoUrl: 'https://www.youtube.com/embed/Iwyvoc-gbbM',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=QdIutxfm_hU',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=JC2jw2HobIc'
   },
   // ==================== CALISTHENICS ====================
   {
@@ -1765,8 +1790,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 12 Reps',
     alternative: 'Standard Push-Ups',
-    videoUrl: 'https://www.youtube.com/embed/5U0aK9Q_rFA',
-    backupVideoUrl: 'https://www.youtube.com/embed/IODxDxX7oi4'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'std-pushups',
@@ -1789,8 +1814,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 15-20 Reps',
     alternative: 'Incline Push-Ups',
-    videoUrl: 'https://www.youtube.com/embed/IODxDxX7oi4',
-    backupVideoUrl: 'https://www.youtube.com/embed/5U0aK9Q_rFA'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'pullups',
@@ -1813,8 +1838,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 8 Reps',
     alternative: 'Assisted Pull-Ups',
-    videoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g',
-    backupVideoUrl: 'https://www.youtube.com/embed/y2cO5S620r8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=syS4M1G-rII',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=jLvqKgW-_G8'
   },
   {
     id: 'dips',
@@ -1837,8 +1862,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Reps',
     alternative: 'Bench Dips',
-    videoUrl: 'https://www.youtube.com/embed/2z8JmcrW-As',
-    backupVideoUrl: 'https://www.youtube.com/embed/0326dy_-CzM'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'muscle-ups',
@@ -1861,8 +1886,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 4 Reps',
     alternative: 'Standard Pull-Ups',
-    videoUrl: 'https://www.youtube.com/embed/9G6kXoK5Wz4',
-    backupVideoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'hspu',
@@ -1885,8 +1910,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 5 Reps',
     alternative: 'Military Press',
-    videoUrl: 'https://www.youtube.com/embed/7V2VlYpG_a0',
-    backupVideoUrl: 'https://www.youtube.com/embed/2yjwXTZQDDI'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'front-lever',
@@ -1909,8 +1934,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '4 Sets x 10s Hold',
     alternative: 'Pull-Ups',
-    videoUrl: 'https://www.youtube.com/embed/mG97_S1pLkw',
-    backupVideoUrl: 'https://www.youtube.com/embed/eGo4IYlbE5g'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'dragon-flags',
@@ -1933,8 +1958,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 6 Reps',
     alternative: 'Plank',
-    videoUrl: 'https://www.youtube.com/embed/Mh1v59yV-h0',
-    backupVideoUrl: 'https://www.youtube.com/embed/ASdvN_XEl_c'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
   {
     id: 'pistol-squats',
@@ -1957,8 +1982,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 8 Reps / leg',
     alternative: 'Bulgarian Split Squats',
-    videoUrl: 'https://www.youtube.com/embed/q0_J3sKpxw4',
-    backupVideoUrl: 'https://www.youtube.com/embed/2C-uNgKw12A'
+    youtubeUrl: 'https://www.youtube.com/watch?v=-MRNjTr6xrE',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=95846CBGU0M'
   },
 
   // ==================== FLEXIBILITY ====================
@@ -1983,8 +2008,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 30s Hold',
     alternative: 'Hip Flexor Stretch',
-    videoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8',
-    backupVideoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'hip-flexor-stretch',
@@ -2007,8 +2032,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 30s / leg',
     alternative: 'Hamstring Stretch',
-    videoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0',
-    backupVideoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'butterfly-stretch',
@@ -2031,8 +2056,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 40s Hold',
     alternative: 'Cobra Stretch',
-    videoUrl: 'https://www.youtube.com/embed/v9C2K8u4W0E',
-    backupVideoUrl: 'https://www.youtube.com/embed/JDdCc7jK6pU'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'cat-cow',
@@ -2055,8 +2080,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 10 Cycles',
     alternative: 'Child\'s Pose',
-    videoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0',
-    backupVideoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'childs-pose',
@@ -2078,8 +2103,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '2 Sets x 60s Hold',
     alternative: 'Cat-Cow Stretch',
-    videoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw',
-    backupVideoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'cobra-stretch',
@@ -2102,8 +2127,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '3 Sets x 30s Hold',
     alternative: 'Butterfly Stretch',
-    videoUrl: 'https://www.youtube.com/embed/JDdCc7jK6pU',
-    backupVideoUrl: 'https://www.youtube.com/embed/v9C2K8u4W0E'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'shoulder-mobility-stretch',
@@ -2126,8 +2151,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '2 Sets x 12 Cycles',
     alternative: 'Thoracic Rotation',
-    videoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0',
-    backupVideoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'thoracic-rotation',
@@ -2149,8 +2174,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '2 Sets x 8 / side',
     alternative: 'Shoulder Mobility Stretch',
-    videoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0',
-    backupVideoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'quad-stretch',
@@ -2173,8 +2198,8 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '2 Sets x 30s / leg',
     alternative: 'Calf Stretch',
-    videoUrl: 'https://www.youtube.com/embed/yC2y99Vz5b8',
-    backupVideoUrl: 'https://www.youtube.com/embed/ZqD3T95Ylq0'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   },
   {
     id: 'calf-stretch',
@@ -2197,7 +2222,7 @@ export const EXERCISE_DATABASE: ExerciseDetails[] = [
     ],
     setsReps: '2 Sets x 30s / leg',
     alternative: 'Quad Stretch',
-    videoUrl: 'https://www.youtube.com/embed/2ATEo0Y4YFw',
-    backupVideoUrl: 'https://www.youtube.com/embed/w_Z20bV5Bw0'
+    youtubeUrl: 'https://www.youtube.com/watch?v=sOuKeVuej9E',
+    backupYoutubeUrl: 'https://www.youtube.com/watch?v=E81GN-3A8XM'
   }
 ];
