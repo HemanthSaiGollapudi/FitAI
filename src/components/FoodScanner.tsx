@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, Upload, Apple, Sparkles, Scale, Trash2, 
-  Clock, ShieldAlert, CheckCircle2, Info
+  Clock, ShieldAlert, CheckCircle2, Info, ArrowLeft
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
@@ -172,6 +172,41 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const [analysisResults, setAnalysisResults] = useState<FoodItemInfo[] | null>(null);
   const [portionMultiplier, setPortionMultiplier] = useState(1);
   const [diarySaveSuccess, setDiarySaveSuccess] = useState(false);
+
+  const [selectedHistoryFood, setSelectedHistoryFood] = useState<any | null>(null);
+
+  // Popstate history integration for visual scanner and details
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.app === 'fitai' && e.state.view === 'scanner') {
+        setSelectedHistoryFood(e.state.selectedFood);
+        if (!e.state.hasResults) {
+          setAnalysisResults(null);
+          setSelectedImage(null);
+        }
+      } else {
+        setSelectedHistoryFood(null);
+        setAnalysisResults(null);
+        setSelectedImage(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Push initial scan state if scanner is active
+    if (!window.history.state || window.history.state.view !== 'scanner') {
+      window.history.pushState({ app: 'fitai', view: 'scanner', selectedFood: null, hasResults: false }, '');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  const handleOpenHistoryFood = (food: any) => {
+    setSelectedHistoryFood(food);
+    window.history.pushState({ app: 'fitai', view: 'scanner', selectedFood: food, hasResults: analysisResults !== null }, '');
+  };
   
   // Simulator preset selection
   const [selectedPreset, setSelectedPreset] = useState<string>('Rice + Chicken Curry + Salad');
@@ -284,6 +319,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       const items = FOOD_METADATA[selectedPreset] || FOOD_METADATA['Salad'];
       setAnalysisResults(items);
       setIsAnalyzing(false);
+      window.history.pushState({ app: 'fitai', view: 'scanner', selectedFood: null, hasResults: true }, '');
     }, 1800);
   };
 
@@ -429,7 +465,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
             
             {/* Left Box: Capture Inputs (5 Columns) */}
-            <div className="lg:col-span-5 space-y-6">
+            <div className={`lg:col-span-5 space-y-6 ${analysisResults ? 'hidden lg:block' : 'block'}`}>
               
               <SpotlightCard className="p-6 text-center space-y-5">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 justify-center">
@@ -626,7 +662,19 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             </div>
 
             {/* Right Box: Results & Bounding Details (7 Columns) */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className={`lg:col-span-7 space-y-6 ${analysisResults ? 'block' : 'hidden lg:block'}`}>
+              {/* Mobile Back Button for Results */}
+              {analysisResults && (
+                <div className="lg:hidden flex items-center mb-2">
+                  <button
+                    type="button"
+                    onClick={() => window.history.back()}
+                    className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3 px-4 bg-dark-950 border border-white/5 rounded-xl shadow-glass"
+                  >
+                    <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Food Scanner
+                  </button>
+                </div>
+              )}
               {analysisResults ? (
                 <div className="space-y-6">
                   
@@ -858,7 +906,11 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {scanHistory.map((item: any) => (
-                  <div key={item.id} className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl flex items-start gap-4">
+                  <div 
+                    key={item.id} 
+                    onClick={() => handleOpenHistoryFood(item)}
+                    className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl flex items-start gap-4 cursor-pointer hover:border-brand-violet/40 transition-colors text-left"
+                  >
                     <img 
                       src={item.image} 
                       alt={item.name} 
@@ -873,8 +925,11 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                           </span>
                         </div>
                         <button
-                          onClick={() => handleClearSingleHistory(item.id)}
-                          className="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearSingleHistory(item.id);
+                          }}
+                          className="text-zinc-600 hover:text-red-400 p-1.5 rounded transition-colors shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
                           title="Delete entry"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -908,6 +963,99 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         )}
 
       </div>
+
+      {/* DETAILED SCANNED FOOD HISTORY VIEW OVERLAY */}
+      <AnimatePresence>
+        {selectedHistoryFood && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => window.history.back()}
+              className="absolute inset-0 bg-dark-950/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-xl max-h-[85vh] bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 border border-brand-violet/40 p-6 rounded-2xl shadow-glass z-10 text-left space-y-6 overflow-y-auto"
+            >
+              {/* Back Navigation Bar */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => window.history.back()}
+                  className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3.5 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass"
+                >
+                  <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Scan History
+                </button>
+              </div>
+
+              {/* Title & Date */}
+              <div className="border-b border-white/5 pb-4 flex items-start gap-4">
+                <img 
+                  src={selectedHistoryFood.image} 
+                  alt={selectedHistoryFood.name} 
+                  className="h-20 w-20 rounded-2xl object-cover border border-white/5 shadow-glass shrink-0"
+                />
+                <div className="space-y-1">
+                  <span className="text-[10px] text-brand-cyan font-black uppercase tracking-widest bg-brand-cyan/10 px-2.5 py-0.5 rounded-full">
+                    Scanned Intake Details
+                  </span>
+                  <h3 className="text-xl font-display font-black text-white leading-tight mt-1">{selectedHistoryFood.name}</h3>
+                  <span className="text-xs text-zinc-500 font-bold block mt-1">
+                    Logged on {new Date(selectedHistoryFood.timestamp).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Portion size */}
+              <div className="p-4 bg-dark-950/50 border border-white/5 rounded-xl flex justify-between items-center text-xs font-semibold">
+                <span className="text-zinc-500">Portion Scaler:</span>
+                <span className="text-white font-bold">{selectedHistoryFood.servingSize}</span>
+              </div>
+
+              {/* Macros Breakdown grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-dark-950/60 border border-white/5 rounded-xl text-center">
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase block">Scanned Calories</span>
+                  <span className="text-2xl font-display font-black text-brand-lime leading-none mt-1 block">
+                    {selectedHistoryFood.kcal} <span className="text-xs text-zinc-400 font-semibold">kcal</span>
+                  </span>
+                </div>
+
+                <div className="p-4 bg-dark-950/60 border border-white/5 rounded-xl space-y-2 text-xs font-semibold">
+                  <div className="flex justify-between items-center text-brand-lime">
+                    <span>Protein:</span>
+                    <span>{selectedHistoryFood.protein} g</span>
+                  </div>
+                  <div className="flex justify-between items-center text-brand-cyan">
+                    <span>Carbs:</span>
+                    <span>{selectedHistoryFood.carbs} g</span>
+                  </div>
+                  <div className="flex justify-between items-center text-brand-pink">
+                    <span>Fats:</span>
+                    <span>{selectedHistoryFood.fats} g</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra details (Fiber/Sugar) */}
+              <div className="p-4 bg-dark-900/60 border border-white/5 rounded-xl grid grid-cols-2 gap-4 text-xs font-semibold">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500">Dietary Fiber:</span>
+                  <span className="text-white font-bold">{selectedHistoryFood.fiber || 0} g</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-500">Sugar Content:</span>
+                  <span className="text-brand-pink font-bold">{selectedHistoryFood.sugar || 0} g</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </section>
   );
 };

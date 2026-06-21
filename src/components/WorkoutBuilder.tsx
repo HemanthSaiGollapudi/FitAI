@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Search, Dumbbell, Trash2, Copy, Edit3, 
-  Check, X, Play, FolderPlus 
+  Check, X, Play, FolderPlus, ArrowLeft 
 } from 'lucide-react';
 import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
 import { SpotlightCard } from './SpotlightCard';
@@ -35,6 +35,30 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
   const [muscleFilter, setMuscleFilter] = useState<string>('All');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // Intercept back button gesture inside Workout Logger
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.app === 'fitai' && e.state.view === 'logger') {
+        setIsEditing(e.state.isEditing);
+        setIsSearchOpen(e.state.isSearchOpen);
+      } else {
+        setIsEditing(false);
+        setIsSearchOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initial push state for routine listing
+    if (!window.history.state || window.history.state.view !== 'logger') {
+      window.history.pushState({ app: 'fitai', view: 'logger', isEditing: false, isSearchOpen: false }, '');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Extract unique muscle groups for filters
   const muscleGroups = ['All', 'Chest', 'Back', 'Shoulders', 'Triceps', 'Biceps', 'Legs', 'Abs'];
 
@@ -46,18 +70,19 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
       exercises: []
     });
     setIsEditing(true);
+    window.history.pushState({ app: 'fitai', view: 'logger', isEditing: true, isSearchOpen: false }, '');
   };
 
   const handleEdit = (routine: WorkoutRoutine) => {
     setActiveRoutine({ ...routine });
     setIsEditing(true);
+    window.history.pushState({ app: 'fitai', view: 'logger', isEditing: true, isSearchOpen: false }, '');
   };
 
   const handleSaveClick = () => {
     if (!activeRoutine || !activeRoutine.name.trim()) return;
     onSaveRoutine(activeRoutine);
-    setIsEditing(false);
-    setActiveRoutine(null);
+    window.history.back(); // Pop state triggers cleanup via popstate handler
   };
 
   const handleAddExerciseId = (id: string) => {
@@ -75,6 +100,11 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
         exercises: [...activeRoutine.exercises, id]
       });
     }
+  };
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true);
+    window.history.pushState({ app: 'fitai', view: 'logger', isEditing: true, isSearchOpen: true }, '');
   };
 
   // Filter exercises for search modal
@@ -139,7 +169,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
 
             {/* Routines Grid */}
             {customRoutines.length === 0 ? (
-              <div className="py-16 border border-dashed border-white/10 rounded-2xl text-center space-y-4 bg-dark-900/30">
+              <div className="py-16 border border-dashed border-white/10 rounded-2xl text-center space-y-4 bg-dark-900/30 shadow-glass">
                 <Dumbbell className="h-10 w-10 text-zinc-600 mx-auto" />
                 <p className="text-zinc-400 text-sm">No custom routines constructed yet.</p>
                 <button
@@ -221,11 +251,22 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
         ) : (
           // Routine Editor View
           <div className="max-w-3xl mx-auto bg-dark-900/60 border border-white/5 rounded-2xl backdrop-blur-xl p-8 space-y-6 text-left shadow-glass">
+            
+            {/* Mobile Prominent Back Button */}
+            <div className="md:hidden flex items-center mb-2">
+              <button
+                onClick={() => window.history.back()}
+                className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3.5 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass"
+              >
+                <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Routines
+              </button>
+            </div>
+
             <div className="flex justify-between items-center border-b border-white/5 pb-4">
               <h3 className="text-xl font-display font-extrabold text-white">Routine Composer</h3>
               <button
-                onClick={() => setIsEditing(false)}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg"
+                onClick={() => window.history.back()}
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -262,8 +303,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                   Workout Exercises ({activeRoutine?.exercises.length || 0})
                 </h4>
                 <button
-                  onClick={() => setIsSearchOpen(true)}
-                  className="px-3.5 py-1.5 bg-brand-violet/10 border border-brand-violet/20 hover:bg-brand-violet/20 rounded-lg text-xs font-bold text-brand-cyan transition-all flex items-center gap-1"
+                  onClick={handleOpenSearch}
+                  className="px-3.5 py-2.5 bg-brand-violet/10 border border-brand-violet/20 hover:bg-brand-violet/20 rounded-lg text-xs font-bold text-brand-cyan transition-all flex items-center gap-1 min-h-[44px]"
                 >
                   <Plus className="h-4 w-4" /> Add Exercise
                 </button>
@@ -292,7 +333,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                         </div>
                         <button
                           onClick={() => handleAddExerciseId(eid)}
-                          className="p-1.5 text-zinc-500 hover:text-red-400 rounded hover:bg-white/5"
+                          className="p-1.5 text-zinc-500 hover:text-red-400 rounded hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -306,14 +347,14 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
             {/* Bottom Actions */}
             <div className="pt-6 border-t border-white/5 flex justify-end gap-3">
               <button
-                onClick={() => setIsEditing(false)}
-                className="px-5 py-3 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 text-zinc-400"
+                onClick={() => window.history.back()}
+                className="px-5 py-3 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 text-zinc-400 min-h-[44px] min-w-[80px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveClick}
-                className="px-6 py-3 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-bold rounded-xl shadow-glow-purple"
+                className="px-6 py-3 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-bold rounded-xl shadow-glow-purple min-h-[44px]"
               >
                 Save Routine Template
               </button>
@@ -329,7 +370,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setIsSearchOpen(false)}
+                onClick={() => window.history.back()}
                 className="absolute inset-0 bg-dark-950/80 backdrop-blur-md"
               />
 
@@ -344,8 +385,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                   <div className="flex justify-between items-center">
                     <h3 className="font-display font-bold text-white text-base">Select Exercises</h3>
                     <button
-                      onClick={() => setIsSearchOpen(false)}
-                      className="p-1 rounded text-zinc-500 hover:text-white"
+                      onClick={() => window.history.back()}
+                      className="p-1 rounded text-zinc-500 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -368,7 +409,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                       <button
                         key={g}
                         onClick={() => setMuscleFilter(g)}
-                        className={`px-3 py-1 rounded text-[10px] font-bold border transition-colors ${
+                        className={`px-3 py-1 rounded text-[10px] font-bold border transition-colors min-h-[44px] ${
                           muscleFilter === g
                             ? 'bg-brand-violet/20 border-brand-violet text-brand-cyan'
                             : 'bg-dark-950 border-white/5 text-zinc-500 hover:text-white'
@@ -399,7 +440,7 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                           <h4 className="text-xs font-bold text-white">{ex.name}</h4>
                           <span className="text-[10px] text-zinc-500">{ex.group} • {ex.equipment} • {ex.difficulty}</span>
                         </div>
-                        <div className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all ${
+                        <div className={`h-5.5 w-5.5 rounded-full border flex items-center justify-center transition-all ${
                           isAdded
                             ? 'bg-brand-cyan border-brand-cyan text-dark-950'
                             : 'border-white/10'

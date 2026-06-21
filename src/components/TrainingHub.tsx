@@ -71,7 +71,7 @@ export const TrainingHub: React.FC<TrainingHubProps> = ({
       <div className="max-w-7xl mx-auto px-6 relative z-10 flex flex-col items-center">
         {/* Responsive Segmented Tab Control */}
         <div className="w-full max-w-xl mb-8">
-          <div className="bg-dark-900/60 p-1 rounded-2xl border border-white/5 backdrop-blur-xl flex relative shadow-glass overflow-x-auto scrollbar-none">
+          <div className="bg-dark-900/60 p-1.5 md:p-1 rounded-2xl border border-white/5 backdrop-blur-xl flex gap-3 md:gap-0 relative shadow-glass overflow-x-auto scrollbar-none w-full">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -80,7 +80,7 @@ export const TrainingHub: React.FC<TrainingHubProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex-1 min-w-[100px] sm:min-w-0 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs uppercase tracking-wider font-black relative z-10 transition-colors duration-300 ${
+                  className={`flex-none md:flex-1 min-w-max md:min-w-0 flex items-center justify-center gap-2 py-3 md:py-3.5 px-5 md:px-0 rounded-xl text-sm md:text-xs uppercase tracking-wider font-black relative z-10 transition-colors duration-300 ${
                     isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >

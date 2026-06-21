@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Apple, Flame, Check, Leaf, Bone, Save, Compass, Activity, ShieldAlert, Sparkles, Scale } from 'lucide-react';
+import { Apple, Flame, Check, Leaf, Bone, Save, Compass, Activity, ShieldAlert, Sparkles, Scale, ArrowLeft } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
 export type DietGoal = 'Fat Loss' | 'Muscle Gain' | 'Maintenance' | 'Body Recomposition';
@@ -71,6 +71,39 @@ export const DietModule: React.FC<DietModuleProps> = ({
   const [targetFats, setTargetFats] = useState<number>(0);
   const [safetyWarning, setSafetyWarning] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isEditingBiomarkers, setIsEditingBiomarkers] = useState(false);
+
+  // Initialize editing biomarkers based on whether a diet plan is already saved
+  useEffect(() => {
+    setIsEditingBiomarkers(savedCalories === 0);
+  }, [savedCalories]);
+
+  // Intercept back button gestures inside Diet Module
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.app === 'fitai' && e.state.view === 'diet') {
+        setIsEditingBiomarkers(e.state.isEditing);
+      } else {
+        setIsEditingBiomarkers(savedCalories === 0);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initial push state for diet module
+    if (!window.history.state || window.history.state.view !== 'diet') {
+      window.history.pushState({ app: 'fitai', view: 'diet', isEditing: isEditingBiomarkers }, '');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [savedCalories, isEditingBiomarkers]);
+
+  const handleToggleEditBiomarkers = (edit: boolean) => {
+    setIsEditingBiomarkers(edit);
+    window.history.pushState({ app: 'fitai', view: 'diet', isEditing: edit }, '');
+  };
 
   const goals: DietGoal[] = ['Fat Loss', 'Muscle Gain', 'Maintenance', 'Body Recomposition'];
   const activities = ['Sedentary', 'Moderately Active', 'Very Active', 'Athlete/Highly Active'];
@@ -378,6 +411,7 @@ export const DietModule: React.FC<DietModuleProps> = ({
     
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
+    handleToggleEditBiomarkers(false);
   };
 
   const isSavedPlan = savedGoal === goal && savedType === type && savedCalories === targetCalories;
@@ -509,7 +543,17 @@ export const DietModule: React.FC<DietModuleProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto mb-12">
           
           {/* LEFT: Biomarker Form Inputs (5 Columns) */}
-          <div className="lg:col-span-5 bg-dark-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-xl flex flex-col justify-between space-y-5 text-left">
+          <div className={`lg:col-span-5 bg-dark-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-xl flex flex-col justify-between space-y-5 text-left shadow-glass ${isEditingBiomarkers ? 'block' : 'hidden lg:flex'}`}>
+            {/* Mobile Prominent Back Button */}
+            <div className="lg:hidden flex items-center mb-2">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3 px-4 bg-dark-950 border border-white/5 rounded-xl shadow-glass"
+              >
+                <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Diet Plan
+              </button>
+            </div>
             <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
               <Compass className="h-4.5 w-4.5 text-brand-lime" /> Personalized Biomarkers
             </h3>
@@ -650,7 +694,17 @@ export const DietModule: React.FC<DietModuleProps> = ({
           </div>
 
           {/* RIGHT: Output Calorie splits & Macro gauges (7 Columns) */}
-          <div className="lg:col-span-7 bg-dark-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-xl flex flex-col justify-between space-y-6 text-left">
+          <div className={`lg:col-span-7 bg-dark-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-xl flex flex-col justify-between space-y-6 text-left shadow-glass ${isEditingBiomarkers ? 'hidden lg:flex' : 'block'}`}>
+            {/* Mobile Edit Button */}
+            <div className="lg:hidden mb-4">
+              <button
+                type="button"
+                onClick={() => handleToggleEditBiomarkers(true)}
+                className="w-full py-3.5 bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black rounded-xl shadow-glow-lime uppercase tracking-wider text-center block min-h-[44px]"
+              >
+                Edit Biomarkers / Recalculate Plan
+              </button>
+            </div>
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
                 <Activity className="h-4.5 w-4.5 text-brand-cyan" /> Metabolic Diagnostics

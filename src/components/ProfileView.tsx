@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, Scale, Check, 
-  Sparkles, User, Bell, Dumbbell, Utensils, Droplet, Calendar, Clock
+  Sparkles, User, Bell, Dumbbell, Utensils, Droplet, Calendar, Clock,
+  Shield, Fingerprint
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
@@ -18,6 +19,7 @@ interface ProfileViewProps {
     type: 'Veg' | 'Non-Veg' | 'Eggetarian';
   }) => void;
   savedGoal: string;
+  onLogout?: () => void;
 }
 
 interface ReminderSettings {
@@ -61,7 +63,7 @@ const ToggleButton = ({ enabled, onChange }: { enabled: boolean; onChange: (val:
   </button>
 );
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGoal }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGoal, onLogout }) => {
   // Load initial settings from localStorage
   const [name, setName] = useState<string>('Champion');
   const [age, setAge] = useState<number>(26);
@@ -439,9 +441,52 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
 
         </div>
 
-        {/* Notification Reminders Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 max-w-6xl mx-auto">
-          <div className="lg:col-span-12">
+        {/* Security & Biometrics + Notification Reminders Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 max-w-6xl mx-auto items-stretch">
+          
+          {/* Card 1: Device Security & Biometrics */}
+          <div className="lg:col-span-5">
+            <SpotlightCard className="p-6 h-full flex flex-col justify-between space-y-6 text-left">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                    <Shield className="h-4.5 w-4.5 text-brand-cyan" /> Security & Biometrics
+                  </h3>
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded">
+                    Mobile Only
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center justify-center text-center p-6 bg-dark-950/40 border border-white/5 rounded-2xl space-y-4">
+                  <div className="p-4 rounded-full bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20">
+                    <Fingerprint className="w-10 h-10" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-white">Biometric Unlock</h4>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed font-normal">
+                      Biometric authentication will be available in the FitAI mobile app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Log out CTA */}
+              {onLogout && (
+                <div className="pt-4 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="w-full py-3 border border-red-500/20 hover:border-red-500/40 bg-red-500/5 hover:bg-red-500/10 text-red-400 text-xs font-black rounded-xl hover:scale-101 transition-all uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    Log Out of Account 🚪
+                  </button>
+                </div>
+              )}
+            </SpotlightCard>
+          </div>
+
+          {/* Card 2: Notification Reminders Manager */}
+          <div className="lg:col-span-7">
             <SpotlightCard className="p-6">
               <form onSubmit={handleSaveReminders} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
@@ -455,13 +500,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                   </div>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-brand-violet text-white text-xs font-black rounded-xl hover:scale-102 hover:shadow-glow-purple transition-all flex items-center gap-2 self-start sm:self-center"
+                    className="px-5 py-2.5 bg-brand-violet text-white text-xs font-black rounded-xl hover:scale-102 hover:shadow-glow-purple transition-all flex items-center gap-2 self-start sm:self-center cursor-pointer"
                   >
                     <Check className="h-4 w-4" /> Save Reminders
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Card 1: Workout Reminders */}
                   <div className={`p-5 rounded-2xl border transition-all duration-300 ${
                     reminders.workout.enabled 
@@ -595,7 +640,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.meal.breakfast}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                meal: { ...prev.meal, breakfast: e.target.value }
+                                  meal: { ...prev.meal, breakfast: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-lime"
                             />
@@ -607,7 +652,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.meal.lunch}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                meal: { ...prev.meal, lunch: e.target.value }
+                                  meal: { ...prev.meal, lunch: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-lime"
                             />
@@ -619,7 +664,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.meal.dinner}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                meal: { ...prev.meal, dinner: e.target.value }
+                                  meal: { ...prev.meal, dinner: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-lime"
                             />
@@ -673,7 +718,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.water.interval}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                water: { ...prev.water, interval: e.target.value }
+                                  water: { ...prev.water, interval: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-cyan"
                             >
@@ -691,7 +736,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                                 value={reminders.water.start}
                                 onChange={(e) => setReminders(prev => ({
                                   ...prev,
-                                  water: { ...prev.water, start: e.target.value }
+                                    water: { ...prev.water, start: e.target.value }
                                 }))}
                                 className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-cyan"
                               />
@@ -703,7 +748,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                                 value={reminders.water.end}
                                 onChange={(e) => setReminders(prev => ({
                                   ...prev,
-                                  water: { ...prev.water, end: e.target.value }
+                                    water: { ...prev.water, end: e.target.value }
                                 }))}
                                 className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-cyan"
                               />
@@ -758,7 +803,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.weighIn.day}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                weighIn: { ...prev.weighIn, day: e.target.value }
+                                  weighIn: { ...prev.weighIn, day: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-pink"
                             >
@@ -774,7 +819,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                               value={reminders.weighIn.time}
                               onChange={(e) => setReminders(prev => ({
                                 ...prev,
-                                weighIn: { ...prev.weighIn, time: e.target.value }
+                                  weighIn: { ...prev.weighIn, time: e.target.value }
                               }))}
                               className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-pink"
                             />
@@ -807,6 +852,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
         </div>
 
       </div>
+
+
     </section>
   );
 };

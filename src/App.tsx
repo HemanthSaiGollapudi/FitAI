@@ -27,6 +27,8 @@ import { NutritionHub } from './components/NutritionHub';
 import { TrainingHub } from './components/TrainingHub';
 import { Trophy } from 'lucide-react';
 import { ActiveWorkoutSession } from './components/ActiveWorkoutSession';
+import { AuthModule } from './components/AuthModule';
+import type { UserProfile } from './components/AuthModule';
 
 function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -34,6 +36,119 @@ function App() {
     return localStorage.getItem('fitai_active_workout_expanded') === 'true';
   });
   const [workoutSummaryData, setWorkoutSummaryData] = useState<LoggedWorkout | null>(null);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('fitai_is_authenticated') === 'true';
+  });
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('fitai_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleAuthSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    localStorage.setItem('fitai_is_authenticated', 'true');
+    localStorage.setItem('fitai_current_user', JSON.stringify(user));
+    
+    // Synchronize states
+    setUserName(user.name);
+    localStorage.setItem('fitai_user_name', user.name);
+    setUserWeight(user.weight);
+    localStorage.setItem('fitai_user_weight', String(user.weight));
+    const targetW = user.targetWeight || 65;
+    setGoalWeight(targetW);
+    localStorage.setItem('fitai_user_goal_weight', String(targetW));
+    
+    const dietType = user.dietPreference === 'Veg' ? 'Veg' : user.dietPreference === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian';
+    setSavedDietType(dietType);
+    localStorage.setItem('fitai_diet_type', dietType);
+    
+    const dGoal = user.goal === 'Lose Weight' ? 'Fat Loss' : user.goal === 'Gain Muscle' ? 'Muscle Gain' : user.goal === 'Build Strength' ? 'Build Strength' : 'Stamina';
+    setSavedDietGoal(dGoal);
+    localStorage.setItem('fitai_diet_goal', dGoal);
+    
+    if (user.activityLevel) {
+      setUserActivity(user.activityLevel);
+      localStorage.setItem('fitai_user_activity', user.activityLevel);
+    }
+
+    // Force calorie targets recalculation on login
+    let calculatedBmr = 0;
+    if (user.gender === 'Male') {
+      calculatedBmr = 10 * user.weight + 6.25 * user.height - 5 * user.age + 5;
+    } else {
+      calculatedBmr = 10 * user.weight + 6.25 * user.height - 5 * user.age - 161;
+    }
+
+    let multiplier = 1.55;
+    const act = user.activityLevel || 'Moderately Active';
+    if (act === 'Sedentary') multiplier = 1.2;
+    else if (act === 'Moderately Active') multiplier = 1.55;
+    else if (act === 'Very Active') multiplier = 1.725;
+    else if (act === 'Athlete/Highly Active') multiplier = 1.9;
+
+    const calculatedTdee = calculatedBmr * multiplier;
+
+    let dailyCal = calculatedTdee;
+    let expectedChange = '0.00 kg / week';
+    if (dGoal === 'Fat Loss') {
+      dailyCal = calculatedTdee - 500;
+      expectedChange = '-0.50 kg / week';
+    } else if (dGoal === 'Muscle Gain') {
+      dailyCal = calculatedTdee + 350;
+      expectedChange = '+0.25 kg / week';
+    }
+
+    const minCalories = user.gender === 'Male' ? 1500 : 1200;
+    if (dailyCal < minCalories) dailyCal = minCalories;
+
+    const targetC = Math.round(dailyCal);
+    const targetP = Math.round(user.weight * 2.0);
+    const targetF = Math.round((targetC * 0.25) / 9);
+    const targetCarb = Math.round((targetC - (targetP * 4) - (targetF * 9)) / 4);
+
+    setSavedDietCalories(targetC);
+    setSavedDietProtein(targetP);
+    setSavedDietCarbs(targetCarb);
+    setSavedDietFats(targetF);
+    setExpectedWeightChange(expectedChange);
+
+    localStorage.setItem('fitai_diet_calories', String(targetC));
+    localStorage.setItem('fitai_diet_protein', String(targetP));
+    localStorage.setItem('fitai_diet_carbs', String(targetCarb));
+    localStorage.setItem('fitai_diet_fats', String(targetF));
+    localStorage.setItem('fitai_diet_expected_change', expectedChange);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    
+    // Save registered users list before clearing storage
+    const users = localStorage.getItem('fitai_users');
+    
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Restore users database
+    if (users) {
+      localStorage.setItem('fitai_users', users);
+    }
+    
+    // Clear specific authentication and biometric flags
+    localStorage.removeItem('fitai_is_authenticated');
+    localStorage.removeItem('fitai_current_user');
+    localStorage.removeItem('fitai_remembered_email');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('faceRecognitionEnabled');
+
+    setActiveView('home');
+  };
 
   useEffect(() => {
     localStorage.setItem('fitai_active_workout_expanded', String(isWorkoutSessionExpanded));
@@ -148,6 +263,10 @@ function App() {
 
   const [userWeight, setUserWeight] = useState<number>(() => {
     return Number(localStorage.getItem('fitai_user_weight') || '70');
+  });
+
+  const [userActivity, setUserActivity] = useState<string>(() => {
+    return localStorage.getItem('fitai_user_activity') || 'Moderately Active';
   });
 
   const [expectedWeightChange, setExpectedWeightChange] = useState<string>(() => {
@@ -441,6 +560,37 @@ function App() {
     setUserWeight(settings.weight);
     setGoalWeight(settings.goalWeight);
     setSavedDietType(settings.type);
+    setUserActivity(settings.activity);
+    localStorage.setItem('fitai_user_activity', settings.activity);
+
+    // Update current user and sync to user registry database
+    if (currentUser) {
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        name: settings.name,
+        age: settings.age,
+        weight: settings.weight,
+        height: settings.height,
+        targetWeight: settings.goalWeight,
+        gender: settings.gender,
+        activityLevel: settings.activity,
+        dietPreference: settings.type === 'Veg' ? 'Veg' : settings.type === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian'
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
+
+      try {
+        const raw = localStorage.getItem('fitai_users');
+        if (raw) {
+          const users: UserProfile[] = JSON.parse(raw);
+          const idx = users.findIndex(u => u.email.toLowerCase() === currentUser.email.toLowerCase());
+          if (idx !== -1) {
+            users[idx] = { ...users[idx], ...updatedUser };
+            localStorage.setItem('fitai_users', JSON.stringify(users));
+          }
+        }
+      } catch {}
+    }
 
     let calculatedBmr = 0;
     if (settings.gender === 'Male') {
@@ -511,6 +661,10 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <AuthModule onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className="bg-[#03000a] min-h-screen text-zinc-100 selection:bg-brand-violet/30 selection:text-white relative">
       {/* Navbar Header */}
@@ -518,6 +672,8 @@ function App() {
         onStartOnboarding={openOnboarding} 
         activeView={activeView}
         onChangeView={(view) => handleNavigate(view)}
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
       />
 
       {activeView === 'nutrition' ? (
@@ -563,6 +719,7 @@ function App() {
           savedDietProtein={savedDietProtein}
           savedDietType={savedDietType}
           userName={userName}
+          userActivity={userActivity}
           onSaveDiet={handleSaveDiet}
           onNavigate={handleNavigate}
           onStartWorkout={handleStartWorkout}
@@ -576,6 +733,7 @@ function App() {
         <ProfileView 
           onSaveProfile={handleSaveProfile}
           savedGoal={savedDietGoal}
+          onLogout={handleLogout}
         />
       ) : (
         <>

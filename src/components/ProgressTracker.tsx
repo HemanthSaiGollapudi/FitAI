@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, Award, Calendar, Weight, 
-  Trash2, CheckCircle2, Ruler, Target
+  Trash2, CheckCircle2, Ruler, Target, ArrowLeft
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
@@ -233,6 +233,39 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   onSaveGoalWeight
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'History' | 'Biometrics' | 'Strength' | 'Photos'>('History');
+  const [selectedWorkoutDetail, setSelectedWorkoutDetail] = useState<LoggedWorkout | null>(null);
+
+  // Popstate history integration for detailed workout view
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.app === 'fitai' && e.state.view === 'progress') {
+        if (e.state.level === 'detail') {
+          const wk = workoutHistory.find(w => w.id === e.state.workoutId);
+          setSelectedWorkoutDetail(wk || null);
+        } else {
+          setSelectedWorkoutDetail(null);
+        }
+      } else {
+        setSelectedWorkoutDetail(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initial list state push
+    if (!window.history.state || window.history.state.view !== 'progress') {
+      window.history.pushState({ app: 'fitai', view: 'progress', level: 'list' }, '');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [workoutHistory]);
+
+  const handleOpenWorkoutDetail = (workout: LoggedWorkout) => {
+    setSelectedWorkoutDetail(workout);
+    window.history.pushState({ app: 'fitai', view: 'progress', level: 'detail', workoutId: workout.id }, '');
+  };
   
   // Progress Photos Trackers
   const [photoLogs, setPhotoLogs] = useState<any[]>(() => {
@@ -640,7 +673,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-8 md:mb-16">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -661,7 +694,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         </div>
 
         {/* Tab Selector */}
-        <div className="flex justify-center border-b border-white/5 mb-12 max-w-2xl mx-auto">
+        <div className="flex justify-center border-b border-white/5 mb-8 md:mb-12 max-w-2xl mx-auto">
           {['History', 'Biometrics', 'Strength', 'Photos'].map((tab) => (
             <button
               key={tab}
@@ -682,7 +715,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           
           {/* DISPLAY A: HISTORY */}
           {activeSubTab === 'History' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
               
               {/* History List */}
               <div className="lg:col-span-8 space-y-6 text-left">
@@ -731,9 +764,13 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                       </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6 md:space-y-4 pt-5 md:pt-0">
                       {workoutHistory.map((workout) => (
-                        <div key={workout.id} className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
+                        <div 
+                          key={workout.id} 
+                          onClick={() => handleOpenWorkoutDetail(workout)}
+                          className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4 cursor-pointer hover:border-brand-violet/40 transition-colors text-left"
+                        >
                           <div className="flex justify-between items-center border-b border-white/5 pb-2">
                             <h4 className="font-display font-bold text-white text-base">{workout.name}</h4>
                             <span className="text-[10px] text-zinc-500 font-bold">{formatDate(workout.timestamp)}</span>
@@ -769,7 +806,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   <Award className="h-4.5 w-4.5 text-brand-pink" /> Earned Medals
                 </h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-6 md:space-y-3 pt-5 md:pt-0">
                   {achievements.map((ach, idx) => (
                     <div 
                       key={idx} 
@@ -809,10 +846,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
 
           {/* DISPLAY B: BIOMETRICS LOGS */}
           {activeSubTab === 'Biometrics' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start text-left">
               
               {/* Aggregation summary widgets */}
-              <div className="lg:col-span-12 grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
+              <div className="lg:col-span-12 grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-4 mb-6 sm:mb-2">
                 <div className="p-4 bg-dark-900/40 border border-white/5 rounded-2xl">
                   <span className="text-[9px] text-zinc-500 font-bold uppercase block">Current Weight</span>
                   <span className="text-xl font-display font-black text-white">
@@ -843,7 +880,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               </div>
 
               {/* Form Loggers */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-5 space-y-6 pt-5 lg:pt-0">
                 
                 {/* Weight Form */}
                 <SpotlightCard className="p-5">
@@ -992,7 +1029,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               </div>
 
               {/* Charts & Tables (7 Columns) */}
-              <div className="lg:col-span-7 space-y-6">
+              <div className="lg:col-span-7 space-y-6 pt-5 lg:pt-0">
                 
                 {/* Weight Trend Chart */}
                 <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl">
@@ -1041,7 +1078,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 </div>
 
                 {/* Logs Tables Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-4 pt-5 md:pt-0">
                   {/* Weight logs table */}
                   <div className="p-4 bg-dark-900/40 border border-white/5 rounded-xl max-h-[160px] overflow-y-auto">
                     <h4 className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Weight History</h4>
@@ -1121,7 +1158,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   <p className="text-xs text-zinc-500">Log workout logs containing weights and reps to estimate strength curves.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                   
                   {/* Line chart (7 columns) */}
                   <div className="lg:col-span-7 p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
@@ -1136,7 +1173,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   </div>
 
                   {/* Summary list (5 columns) */}
-                  <div className="lg:col-span-5 grid grid-cols-1 gap-4">
+                  <div className="lg:col-span-5 grid grid-cols-1 gap-6 lg:gap-4 pt-5 lg:pt-0">
                     {/* Pull together heavy lifts from history */}
                     {(() => {
                       // Gather heaviest lifts per exercise
@@ -1182,7 +1219,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           {activeSubTab === 'Photos' && (
             <div className="space-y-8 text-left">
               
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch pt-5 lg:pt-0">
                 
                 {/* Left side: Upload card */}
                 <div className="lg:col-span-5">
@@ -1393,7 +1430,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     No progress photos logged yet.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-4 pt-5 md:pt-0">
                     {photoLogs.map(p => (
                       <div key={p.id} className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
                         <div className="flex justify-between items-center border-b border-white/5 pb-2 text-left">
@@ -1453,6 +1490,93 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         </div>
 
       </div>
+
+      {/* DETAILED WORKOUT HISTORY LOG VIEW OVERLAY */}
+      <AnimatePresence>
+        {selectedWorkoutDetail && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => window.history.back()}
+              className="absolute inset-0 bg-dark-950/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-xl max-h-[85vh] bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 border border-brand-violet/40 p-6 rounded-2xl shadow-glass z-10 text-left space-y-6 overflow-y-auto"
+            >
+              {/* Back Navigation Bar */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => window.history.back()}
+                  className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3.5 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass"
+                >
+                  <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Progress History
+                </button>
+              </div>
+
+              <div className="border-b border-white/5 pb-4">
+                <span className="text-[10px] text-brand-cyan font-black uppercase tracking-widest bg-brand-cyan/10 px-2.5 py-0.5 rounded-full">
+                  Logged Session Details
+                </span>
+                <h3 className="text-2xl font-display font-black text-white mt-2">{selectedWorkoutDetail.name}</h3>
+                <span className="text-xs text-zinc-500 font-bold mt-1 block">
+                  Completed on {new Date(selectedWorkoutDetail.timestamp).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {new Date(selectedWorkoutDetail.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              {/* Stats Summary cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center space-y-0.5">
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Total Volume</span>
+                  <span className="text-base font-black text-white block">
+                    {selectedWorkoutDetail.exercises.reduce((sum, ex) => 
+                      sum + ex.sets.reduce((setSum, s) => setSum + (s.weight * s.reps), 0)
+                    , 0)} kg
+                  </span>
+                </div>
+                <div className="p-3 bg-white/5 border border-white/5 rounded-xl text-center space-y-0.5">
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Sets Logged</span>
+                  <span className="text-base font-black text-white block">
+                    {selectedWorkoutDetail.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Exercises Breakdown */}
+              <div className="space-y-4">
+                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Exercises Performed</span>
+                <div className="space-y-3">
+                  {selectedWorkoutDetail.exercises.map((ex, idx) => (
+                    <div key={idx} className="p-4 bg-dark-950/50 border border-white/5 rounded-xl space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <h4 className="text-sm font-bold text-white">{ex.name}</h4>
+                        <span className="text-[10px] text-brand-cyan">{ex.sets.length} Sets</span>
+                      </div>
+                      {ex.notes && (
+                        <p className="text-[10px] text-zinc-500 italic border-l border-brand-violet pl-2 my-1">
+                          Notes: {ex.notes}
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {ex.sets.map((set, sIdx) => (
+                          <div key={sIdx} className="p-2 bg-white/5 border border-white/5 rounded-lg flex justify-between items-center text-xs">
+                            <span className="text-zinc-500 font-bold">Set {sIdx + 1}</span>
+                            <span className="text-white font-mono font-bold">{set.weight}kg x {set.reps}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

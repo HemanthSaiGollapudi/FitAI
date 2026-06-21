@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Dumbbell, Send, Plus, Trash2, 
-  Copy, Check, Sparkles, ShieldAlert, Clock, ArrowRight, User, X
+  Copy, Check, Sparkles, Clock, ArrowRight, User, X, Utensils
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SpotlightCard } from './SpotlightCard';
@@ -50,6 +50,7 @@ interface AICoachProps {
   savedDietProtein: number;
   savedDietType: string;
   userName: string;
+  userActivity: string;
   onSaveDiet: (settings: any) => void;
   onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
   onStartWorkout: (routine: WorkoutRoutine) => void;
@@ -303,6 +304,118 @@ const buildFollowUpSuggestions = (intents: string[]) => {
   return [...new Set(suggestions)].slice(0, 4);
 };
 
+const generateResponseFields = (
+  userText: string,
+  dietType: string,
+  stats: {
+    name: string;
+    weight: number;
+    goal: string;
+    activity: string;
+    calories: number;
+    protein: number;
+    workoutCount: number;
+    strengthPRs: { benchPR: number; squatPR: number; deadliftPR: number };
+  }
+) => {
+  const textLower = userText.toLowerCase();
+  
+  const detectedIntents: string[] = [];
+  if (textLower.includes('split') || textLower.includes('routine') || textLower.includes('program') || textLower.includes('workout') || textLower.includes('day') || textLower.includes('exercise')) {
+    detectedIntents.push('workout');
+  }
+  if (textLower.includes('diet') || textLower.includes('calorie') || textLower.includes('kcal') || textLower.includes('meal') || textLower.includes('nutrition') || textLower.includes('food') || textLower.includes('protein') || textLower.includes('veg')) {
+    detectedIntents.push('diet');
+  }
+  if (textLower.includes('dumbbell') || textLower.includes('db') || textLower.includes('equipment') || textLower.includes('calisthenic') || textLower.includes('bodyweight') || textLower.includes('home') || textLower.includes('only')) {
+    detectedIntents.push('equipment');
+  }
+  if (textLower.includes('bench') || textLower.includes('shoulder') || textLower.includes('hurt') || textLower.includes('pain') || textLower.includes('stuck') || textLower.includes('plateau') || textLower.includes('press') || textLower.includes('knee')) {
+    detectedIntents.push('troubleshooting');
+  }
+  if (textLower.includes('snack') || textLower.includes('snacks') || textLower.includes('snacking')) {
+    detectedIntents.push('snacks');
+  }
+
+  if (detectedIntents.length === 0) {
+    detectedIntents.push('workout');
+  }
+
+  const userStatsForBuild = {
+    name: stats.name,
+    weight: stats.weight,
+    goal: stats.goal,
+    activity: stats.activity,
+    calories: stats.calories,
+    protein: stats.protein,
+    historyCount: stats.workoutCount,
+    benchPR: stats.strengthPRs.benchPR,
+    squatPR: stats.strengthPRs.squatPR,
+    deadliftPR: stats.strengthPRs.deadliftPR,
+    dietType: dietType
+  };
+
+  const daysMatch = userText.match(/(\d+)\s*-?\s*day/i);
+  const daysCount = daysMatch ? parseInt(daysMatch[1]) : 4;
+  const isDumbbell = textLower.includes('dumbbell') || textLower.includes('db');
+
+  const directAnswer = buildDirectAnswer(detectedIntents, userStatsForBuild);
+  const actionPlanItems = buildActionPlan(detectedIntents, userStatsForBuild, daysCount, isDumbbell);
+  const recommendationItems = buildAdditionalRecommendations(detectedIntents, dietType);
+  const followUpSuggestions = buildFollowUpSuggestions(detectedIntents);
+
+  const hasWorkoutContent = detectedIntents.includes('workout');
+  const hasDietContent = detectedIntents.includes('diet') || detectedIntents.includes('snacks');
+  
+  let generatedRoutine: WorkoutRoutine | undefined = undefined;
+  if (hasWorkoutContent) {
+    const splitExercises = isDumbbell 
+      ? [
+          { name: 'Flat Dumbbell Press', id: 'flat-db-press' },
+          { name: 'Dumbbell Rows', id: 'db-rows' },
+          { name: 'Lunges', id: 'lunge' },
+          { name: 'Plank', id: 'plank' }
+        ]
+      : [
+          { name: 'Flat Bench Press', id: 'flat-bb-press' },
+          { name: 'Dumbbell Rows', id: 'db-rows' },
+          { name: 'Barbell Squats', id: 'barbell-squats' },
+          { name: 'Deadlift', id: 'deadlift' }
+        ];
+
+    generatedRoutine = {
+      id: `ai-routine-${Date.now()}`,
+      name: `Coach's ${daysCount}d ${isDumbbell ? 'DB' : 'Gym'} Split`,
+      desc: `Custom ${daysCount}-day program built for ${stats.goal} targeting your weight of ${stats.weight} kg.`,
+      exercises: splitExercises.map(ex => ex.id)
+    };
+  }
+
+  let suggestedDiet: { calories: number; protein: number; goal: string } | undefined = undefined;
+  if (hasDietContent) {
+    suggestedDiet = {
+      calories: stats.calories,
+      protein: stats.protein,
+      goal: stats.goal
+    };
+  }
+
+  const showDietPrompt = (detectedIntents.includes('diet') || detectedIntents.includes('snacks')) && !dietType;
+
+  return {
+    directAnswer,
+    actionPlanItems,
+    recommendationItems,
+    followUpSuggestions,
+    hasWorkoutContent,
+    hasDietContent,
+    generatedRoutine,
+    suggestedDiet,
+    showDietPrompt,
+    originalQuery: userText
+  };
+};
+
 const PRESET_QUERIES = [
   "Create a 4-day fat-loss split.",
   "I only have dumbbells.",
@@ -333,6 +446,7 @@ export const AICoach: React.FC<AICoachProps> = ({
   savedDietProtein,
   savedDietType,
   userName,
+  userActivity,
   onSaveDiet,
   onNavigate,
   onStartWorkout,
@@ -488,19 +602,30 @@ export const AICoach: React.FC<AICoachProps> = ({
   const handleSetDietPreference = (pref: string, msgId: string) => {
     onChangeDietType(pref);
     
+    const stats = {
+      name: userName,
+      weight: userWeight,
+      goal: savedDietGoal || 'Muscle Gain',
+      activity: userActivity || 'Moderately Active',
+      calories: savedDietCalories || 2000,
+      protein: savedDietProtein || 120,
+      workoutCount: workoutHistory ? workoutHistory.length : 0,
+      strengthPRs: getStrengthProgress(workoutHistory)
+    };
+
     setConversations(prev => prev.map(c => {
       if (c.id === activeChatId) {
         return {
           ...c,
           messages: c.messages.map(m => {
             if (m.id === msgId) {
-              const updatedFields = generateResponseFields(m.originalQuery || m.text, pref);
+              const updatedFields = generateResponseFields(m.originalQuery || m.text, pref, stats);
               return {
                 ...m,
                 dietPromptAnswered: true,
                 selectedPreference: pref,
-                showDietPrompt: false,
-                ...updatedFields
+                ...updatedFields,
+                showDietPrompt: false
               };
             }
             return m;
@@ -705,345 +830,25 @@ export const AICoach: React.FC<AICoachProps> = ({
     setIsTyping(true);
     
     setTimeout(() => {
-      const textLower = userText.toLowerCase();
-      
-      const detectedIntents: string[] = [];
-      if (textLower.includes('split') || textLower.includes('routine') || textLower.includes('program') || textLower.includes('workout') || textLower.includes('day')) {
-        detectedIntents.push('workout');
-      }
-      if (textLower.includes('dumbbell') || textLower.includes('db') || textLower.includes('equipment') || textLower.includes('calisthenic') || textLower.includes('bodyweight') || textLower.includes('home') || textLower.includes('only')) {
-        detectedIntents.push('equipment');
-      }
-      if (textLower.includes('diet') || textLower.includes('calorie') || textLower.includes('kcal') || textLower.includes('meal') || textLower.includes('nutrition') || textLower.includes('food') || textLower.includes('protein') || textLower.includes('veg')) {
-        detectedIntents.push('diet');
-      }
-      if (textLower.includes('bench') || textLower.includes('shoulder') || textLower.includes('hurt') || textLower.includes('pain') || textLower.includes('stuck') || textLower.includes('plateau') || textLower.includes('press')) {
-        detectedIntents.push('troubleshooting');
-      }
-      if (textLower.includes('snack') || textLower.includes('snacks') || textLower.includes('snacking')) {
-        detectedIntents.push('snacks');
-      }
+      const stats = {
+        name: userName,
+        weight: userWeight,
+        goal: savedDietGoal || 'Muscle Gain',
+        activity: userActivity || 'Moderately Active',
+        calories: savedDietCalories || 2000,
+        protein: savedDietProtein || 120,
+        workoutCount: workoutHistory ? workoutHistory.length : 0,
+        strengthPRs: getStrengthProgress(workoutHistory)
+      };
 
-      let match = PRESET_ANSWERS[userText];
-      let sections: Section[] = [];
-      let showDietPrompt = false;
-      let generatedRoutine: WorkoutRoutine | undefined = undefined;
-      let suggestedDiet: { calories: number; protein: number; goal: string } | undefined = undefined;
-      let coachIntroduction = `Hey ${userName || 'Champion'}! Let's break down your goals. I've analyzed your profile and query to design this tailored strategy.`;
-
-      if (!match && detectedIntents.length > 0) {
-        if (detectedIntents.includes('workout')) {
-          const daysMatch = userText.match(/(\d+)\s*-?\s*day/i);
-          const daysCount = daysMatch ? parseInt(daysMatch[1]) : 4;
-          const hasDumbbells = textLower.includes('dumbbell') || textLower.includes('db');
-          
-          let splitExercises = hasDumbbells 
-            ? [
-                { name: 'Flat Dumbbell Press', id: 'flat-db-press' },
-                { name: 'Dumbbell Rows', id: 'db-rows' },
-                { name: 'Lunges', id: 'lunge' },
-                { name: 'Plank', id: 'plank' }
-              ]
-            : [
-                { name: 'Flat Bench Press', id: 'flat-bb-press' },
-                { name: 'Dumbbell Rows', id: 'db-rows' },
-                { name: 'Barbell Squats', id: 'barbell-squats' },
-                { name: 'Deadlift', id: 'deadlift' }
-              ];
-
-          let dayDetails = "";
-          if (daysCount === 4) {
-            dayDetails = `- **Day 1**: Upper Body Focus (Dumbbell Bench Press, Dumbbell Rows, Lateral Raises)
-- **Day 2**: Lower Body Focus (Goblet Squats, Dumbbell Romanian Deadlifts, Lunges)
-- **Day 3**: Active Recovery / Core (Plank holds, mobility stretches)
-- **Day 4**: Full Body Hypertrophy (Dumbbell Floor Press, Lunges, Dumbbell Rows)`;
-          } else {
-            dayDetails = `- **Day 1**: Push Day (Bench Press variations, overhead press, tricep extensions)
-- **Day 2**: Pull Day (Deadlifts, dumbbell rows, curls)
-- **Day 3**: Legs & Core (Squats, lunges, plank circuits)`;
-          }
-
-          generatedRoutine = {
-            id: `ai-routine-${Date.now()}`,
-            name: `Coach's ${daysCount}d ${hasDumbbells ? 'DB' : 'Gym'} Split`,
-            desc: `Custom ${daysCount}-day program built for ${savedDietGoal || 'Muscle Gain'} targeting your weight of ${userWeight || 70} kg.`,
-            exercises: splitExercises.map(ex => ex.id)
-          };
-
-          sections.push({
-            id: 'sect-workout',
-            title: `🏋️ Custom ${daysCount}-Day ${savedDietGoal || 'Muscle Gain'} Split`,
-            content: `Since your goal is **${savedDietGoal || 'Muscle Gain'}** and you weigh **${userWeight || 70} kg**, I've designed a specialized hypertrophy program tailored to your stats. 
-            
-            **Weekly Structure:**
-            ${dayDetails}
-            
-            *Progression strategy: Keep the intensity high (RPE 8-9) and aim to add 1 rep or slightly increase the load weekly.*`,
-            type: 'workout',
-            actionButtons: ['save_routine', 'start_workout'],
-            exercises: splitExercises
-          });
-        }
-
-        if (detectedIntents.includes('equipment')) {
-          const isDumbbell = textLower.includes('dumbbell') || textLower.includes('db');
-          const isCali = textLower.includes('calisthenic') || textLower.includes('bodyweight');
-          
-          let eqName = "limited equipment";
-          let tips = "";
-          
-          if (isDumbbell) {
-            eqName = "Dumbbells Only";
-            tips = `- **Time Under Tension**: Slow down the negative (eccentric) phase to 3 seconds to increase muscle recruitment.
-- **Unilateral Focus**: Exercise variations like Bulgarian Split Squats and Single-Arm DB Rows help correct asymmetries and demand high stabilization.
-- **Mechanical Drop Sets**: Move from a harder variation (e.g. Incline DB Press) directly to a flatter angle to exhaust fibers.`;
-          } else if (isCali) {
-            eqName = "Bodyweight Calisthenics";
-            tips = `- **Leverage Adjustments**: Make pushups harder by elevating your feet or doing decline pushups.
-- **Volume & Rest**: Keep rest times shorter (45-60s) to maintain a higher metabolic stress.
-- **Core Stability**: Focus on active hollow-body positions during pull-ups and planks.`;
-          } else {
-            eqName = "Home Equipment";
-            tips = `- Utilize resistance bands to add tension at the peak contraction of lifts.
-- Focus on high velocity concentric movements to recruit fast-twitch fibers.`;
-          }
-
-          sections.push({
-            id: 'sect-equipment',
-            title: `⚙️ Training Adaptation: ${eqName}`,
-            content: `Training with ${eqName} is highly effective. Here's how to maximize your biological adaptation:
-            
-            ${tips}`,
-            type: 'equipment'
-          });
-        }
-
-        if (detectedIntents.includes('diet')) {
-          const calMatch = userText.match(/(\d{3,4})\s*-?\s*(calorie|kcal)/i);
-          const caloriesTarget = calMatch ? parseInt(calMatch[1]) : (savedDietCalories || 2300);
-          const proteinTarget = Math.round(userWeight * 2) || savedDietProtein || 140;
-
-          suggestedDiet = {
-            calories: caloriesTarget,
-            protein: proteinTarget,
-            goal: savedDietGoal || 'Muscle Gain'
-          };
-
-          let dietContent = `To support your target of **${caloriesTarget} kcal** and **${proteinTarget}g protein**, here is a nutrient-dense Indian meal template. `;
-          
-          if (savedDietType === 'Veg') {
-            dietContent += `I've personalized this to your **Vegetarian** preferences:
-            
-- **Meal 1 (Breakfast)**: High-protein Soya flour cheela (2 pcs) with low-fat curd (450 kcal, 28g protein)
-- **Meal 2 (Lunch)**: Paneer Bhurji (150g low-fat paneer) with 2 multigrain rotis and cucumber raita (650 kcal, 36g protein)
-- **Meal 3 (Dinner)**: Stir-fried Tofu (150g) and broccoli over 1 cup cooked brown rice or quinoa (680 kcal, 34g protein)
-- **Daily Totals**: ~2300 kcal, ~138g protein. Fits your goal perfectly!`;
-          } else if (savedDietType === 'Non-Veg') {
-            dietContent += `I've personalized this to your **Non-Vegetarian** preferences:
-            
-- **Meal 1 (Breakfast)**: Egg Omelette (3 whole eggs + 2 whites) with sliced whole wheat toast (480 kcal, 32g protein)
-- **Meal 2 (Lunch)**: Juicy Chicken Breast Curry (150g breast) served with basmati rice (1.5 cups) and dal (720 kcal, 54g protein)
-- **Meal 3 (Dinner)**: Pan-grilled Salmon or Basa fish fillet with sautéed green beans and sweet potato mash (600 kcal, 44g protein)
-- **Daily Totals**: ~2300 kcal, ~145g protein. Built for muscle repair!`;
-          } else if (savedDietType === 'Eggetarian') {
-            dietContent += `I've personalized this to your **Eggetarian** preferences:
-            
-- **Meal 1 (Breakfast)**: Scrambled eggs (3 whole) with sliced wheat toast (450 kcal, 24g protein)
-- **Meal 2 (Lunch)**: Low-fat paneer (100g) stir-fry with mixed lentils and multigrain flatbread (620 kcal, 30g protein)
-- **Meal 3 (Dinner)**: Egg bhurji curry (3 eggs) served with cooked quinoa or brown rice (650 kcal, 32g protein)
-- **Daily Totals**: ~2300 kcal, ~135g protein. High bioavailability!`;
-          } else {
-            showDietPrompt = true;
-            dietContent += `Since your diet type is not selected in your profile, here are both options:
-            
-#### 🥦 Option A: Vegetarian meal plan (~2300 kcal, ~130g protein)
-- **Breakfast**: Rolled oats blended with skimmed milk, banana, and a scoop of whey protein (480 kcal, 32g protein)
-- **Lunch**: Paneer Bhurji (150g paneer) cooked with minimal oil, served with 2 multigrain rotis and green salad (650 kcal, 36g protein)
-- **Dinner**: High-protein soya chunk curry (75g soya) with steamed brown rice and mixed lentil dal (700 kcal, 42g protein)
-
-#### 🍗 Option B: Non-Vegetarian meal plan (~2300 kcal, ~140g protein)
-- **Breakfast**: 3 egg whites + 2 whole eggs scrambled with spinach, served with 2 slices of whole wheat toast (490 kcal, 30g protein)
-- **Lunch**: Tandoori Grilled Chicken breast (150g) with basmati rice (1 cup) and a hot bowl of Toor dal (680 kcal, 52g protein)
-- **Dinner**: Baked herb-crusted fish fillet (180g white fish) served with mashed sweet potatoes and steam-sautéed broccoli (620 kcal, 40g protein)`;
-          }
-
-          sections.push({
-            id: 'sect-diet',
-            title: `🍽️ Nutrition Plan: ${caloriesTarget} kcal / ${proteinTarget}g Protein`,
-            content: dietContent,
-            type: 'diet',
-            actionButtons: ['add_diet']
-          });
-        }
-
-        if (detectedIntents.includes('troubleshooting')) {
-          let problem = "bench press sticking";
-          let advice = "";
-          
-          if (textLower.includes('bench') || textLower.includes('press')) {
-            problem = "Bench Press Plateau";
-            advice = `- **Retract the Scapula**: Squeeze your shoulder blades together and pull them down (as if putting them in back pockets) before lying down. This stabilizes the shoulder capsule and places load on the pecs.
-- **Elbow Angle**: Tuck your elbows at 45 degrees relative to your torso. Never flare them to 90 degrees, which causes rotator cuff impingement.
-- **Triceps Support**: Incorporate Close Grip Bench Press or Dumbbell Floor Presses. Stronger triceps help drive through the midpoint lockout.`;
-          } else if (textLower.includes('shoulder') || textLower.includes('pain') || textLower.includes('hurt')) {
-            problem = "Shoulder Impingement / Pain";
-            advice = `- **Form Check**: Pain during press movements usually means the front deltoids are overloaded. Reduce the weight by 20% and focus on a slow, controlled trajectory.
-- **Warm-Up**: Allocate 5 minutes to dynamic joint circles and rotator cuff band face-pulls.
-- **Alternative Exercises**: Switch to Dumbbell Floor Presses or Chest Dips where elbow angle is naturally constrained.`;
-          } else {
-            problem = "Strength Plateaus";
-            advice = `- **Progressive Overload**: Ensure you are aiming for one extra rep or a tiny increment in load rather than using the same weight every week.
-- **Deload Week**: Drop working weights by 15% for one week to allow neurological and tendon structures to fully repair.
-- **Sleep & Protein**: Ensure you hit 8 hours of sleep. Soreness and stagnation are usually recovery-based.`;
-          }
-
-          let historyNotes = workoutHistory && workoutHistory.length > 0 
-            ? `Your workout history shows **${workoutHistory.length}** logged workouts. You're building solid consistency! Keep executing, let's break this barrier.`
-            : `I see you haven't logged workouts in your history yet. Let's get started on the tracker to log your baseline weights.`;
-
-          sections.push({
-            id: 'sect-troubleshoot',
-            title: `🔍 Biomechanical Troubleshooter: ${problem}`,
-            content: `${advice}
-            
-            ${historyNotes}`,
-            type: 'troubleshooting',
-            actionButtons: ['open_library']
-          });
-        }
-
-        if (detectedIntents.includes('snacks')) {
-          let snackContent = "Here are high-protein, satiating snack ideas. ";
-          
-          if (savedDietType === 'Veg') {
-            snackContent += `Optimized for your **Vegetarian** lifestyle:
-            
-- **Roasted Makhana (Foxnuts)**: Seasoned with turmeric and black pepper. Low calorie, great crunch. (100 kcal, 2g protein)
-- **Roasted Chana (Chickpeas)**: A handful provides complex carbs and fiber. (180 kcal, 10g protein)
-- **Low-Fat Paneer Bhurji / Cubes**: 100g pan-seared with salt and pepper. (180 kcal, 18g protein)
-- **Greek Yogurt / Sprouts**: Mixed with cucumber and pomegranate. (150 kcal, 12g protein)`;
-          } else if (savedDietType === 'Non-Veg') {
-            snackContent += `Optimized for your **Non-Vegetarian** lifestyle:
-            
-- **Hard-Boiled Egg Whites**: 3 egg whites seasoned with chaat masala and black pepper. (50 kcal, 12g protein)
-- **Shredded Chicken Breast Salad**: 100g breast tossed with cucumbers and fresh lime. (120 kcal, 22g protein)
-- **Chicken Skewers / Kebabs**: 3 small cubes of low-fat grilled chicken. (160 kcal, 18g protein)
-- **Whey Protein Shake**: Mixed with water. (120 kcal, 25g protein)`;
-          } else {
-            showDietPrompt = true;
-            snackContent += `Here are options for both preferences:
-            
-#### 🥦 Vegetarian Snacks
-- **Roasted Foxnuts (Makhana)**: Tossed in 1 tsp olive oil and pepper (120 kcal, 2g protein)
-- **Roasted Black Chana (Chickpeas)**: Excellent source of fiber and energy (150 kcal, 8g protein)
-- **Low-fat Paneer Cubes (100g)**: Seasoned with roasted cumin powder (180 kcal, 18g protein)
-
-#### 🍗 Non-Vegetarian / Egg Snacks
-- **Boiled Egg Whites (3 pcs)**: Quick, clean, and zero carb (50 kcal, 12g protein)
-- **Tandoori Chicken Skewers (100g)**: Baked or pan-seared chicken breast (140 kcal, 22g protein)
-- **Whey Isolate Shake**: 1 scoop mixed with water (120 kcal, 25g protein)`;
-          }
-
-          sections.push({
-            id: 'sect-snacks',
-            title: `🥜 High-Protein Coach Snacks`,
-            content: snackContent,
-            type: 'snacks'
-          });
-        }
-
-        match = {
-          text: coachIntroduction,
-          sections,
-          showDietPrompt,
-          generatedRoutine,
-          suggestedDiet
-        };
-
-      } else {
-        const baseMatch = match || PRESET_ANSWERS['Suggest chest exercises without machines.'];
-        
-        let sectionsList: Section[] = [
-          {
-            id: 'sect-general',
-            title: '🏋️ Coach Strategy Notes',
-            content: baseMatch.directAnswer || baseMatch.text,
-            type: 'workout'
-          }
-        ];
-        
-        if (baseMatch.reasoning) {
-          sectionsList.push({
-            id: 'sect-reasoning',
-            title: '🧠 Physiological Breakdown',
-            content: baseMatch.reasoning,
-            type: 'troubleshooting'
-          });
-        }
-
-        if (baseMatch.actionSteps && baseMatch.actionSteps.length > 0) {
-          sectionsList.push({
-            id: 'sect-actions',
-            title: '📋 Recommended Action Plan',
-            content: baseMatch.actionSteps.map(step => `- ${step}`).join('\n'),
-            type: 'workout'
-          });
-        }
-
-        if (baseMatch.warnings && baseMatch.warnings.length > 0) {
-          sectionsList.push({
-            id: 'sect-safety',
-            title: '⚠️ Coach Safety Guidelines',
-            content: baseMatch.warnings.join('\n'),
-            type: 'troubleshooting'
-          });
-        }
-
-        let actionButtons: ('save_routine' | 'add_diet' | 'open_library' | 'start_workout')[] = [];
-        let exercises: { id: string; name: string }[] = [];
-
-        if (baseMatch.recommendations && baseMatch.recommendations.length > 0) {
-          exercises = baseMatch.recommendations
-            .filter(r => r.type === 'exercise')
-            .map(r => ({ id: r.id || 'push-ups', name: r.name }));
-          
-          if (exercises.length > 0) {
-            actionButtons.push('save_routine', 'start_workout', 'open_library');
-            generatedRoutine = {
-              id: `ai-routine-${Date.now()}`,
-              name: `Coach's Recommended Split`,
-              desc: `AI recommended exercises for your fitness progression.`,
-              exercises: exercises.map(ex => ex.id)
-            };
-          }
-          
-          if (baseMatch.recommendations.some(r => r.type === 'meal')) {
-            actionButtons.push('add_diet');
-            suggestedDiet = {
-              calories: savedDietCalories || 2200,
-              protein: savedDietProtein || 120,
-              goal: savedDietGoal || 'Muscle Gain'
-            };
-          }
-        }
-
-        sectionsList[0].actionButtons = actionButtons;
-        sectionsList[0].exercises = exercises;
-
-        match = {
-          text: baseMatch.text,
-          sections: sectionsList,
-          generatedRoutine,
-          suggestedDiet,
-          showDietPrompt: (userText.toLowerCase().includes('diet') || userText.toLowerCase().includes('snack')) && !savedDietType
-        };
-      }
+      const responseFields = generateResponseFields(userText, savedDietType, stats);
 
       const newAIMessage: Message = {
         id: `ai-msg-${Date.now()}`,
         sender: 'ai',
         timestamp: Date.now(),
-        ...match
+        text: `Based on your query, here is your customized coach feedback.`,
+        ...responseFields
       };
 
       setConversations(prev => prev.map(c => {
@@ -1494,127 +1299,102 @@ export const AICoach: React.FC<AICoachProps> = ({
 
                         {/* Structured details (Only on Coach Responses if exist) */}
                         {!isUser && (
-                          <div className="space-y-4 pt-2 border-t border-white/5">
+                          <div className="space-y-5 pt-3 border-t border-white/10">
+                            {/* Direct Answer Section */}
                             {msg.directAnswer && (
-                              <div className="space-y-0.5">
-                                <span className="text-[9px] text-brand-cyan font-black uppercase tracking-wider block">Direct Answer</span>
-                                <p className="text-zinc-300 font-medium">{msg.directAnswer}</p>
+                              <div className="space-y-1 text-left">
+                                <span className="text-[10px] text-brand-cyan font-black uppercase tracking-wider block">🎯 Direct Answer</span>
+                                <p className="text-zinc-200 text-xs font-medium leading-relaxed whitespace-pre-line">{msg.directAnswer}</p>
                               </div>
                             )}
 
-                            {msg.reasoning && (
-                              <div className="space-y-0.5 bg-dark-950/40 p-2.5 rounded-xl border border-white/5">
-                                <span className="text-[9px] text-brand-violet font-black uppercase tracking-wider block">Physiological Reasoning</span>
-                                <p className="text-zinc-400 italic font-normal">{msg.reasoning}</p>
-                              </div>
-                            )}
-
-                            {msg.actionSteps && msg.actionSteps.length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-[9px] text-brand-lime font-black uppercase tracking-wider block">Coaching Actions Checklist</span>
-                                <ul className="space-y-1 pl-3.5 list-disc text-zinc-300">
-                                  {msg.actionSteps.map((step, sidx) => (
-                                    <li key={sidx} className="font-semibold">{step}</li>
+                            {/* Action Plan Section */}
+                            {msg.actionPlanItems && msg.actionPlanItems.length > 0 && (
+                              <div className="space-y-2 bg-dark-950/40 p-3.5 rounded-xl border border-white/5 text-left">
+                                <span className="text-[10px] text-brand-lime font-black uppercase tracking-wider block">📋 Action Plan</span>
+                                <ul className="space-y-1.5 pl-4 list-disc text-zinc-300 text-xs leading-relaxed">
+                                  {msg.actionPlanItems.map((item, idx) => (
+                                    <li key={idx} className="font-normal" dangerouslySetInnerHTML={{ __html: item }} />
                                   ))}
                                 </ul>
                               </div>
                             )}
 
-                            {msg.warnings && msg.warnings.length > 0 && (
-                              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl space-y-1">
-                                <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                                  <ShieldAlert className="h-3 w-3" /> Metabolic Safety Advisory
-                                </span>
-                                <ul className="space-y-0.5 list-disc pl-3.5">
-                                  {msg.warnings.map((warn, widx) => (
-                                    <li key={widx} className="font-bold text-[10px] leading-relaxed">{warn}</li>
+                            {/* Additional Recommendations Section */}
+                            {msg.recommendationItems && msg.recommendationItems.length > 0 && (
+                              <div className="space-y-2 bg-dark-950/25 p-3.5 rounded-xl border border-white/5 text-left">
+                                <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block">💡 Additional Recommendations</span>
+                                <ul className="space-y-1.5 pl-4 list-disc text-zinc-400 text-xs leading-relaxed">
+                                  {msg.recommendationItems.map((item, idx) => (
+                                    <li key={idx} className="font-normal" dangerouslySetInnerHTML={{ __html: item }} />
                                   ))}
                                 </ul>
                               </div>
                             )}
 
-                            {msg.recommendations && msg.recommendations.length > 0 && (
-                              <div className="space-y-1.5">
-                                <span className="text-[9px] text-amber-400 font-black uppercase tracking-wider block">Suggested Elements</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {msg.recommendations.map((rec, ridx) => (
-                                    <span 
-                                      key={ridx}
-                                      className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider border ${
-                                        rec.type === 'exercise'
-                                          ? 'bg-brand-cyan/15 border-brand-cyan/20 text-brand-cyan'
-                                          : 'bg-brand-lime/15 border-brand-lime/20 text-brand-lime'
-                                      }`}
+                            {/* Action Buttons Section */}
+                            {((msg.hasWorkoutContent && msg.generatedRoutine) || (msg.hasDietContent && msg.suggestedDiet)) && (
+                              <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                                {/* Workout Actions */}
+                                {msg.hasWorkoutContent && msg.generatedRoutine && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveRoutineFromChat(msg)}
+                                      className="px-3 py-2 rounded-xl bg-brand-violet/20 hover:bg-brand-violet/30 border border-brand-violet/30 hover:border-brand-violet text-brand-violet hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
                                     >
-                                      {rec.type === 'exercise' ? '🏋️ ' : '🥗 '} {rec.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                      <Plus className="h-3.5 w-3.5" /> Save Routine
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartWorkoutFromChat(msg)}
+                                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-brand-violet to-brand-cyan hover:opacity-90 text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <ArrowRight className="h-3.5 w-3.5" /> Start Workout
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onNavigate('training', 'logger')}
+                                      className="px-3 py-2 rounded-xl bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan/30 hover:border-brand-cyan text-brand-cyan hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Dumbbell className="h-3.5 w-3.5" /> Add to Logger
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onNavigate('training', 'library')}
+                                      className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Dumbbell className="h-3.5 w-3.5" /> Open Exercise Library
+                                    </button>
+                                  </>
+                                )}
 
-                            {/* Upgraded Multi-Intent Sections Layout */}
-                            {msg.sections && msg.sections.length > 0 && (
-                              <div className="space-y-5">
-                                {msg.sections.map((section) => (
-                                  <div key={section.id} className="p-3.5 bg-dark-950/40 border border-white/5 rounded-xl space-y-2 text-left">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-brand-cyan border-b border-white/5 pb-1.5 flex items-center gap-1.5">
-                                      {section.title}
-                                    </h4>
-                                    <p className="text-zinc-300 font-normal whitespace-pre-line leading-relaxed text-xs">{section.content}</p>
-                                    
-                                    {section.exercises && section.exercises.length > 0 && (
-                                      <div className="flex flex-wrap gap-1.5 mt-2.5">
-                                        {section.exercises.map((ex, eidx) => (
-                                          <span key={eidx} className="px-2 py-0.5 bg-brand-cyan/15 border border-brand-cyan/20 text-brand-cyan rounded text-[9px] font-bold">
-                                            🏋️ {ex.name}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {section.actionButtons && section.actionButtons.length > 0 && (
-                                      <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-white/5">
-                                        {section.actionButtons.includes('save_routine') && msg.generatedRoutine && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleSaveRoutineFromChat(msg)}
-                                            className="px-2.5 py-1.5 rounded-lg bg-brand-violet/20 hover:bg-brand-violet/30 border border-brand-violet/30 hover:border-brand-violet text-brand-violet hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                                          >
-                                            <Plus className="h-3 w-3" /> Save Routine
-                                          </button>
-                                        )}
-                                        {section.actionButtons.includes('start_workout') && msg.generatedRoutine && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleStartWorkoutFromChat(msg)}
-                                            className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-brand-violet to-brand-cyan hover:opacity-90 text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                                          >
-                                            <ArrowRight className="h-3 w-3" /> Start Workout
-                                          </button>
-                                        )}
-                                        {section.actionButtons.includes('add_diet') && msg.suggestedDiet && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleSaveDietFromChat(msg)}
-                                            className="px-2.5 py-1.5 rounded-lg bg-brand-lime/20 hover:bg-brand-lime/30 border border-brand-lime/30 hover:border-brand-lime text-brand-lime hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                                          >
-                                            <Check className="h-3 w-3" /> Save to Diet
-                                          </button>
-                                        )}
-                                        {section.actionButtons.includes('open_library') && (
-                                          <button
-                                            type="button"
-                                            onClick={() => onNavigate('training', 'library')}
-                                            className="px-2.5 py-1.5 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan/30 hover:border-brand-cyan text-brand-cyan hover:text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1"
-                                          >
-                                            <Dumbbell className="h-3 w-3" /> Open Exercises
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
+                                {/* Diet Actions */}
+                                {msg.hasDietContent && msg.suggestedDiet && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveDietFromChat(msg)}
+                                      className="px-3 py-2 rounded-xl bg-brand-lime/20 hover:bg-brand-lime/30 border border-brand-lime/30 hover:border-brand-lime text-brand-lime hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Check className="h-3.5 w-3.5" /> Save Diet
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddToNutritionHub(msg)}
+                                      className="px-3 py-2 rounded-xl bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan/30 hover:border-brand-cyan text-brand-cyan hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Utensils className="h-3.5 w-3.5" /> Add to Nutrition Hub
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGenerateShoppingList(msg.selectedPreference || savedDietType || 'Veg')}
+                                      className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Utensils className="h-3.5 w-3.5" /> Generate Shopping List
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             )}
 
@@ -1625,7 +1405,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                                 <p className="text-white text-xs font-semibold">
                                   {msg.dietPromptAnswered 
                                     ? `Preference saved: ${msg.selectedPreference}` 
-                                    : "Before providing food recommendations, do you prefer Vegetarian, Non-Vegetarian, or Both?"
+                                    : "Before providing food recommendations, do you prefer Vegetarian, Non-Vegetarian, Eggetarian, or Both?"
                                   }
                                 </p>
                                 {!msg.dietPromptAnswered && (
@@ -1633,26 +1413,53 @@ export const AICoach: React.FC<AICoachProps> = ({
                                     <button 
                                       type="button"
                                       onClick={() => handleSetDietPreference('Veg', msg.id)}
-                                      className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-lg transition-all"
+                                      className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
                                     >
                                       Vegetarian
                                     </button>
                                     <button 
                                       type="button"
                                       onClick={() => handleSetDietPreference('Non-Veg', msg.id)}
-                                      className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/30 text-rose-400 text-[10px] font-bold rounded-lg transition-all"
+                                      className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/35 border border-rose-500/30 text-rose-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
                                     >
                                       Non-Vegetarian
                                     </button>
                                     <button 
                                       type="button"
+                                      onClick={() => handleSetDietPreference('Eggetarian', msg.id)}
+                                      className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/30 text-amber-400 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+                                    >
+                                      Eggetarian
+                                    </button>
+                                    <button 
+                                      type="button"
                                       onClick={() => handleSetDietPreference('Both', msg.id)}
-                                      className="px-3 py-1.5 bg-brand-cyan/20 hover:bg-brand-cyan/35 border border-brand-cyan/30 text-brand-cyan text-[10px] font-bold rounded-lg transition-all"
+                                      className="px-3 py-1.5 bg-brand-cyan/20 hover:bg-brand-cyan/35 border border-brand-cyan/30 text-brand-cyan text-[10px] font-bold rounded-lg transition-all cursor-pointer"
                                     >
                                       Both
                                     </button>
                                   </div>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Follow-Up Suggestions */}
+                            {msg.followUpSuggestions && msg.followUpSuggestions.length > 0 && (
+                              <div className="space-y-2 pt-2 border-t border-white/5 text-left">
+                                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Follow-Up Suggestions</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {msg.followUpSuggestions.map((suggestion, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => handleSendMessage(suggestion)}
+                                      disabled={isTyping}
+                                      className="px-2.5 py-1 bg-white/5 hover:bg-brand-violet/15 border border-white/5 hover:border-brand-violet/30 rounded-lg text-[10px] font-bold text-zinc-400 hover:text-white transition-all text-left cursor-pointer whitespace-nowrap"
+                                    >
+                                      {suggestion}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1685,12 +1492,12 @@ export const AICoach: React.FC<AICoachProps> = ({
               <div className="p-3.5 bg-dark-950/60 border-t border-white/5 space-y-2">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block text-left">Suggested Quick Prompts</span>
                 <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto pr-1">
-                  {Object.keys(PRESET_ANSWERS).map((query) => (
+                  {PRESET_QUERIES.map((query) => (
                     <button
                       key={query}
                       onClick={() => handleSendMessage(query)}
                       disabled={isTyping}
-                      className="px-2.5 py-1 bg-white/5 hover:bg-brand-violet/15 border border-white/5 hover:border-brand-violet/30 rounded-lg text-[10px] font-bold text-zinc-400 hover:text-white transition-all whitespace-nowrap"
+                      className="px-2.5 py-1 bg-white/5 hover:bg-brand-violet/15 border border-white/5 hover:border-brand-violet/30 rounded-lg text-[10px] font-bold text-zinc-400 hover:text-white transition-all whitespace-nowrap cursor-pointer"
                     >
                       {query}
                     </button>
@@ -2034,6 +1841,82 @@ export const AICoach: React.FC<AICoachProps> = ({
         )}
 
       </div>
+
+      {/* Shopping List Modal */}
+      <AnimatePresence>
+        {shoppingListModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <div 
+              onClick={() => setShoppingListModalOpen(false)} 
+              className="absolute inset-0 bg-[#03000a]/80 backdrop-blur-md" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 border border-brand-violet/40 p-6 rounded-2xl shadow-glass z-10 text-left space-y-6"
+            >
+              <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                <div>
+                  <h3 className="text-lg font-display font-black text-white flex items-center gap-2">
+                    🛒 Custom Shopping List
+                  </h3>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+                    Preference: {shoppingListType}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShoppingListModalOpen(false)}
+                  className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                {shoppingListItems.map((cat, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <h4 className="text-xs font-bold text-brand-cyan tracking-wider uppercase border-b border-white/5 pb-1">
+                      {cat.category}
+                    </h4>
+                    <ul className="space-y-1.5 pl-1.5 text-xs text-zinc-300 font-semibold">
+                      {cat.items.map((item, itemIdx) => (
+                        <li key={itemIdx} className="flex justify-between items-center bg-white/5 p-2 rounded-xl border border-white/5">
+                          <span>{item.name}</span>
+                          <span className="text-zinc-500 font-mono text-[10px]">{item.qty}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t border-white/5">
+                <button
+                  onClick={handleCopyShoppingList}
+                  className="flex-1 py-3 bg-brand-violet text-white text-xs font-black rounded-xl hover:scale-[1.01] transition-transform flex items-center justify-center gap-1.5 shadow-glow-purple cursor-pointer"
+                >
+                  {shoppingListCopied ? (
+                    <>
+                      <Check className="h-4 w-4" /> Copied to Clipboard!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" /> Copy Entire List
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShoppingListModalOpen(false)}
+                  className="px-5 py-3 bg-white/5 border border-white/10 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

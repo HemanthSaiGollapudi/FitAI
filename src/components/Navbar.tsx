@@ -6,9 +6,11 @@ interface NavbarProps {
   onStartOnboarding: () => void;
   activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile';
   onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile') => void;
+  isAuthenticated?: boolean;
+  onLogout?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, onChangeView }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, onChangeView, isAuthenticated, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -105,7 +107,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
         </div>
 
         {/* Desktop Action Buttons */}
-        <div className="hidden md:flex items-center">
+        <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated && onLogout && (
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 rounded-full text-xs font-black border border-white/10 hover:border-red-500/30 text-zinc-400 hover:text-red-400 transition-all uppercase tracking-wider bg-white/5 cursor-pointer"
+            >
+              Log Out 🚪
+            </button>
+          )}
           <button
             onClick={onStartOnboarding}
             className="relative group overflow-hidden px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 border border-brand-violet/50 hover:border-brand-violet"
@@ -151,6 +161,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
               ))}
               <div className="h-px bg-white/5" />
               <div className="flex flex-col gap-4">
+                {isAuthenticated && onLogout && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      onLogout();
+                    }}
+                    className="w-full py-3 rounded-full text-sm font-bold border border-white/5 text-red-400 hover:bg-red-500/10 transition-colors uppercase tracking-wider bg-white/5"
+                  >
+                    Log Out 🚪
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setIsOpen(false);

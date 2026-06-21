@@ -60,6 +60,32 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [shouldFlash, setShouldFlash] = useState(false);
 
+  // Swipe-back gesture and browser back interception
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    const handlePopState = (_e: PopStateEvent) => {
+      // Re-push state immediately to lock history screen stack in place
+      window.history.pushState({ app: 'fitai', view: 'active-workout', isSearchOpen: false }, '');
+      
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+      } else {
+        // Trigger cancel discard confirmation
+        onCancelActiveWorkout();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Initial push state for expanded active workout
+    window.history.pushState({ app: 'fitai', view: 'active-workout', isSearchOpen: isSearchOpen }, '');
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isExpanded, isSearchOpen, onCancelActiveWorkout]);
+
   // Tick the stopwatch
   useEffect(() => {
     const updateTimer = () => {
@@ -205,7 +231,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
         }
       ]
     });
-    setIsSearchOpen(false);
+    window.history.back(); // Closes search cleanly by popping state
     setSearchQuery('');
   };
 
@@ -266,6 +292,11 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
     onFinishActiveWorkout();
   };
 
+  const handleOpenSearchModal = () => {
+    setIsSearchOpen(true);
+    window.history.pushState({ app: 'fitai', view: 'active-workout', isSearchOpen: true }, '');
+  };
+
   return (
     <>
       {/* Rest Timer Visual Flash Effect */}
@@ -306,13 +337,13 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
             </span>
             <button
               onClick={() => setIsExpanded(true)}
-              className="px-4 py-2 bg-white/5 border border-white/10 hover:border-brand-cyan/40 text-brand-cyan hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+              className="px-4 py-2 bg-white/5 border border-white/10 hover:border-brand-cyan/40 text-brand-cyan hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 min-h-[44px]"
             >
               <Eye className="h-3.5 w-3.5" /> Maximize
             </button>
             <button
               onClick={handleFinishClick}
-              className="px-4.5 py-2 bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black rounded-lg shadow-glow-lime hover:scale-[1.02] transition-transform"
+              className="px-4.5 py-2.5 bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black rounded-lg shadow-glow-lime hover:scale-[1.02] transition-transform min-h-[44px]"
             >
               Finish
             </button>
@@ -357,7 +388,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                   {/* Play/Pause */}
                   <button
                     onClick={handlePauseResume}
-                    className={`p-2.5 rounded-xl border transition-all text-xs font-bold ${
+                    className={`p-2.5 rounded-xl border transition-all text-xs font-bold min-h-[44px] min-w-[44px] flex items-center justify-center ${
                       activeWorkout.isPaused
                         ? 'border-brand-lime/30 text-brand-lime hover:bg-brand-lime/10'
                         : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
@@ -369,7 +400,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
 
                   <button
                     onClick={() => setIsExpanded(false)}
-                    className="p-2.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5"
+                    className="p-2.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     title="Minimize session"
                   >
                     <ChevronDown className="h-4.5 w-4.5" />
@@ -377,7 +408,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
 
                   <button
                     onClick={onCancelActiveWorkout}
-                    className="p-2.5 rounded-xl border border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
+                    className="p-2.5 rounded-xl border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
                     title="Discard Workout"
                   >
                     <Trash2 className="h-4.5 w-4.5" />
@@ -385,7 +416,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
 
                   <button
                     onClick={handleFinishClick}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black shadow-glow-lime hover:scale-[1.02] transition-transform"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-lime to-brand-cyan text-dark-950 text-xs font-black shadow-glow-lime hover:scale-[1.02] transition-transform min-h-[44px]"
                   >
                     Finish Workout
                   </button>
@@ -405,8 +436,8 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                   <Dumbbell className="h-12 w-12 text-zinc-600" />
                   <p className="text-sm font-semibold">Your workout checklist is empty.</p>
                   <button
-                    onClick={() => setIsSearchOpen(true)}
-                    className="px-4 py-2 bg-brand-violet/20 hover:bg-brand-violet border border-brand-violet/40 text-brand-cyan hover:text-white rounded-xl text-xs font-bold transition-all"
+                    onClick={handleOpenSearchModal}
+                    className="px-4 py-2 bg-brand-violet/20 hover:bg-brand-violet border border-brand-violet/40 text-brand-cyan hover:text-white rounded-xl text-xs font-bold transition-all min-h-[44px]"
                   >
                     + Add Exercise to Session
                   </button>
@@ -432,7 +463,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                         
                         <button
                           onClick={() => handleRemoveExercise(exIdx)}
-                          className="text-[10px] text-zinc-500 hover:text-red-400 font-semibold flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5"
+                          className="text-[10px] text-zinc-500 hover:text-red-400 font-semibold flex items-center gap-1 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5 min-h-[44px]"
                         >
                           <X className="h-3 w-3" /> Remove
                         </button>
@@ -500,7 +531,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                                 <td className="py-2 px-1 text-center">
                                   <button
                                     onClick={() => handleUpdateSet(exIdx, setIdx, { completed: !set.completed })}
-                                    className={`mx-auto h-5.5 w-5.5 rounded border flex items-center justify-center transition-all ${
+                                    className={`mx-auto h-5.5 w-5.5 rounded border flex items-center justify-center transition-all min-h-[44px] min-w-[44px] ${
                                       set.completed
                                         ? 'bg-brand-lime border-brand-lime text-dark-950 shadow-glow-lime'
                                         : 'border-white/20 hover:border-brand-lime/50 text-transparent'
@@ -512,7 +543,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                                 <td className="py-2 px-1 text-right">
                                   <button
                                     onClick={() => handleRemoveSet(exIdx, setIdx)}
-                                    className="text-zinc-600 hover:text-red-400 p-1.5 rounded"
+                                    className="text-zinc-600 hover:text-red-400 p-1.5 rounded min-h-[44px]"
                                     title="Delete set"
                                   >
                                     <X className="h-4 w-4" />
@@ -526,7 +557,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
 
                       <button
                         onClick={() => handleAddSet(exIdx)}
-                        className="px-3.5 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 transition-all flex items-center gap-1.5 border border-white/5"
+                        className="px-3.5 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-zinc-300 transition-all flex items-center gap-1.5 border border-white/5 min-h-[44px]"
                       >
                         <Plus className="h-3.5 w-3.5" /> Add Set
                       </button>
@@ -539,8 +570,8 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
               {/* Add exercise trigger at the bottom of the list */}
               {activeWorkout.exercises.length > 0 && (
                 <button
-                  onClick={() => setIsSearchOpen(true)}
-                  className="w-full py-4 border border-dashed border-white/10 hover:border-brand-violet/40 bg-dark-900/10 text-zinc-400 hover:text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                  onClick={handleOpenSearchModal}
+                  className="w-full py-4 border border-dashed border-white/10 hover:border-brand-violet/40 bg-dark-900/10 text-zinc-400 hover:text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[44px]"
                 >
                   <Plus className="h-4.5 w-4.5" /> Add Another Exercise
                 </button>
@@ -603,7 +634,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                       <button
                         key={s}
                         onClick={() => startRestTimer(s)}
-                        className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                        className={`py-2 text-xs font-bold rounded-lg border transition-all min-h-[44px] ${
                           restTimeTotal === s && restTimeRemaining !== null
                             ? 'bg-brand-cyan/20 border-brand-cyan text-brand-cyan'
                             : 'bg-white/5 border-white/5 hover:border-zinc-700 text-zinc-300'
@@ -629,7 +660,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                     />
                     <button
                       onClick={() => startRestTimer(restTimeTotal)}
-                      className="px-4 py-2 bg-brand-cyan text-dark-950 font-bold rounded-xl text-xs hover:scale-102 transition-transform"
+                      className="px-4 py-2 bg-brand-cyan text-dark-950 font-bold rounded-xl text-xs hover:scale-102 transition-transform min-h-[44px]"
                     >
                       Start
                     </button>
@@ -640,13 +671,13 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                     <div className="flex gap-2 pt-2 border-t border-white/5">
                       <button
                         onClick={() => setIsRestPaused(!isRestPaused)}
-                        className="flex-1 py-2 border border-white/10 hover:bg-white/5 rounded-lg text-xs font-bold text-zinc-300"
+                        className="flex-1 py-2 border border-white/10 hover:bg-white/5 rounded-lg text-xs font-bold text-zinc-300 min-h-[44px]"
                       >
                         {isRestPaused ? 'Resume' : 'Pause'}
                       </button>
                       <button
                         onClick={() => setRestTimeRemaining(null)}
-                        className="flex-1 py-2 border border-rose-500/20 hover:bg-rose-500/10 rounded-lg text-xs font-bold text-rose-400"
+                        className="flex-1 py-2 border border-rose-500/20 hover:bg-rose-500/10 rounded-lg text-xs font-bold text-rose-400 min-h-[44px]"
                       >
                         Skip
                       </button>
@@ -687,11 +718,11 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
       {/* MODAL: SELECT EXERCISE TO ADD */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          <div onClick={() => setIsSearchOpen(false)} className="absolute inset-0 bg-dark-950/80 backdrop-blur-md" />
+          <div onClick={() => window.history.back()} className="absolute inset-0 bg-dark-950/80 backdrop-blur-md" />
           <div className="relative w-full max-w-xl max-h-[70vh] bg-dark-900 border border-white/10 rounded-2xl shadow-glass flex flex-col z-10 overflow-hidden text-left">
-            <div className="p-4 bg-dark-950/50 border-b border-white/5 flex justify-between items-center">
+            <div className="p-4 bg-dark-950/50 border-b border-white/5 flex justify-between items-center animate-fade-in">
               <h3 className="font-display font-bold text-white text-base">Select Exercise to Add</h3>
-              <button onClick={() => setIsSearchOpen(false)} className="p-1 rounded text-zinc-500 hover:text-white">
+              <button onClick={() => window.history.back()} className="p-1 rounded text-zinc-500 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -717,7 +748,7 @@ export const ActiveWorkoutSession: React.FC<ActiveWorkoutSessionProps> = ({
                     <h4 className="text-xs font-bold text-white">{ex.name}</h4>
                     <span className="text-[9px] text-zinc-500">{ex.group} • {ex.equipment}</span>
                   </div>
-                  <span className="text-[10px] text-brand-cyan font-bold">Add +</span>
+                  <span className="text-[10px] text-brand-cyan font-bold p-2 min-h-[44px] flex items-center">Add +</span>
                 </div>
               ))}
               {filteredSearchExercises.length === 0 && (
