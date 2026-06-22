@@ -132,6 +132,7 @@ export const TrainingHub: React.FC<TrainingHubProps> = ({
                 onDeleteRoutine={onDeleteRoutine}
                 onDuplicateRoutine={onDuplicateRoutine}
                 onStartWorkout={onStartWorkout}
+                onBackToHub={() => onTabChange('library')}
               />
             </motion.div>
           )}

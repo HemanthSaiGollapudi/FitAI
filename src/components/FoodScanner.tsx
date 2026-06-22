@@ -167,11 +167,13 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   
   // Camera & Image Upload state
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<FoodItemInfo[] | null>(null);
   const [portionMultiplier, setPortionMultiplier] = useState(1);
   const [diarySaveSuccess, setDiarySaveSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedHistoryFood, setSelectedHistoryFood] = useState<any | null>(null);
 
@@ -231,6 +233,17 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const handleStartCamera = async () => {
     setSelectedImage(null);
     setAnalysisResults(null);
+    setCameraActive(false);
+    setCameraError('');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError("Live camera capture requires HTTPS. Please upload a photo or use the deployed version.");
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      return;
+    }
+
     setCameraActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -240,8 +253,11 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       }
     } catch (err) {
       console.error("Camera access failed:", err);
-      alert("Could not access your camera. Please ensure permissions are granted or upload a photo instead.");
+      setCameraError("Live camera capture requires HTTPS. Please upload a photo or use the deployed version.");
       setCameraActive(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
     }
   };
 
@@ -472,6 +488,13 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                   <Camera className="h-4.5 w-4.5 text-brand-cyan" /> Visual Intake Port
                 </h3>
 
+                {cameraError && (
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold rounded-xl flex items-start gap-2 leading-relaxed text-left">
+                    <ShieldAlert className="w-4.5 h-4.5 text-amber-400 shrink-0 mt-0.5" />
+                    <span>{cameraError}</span>
+                  </div>
+                )}
+
                 {/* Camera Viewport or Image Preview */}
                 <div 
                   onDragOver={handleDragOver}
@@ -560,7 +583,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                   {cameraActive ? (
                     <button
                       onClick={handleCapturePhoto}
-                      className="col-span-2 py-3 bg-brand-cyan text-dark-950 text-xs font-black rounded-xl hover:scale-102 transition-transform flex items-center justify-center gap-1.5"
+                      className="col-span-2 py-3 bg-brand-cyan text-dark-950 text-xs font-black rounded-xl hover:scale-102 transition-transform flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Camera className="h-4 w-4" /> Capture Photo
                     </button>
@@ -568,14 +591,15 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                     <>
                       <button
                         onClick={handleStartCamera}
-                        className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-cyan text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                        className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-cyan text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <Camera className="h-4 w-4 text-brand-cyan" /> Use Camera
+                        <Camera className="h-4 w-4 text-brand-cyan" /> Take Photo
                       </button>
                       
                       <label className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-violet text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                        <Upload className="h-4 w-4 text-brand-violet" /> Browse File
+                        <Upload className="h-4 w-4 text-brand-violet" /> Upload Photo
                         <input 
+                          ref={fileInputRef}
                           type="file" 
                           accept="image/jpeg,image/jpg,image/png,image/webp" 
                           onChange={handleFileChange}

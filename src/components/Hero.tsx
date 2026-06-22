@@ -2,11 +2,9 @@ import React from 'react';
 import { Play, Sparkles, ArrowRight, ShieldCheck, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface HeroProps {
-  onStartOnboarding: () => void;
-}
+interface HeroProps {}
 
-export const Hero: React.FC<HeroProps> = ({ onStartOnboarding }) => {
+export const Hero: React.FC<HeroProps> = () => {
   // Generate random floating nodes for the interactive AI network graphic
   const nodes = Array.from({ length: 15 }, (_, i) => ({
     id: i,
@@ -16,6 +14,13 @@ export const Hero: React.FC<HeroProps> = ({ onStartOnboarding }) => {
     delay: Math.random() * 2,
     duration: Math.random() * 4 + 4,
   }));
+
+  const handleScrollToDashboard = () => {
+    const el = document.getElementById('dashboard');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <section className="relative min-h-screen pt-32 pb-20 flex items-center overflow-hidden">
@@ -72,13 +77,13 @@ export const Hero: React.FC<HeroProps> = ({ onStartOnboarding }) => {
             className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4"
           >
             <button
-              onClick={onStartOnboarding}
+              onClick={handleScrollToDashboard}
               className="group relative px-8 py-4 rounded-xl text-base font-bold transition-all duration-300 bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-glow-purple hover:scale-[1.02] flex items-center justify-center gap-2"
             >
-              Get Started <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              Go to Dashboard <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <button
-              onClick={onStartOnboarding}
+              onClick={handleScrollToDashboard}
               className="px-8 py-4 rounded-xl text-base font-bold transition-all duration-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-white flex items-center justify-center gap-2 backdrop-blur-md"
             >
               <Play className="h-4 w-4 fill-white text-white" /> Try Demo

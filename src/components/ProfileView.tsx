@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, Scale, Check, 
   Sparkles, User, Bell, Dumbbell, Utensils, Droplet, Calendar, Clock,
-  Shield, Fingerprint
+  Shield, Fingerprint, Target, Edit
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
+import type { UserProfile } from './AuthModule';
 
 interface ProfileViewProps {
   onSaveProfile: (settings: {
@@ -17,6 +18,7 @@ interface ProfileViewProps {
     gender: 'Male' | 'Female';
     activity: string;
     type: 'Veg' | 'Non-Veg' | 'Eggetarian';
+    goal: string;
   }) => void;
   savedGoal: string;
   onLogout?: () => void;
@@ -114,6 +116,83 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
     if (savedType) setType(savedType as 'Veg' | 'Non-Veg' | 'Eggetarian');
   }, []);
 
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState<string>('Android Fingerprint');
+  const [goal, setGoal] = useState<string>('Gain Muscle');
+  const [isEditingPreferences, setIsEditingPreferences] = useState(false);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('fitai_current_user');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+        setBiometricsEnabled(user.biometricsEnabled || false);
+        setBiometricType(user.biometricType || 'Android Fingerprint');
+
+        const savedGoalVal = localStorage.getItem('fitai_diet_goal') || user.goal || 'Gain Muscle';
+        let mappedGoal = savedGoalVal;
+        if (savedGoalVal === 'Fat Loss') mappedGoal = 'Lose Weight';
+        else if (savedGoalVal === 'Muscle Gain') mappedGoal = 'Gain Muscle';
+        else if (savedGoalVal === 'Stamina') mappedGoal = 'Improve Stamina';
+        setGoal(mappedGoal);
+      } catch {}
+    }
+  }, []);
+
+  const handleToggleBiometrics = (enabled: boolean) => {
+    setBiometricsEnabled(enabled);
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        biometricsEnabled: enabled,
+        biometricType: enabled ? (biometricType as any || 'Android Fingerprint') : undefined
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
+
+      try {
+        const usersRaw = localStorage.getItem('fitai_users');
+        if (usersRaw) {
+          const users = JSON.parse(usersRaw);
+          const idx = users.findIndex((u: any) => u.email.toLowerCase() === currentUser.email.toLowerCase());
+          if (idx !== -1) {
+            users[idx] = updatedUser;
+            localStorage.setItem('fitai_users', JSON.stringify(users));
+          }
+        }
+      } catch {}
+    }
+  };
+
+  const handleChangeBiometricType = (type: string) => {
+    setBiometricType(type);
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        biometricsEnabled: true,
+        biometricType: type as any
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
+
+      try {
+        const usersRaw = localStorage.getItem('fitai_users');
+        if (usersRaw) {
+          const users = JSON.parse(usersRaw);
+          const idx = users.findIndex((u: any) => u.email.toLowerCase() === currentUser.email.toLowerCase());
+          if (idx !== -1) {
+            users[idx] = updatedUser;
+            localStorage.setItem('fitai_users', JSON.stringify(users));
+          }
+        }
+      } catch {}
+    }
+  };
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
+
   const activities = ['Sedentary', 'Moderately Active', 'Very Active', 'Athlete/Highly Active'];
 
   // BMI calculations
@@ -156,6 +235,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
     localStorage.setItem('fitai_user_gender', gender);
     localStorage.setItem('fitai_user_height', String(height));
     localStorage.setItem('fitai_user_weight', String(weight));
+
+    onSaveProfile({
+      name,
+      age,
+      weight,
+      height,
+      goalWeight,
+      gender,
+      activity,
+      type,
+      goal
+    });
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Save preferences to localStorage
     localStorage.setItem('fitai_user_goal_weight', String(goalWeight));
     localStorage.setItem('fitai_user_activity', activity);
     localStorage.setItem('fitai_diet_type', type);
@@ -168,9 +268,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
       goalWeight,
       gender,
       activity,
-      type
+      type,
+      goal
     });
 
+    setIsEditingPreferences(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
@@ -207,8 +309,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
           
           {/* Form details (7 Columns) */}
-          <div className="lg:col-span-7">
-            <SpotlightCard className="p-6 h-full flex flex-col justify-between">
+          <div className="lg:col-span-7 space-y-8">
+            {/* Card 1: Personal Traits */}
+            <SpotlightCard className="p-6">
               <form onSubmit={handleSaveClick} className="space-y-6">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2">
                   <User className="h-4.5 w-4.5 text-brand-cyan" /> Edit Personal Traits
@@ -249,7 +352,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                       <button
                         type="button"
                         onClick={() => setGender('Male')}
-                        className={`py-3 rounded-xl text-xs font-bold transition-all border ${
+                        className={`py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                           gender === 'Male'
                             ? 'bg-brand-violet/20 border-brand-violet text-white'
                             : 'bg-dark-950 border-white/5 text-zinc-500'
@@ -260,7 +363,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                       <button
                         type="button"
                         onClick={() => setGender('Female')}
-                        className={`py-3 rounded-xl text-xs font-bold transition-all border ${
+                        className={`py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                           gender === 'Female'
                             ? 'bg-brand-violet/20 border-brand-violet text-white'
                             : 'bg-dark-950 border-white/5 text-zinc-500'
@@ -298,82 +401,215 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                       required
                     />
                   </div>
-
-                  {/* Goal Weight */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Goal Target Weight (kg)</label>
-                    <input
-                      type="number"
-                      min="35"
-                      max="200"
-                      value={goalWeight}
-                      onChange={(e) => setGoalWeight(Number(e.target.value))}
-                      className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
-                      required
-                    />
-                  </div>
-
-                  {/* Activity Level */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Activity Level</label>
-                    <select
-                      value={activity}
-                      onChange={(e) => setActivity(e.target.value)}
-                      className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
-                    >
-                      {activities.map((act) => (
-                        <option key={act} value={act} className="bg-dark-950">
-                          {act}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Food preference */}
-                <div className="space-y-1.5 pt-2">
-                  <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Dietary Preference</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['Veg', 'Non-Veg', 'Eggetarian'].map((pref) => (
-                      <button
-                        key={pref}
-                        type="button"
-                        onClick={() => setType(pref as any)}
-                        className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                          type === pref
-                            ? 'bg-brand-lime/20 border-brand-lime text-brand-lime'
-                            : 'bg-dark-950 border-white/5 text-zinc-500'
-                        }`}
-                      >
-                        {pref}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-white/5">
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 transition-transform flex items-center justify-center gap-2 shadow-glow-purple"
+                    className="w-full py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 transition-transform flex items-center justify-center gap-2 shadow-glow-purple cursor-pointer"
                   >
-                    <Check className="h-4.5 w-4.5" /> Save & Synchronize Profile
+                    <Check className="h-4.5 w-4.5" /> Save Personal Traits
                   </button>
                 </div>
               </form>
-
-              <AnimatePresence>
-                {saveSuccess && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="p-3 mt-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-2 justify-center"
-                  >
-                    <Check className="h-4 w-4" /> Profile parameters synchronized successfully!
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </SpotlightCard>
+
+            {/* Card 2: Fitness Preferences */}
+            <SpotlightCard className="p-6">
+              <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-6">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                  <Target className="h-4.5 w-4.5 text-brand-violet" /> Fitness Preferences
+                </h3>
+                {!isEditingPreferences && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingPreferences(true)}
+                    className="px-3 py-1.5 bg-brand-violet/10 border border-brand-violet/20 hover:bg-brand-violet/20 hover:border-brand-violet/40 text-brand-violet text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit className="w-3.5 h-3.5" /> Edit Preferences
+                  </button>
+                )}
+              </div>
+
+              {isEditingPreferences ? (
+                <form onSubmit={handleSavePreferences} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Primary Goal */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Primary Fitness Goal</label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {[
+                          { val: 'Gain Muscle', label: '💪 Muscle Gain' },
+                          { val: 'Lose Weight', label: '🔥 Fat Loss' },
+                          { val: 'Build Strength', label: '⚡ Powerlifting / Strength' },
+                          { val: 'Improve Stamina', label: '🫁 Cardio Endurance' }
+                        ].map((g) => (
+                          <button
+                            key={g.val}
+                            type="button"
+                            onClick={() => setGoal(g.val)}
+                            className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all text-center cursor-pointer ${
+                              goal === g.val
+                                ? 'bg-brand-violet/15 border-brand-violet text-white shadow-glow-purple'
+                                : 'bg-dark-950 border-white/5 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Activity Level */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Activity Level</label>
+                      <select
+                        value={activity}
+                        onChange={(e) => setActivity(e.target.value)}
+                        className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet font-semibold cursor-pointer"
+                      >
+                        {activities.map((act) => (
+                          <option key={act} value={act} className="bg-dark-950">
+                            {act}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Target Weight */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Target Goal Weight (kg)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="35"
+                          max="200"
+                          value={goalWeight}
+                          onChange={(e) => setGoalWeight(Number(e.target.value))}
+                          className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet font-semibold"
+                          required
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-bold">kg</span>
+                      </div>
+                    </div>
+
+                    {/* Diet Preference */}
+                    <div className="space-y-1.5 sm:col-span-2 pt-2">
+                      <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Dietary Preference</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {['Veg', 'Non-Veg', 'Eggetarian'].map((pref) => (
+                          <button
+                            key={pref}
+                            type="button"
+                            onClick={() => setType(pref as any)}
+                            className={`py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                              type === pref
+                                ? 'bg-brand-lime/20 border-brand-lime text-brand-lime'
+                                : 'bg-dark-950 border-white/5 text-zinc-500'
+                            }`}
+                          >
+                            {pref}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingPreferences(false);
+                        const userRaw = localStorage.getItem('fitai_current_user');
+                        if (userRaw) {
+                          try {
+                            const user = JSON.parse(userRaw);
+                            setGoalWeight(user.targetWeight || 68);
+                            setActivity(user.activityLevel || 'Moderately Active');
+                            setType(user.dietPreference || 'Veg');
+                            const savedGoalVal = localStorage.getItem('fitai_diet_goal') || user.goal || 'Gain Muscle';
+                            let mappedGoal = savedGoalVal;
+                            if (savedGoalVal === 'Fat Loss') mappedGoal = 'Lose Weight';
+                            else if (savedGoalVal === 'Muscle Gain') mappedGoal = 'Gain Muscle';
+                            else if (savedGoalVal === 'Stamina') mappedGoal = 'Improve Stamina';
+                            setGoal(mappedGoal);
+                          } catch {}
+                        }
+                      }}
+                      className="flex-1 py-3.5 border border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer text-center"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 transition-all shadow-glow-purple cursor-pointer text-center"
+                    >
+                      Save Preferences
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-dark-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-violet/10 border border-brand-violet/20 rounded-xl text-brand-violet">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Primary Goal</span>
+                      <strong className="text-xs text-white font-bold">{
+                        goal === 'Gain Muscle' ? 'Muscle Gain' :
+                        goal === 'Lose Weight' ? 'Fat Loss' :
+                        goal === 'Build Strength' ? 'Strength' :
+                        goal === 'Improve Stamina' ? 'Cardio Endurance' : goal
+                      }</strong>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-dark-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-cyan/10 border border-brand-cyan/20 rounded-xl text-brand-cyan">
+                      <Dumbbell className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Activity Level</span>
+                      <strong className="text-xs text-white font-bold">{activity}</strong>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-dark-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-pink/10 border border-brand-pink/20 rounded-xl text-brand-pink">
+                      <Scale className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Target Weight</span>
+                      <strong className="text-xs text-white font-bold">{goalWeight} kg</strong>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-dark-950/40 border border-white/5 rounded-2xl flex items-center gap-3">
+                    <div className="p-2.5 bg-brand-lime/10 border border-brand-lime/20 rounded-xl text-brand-lime">
+                      <Utensils className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Diet Preference</span>
+                      <strong className="text-xs text-white font-bold">{type}</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </SpotlightCard>
+
+            <AnimatePresence>
+              {saveSuccess && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-2 justify-center"
+                >
+                  <Check className="h-4 w-4" /> Profile parameters synchronized successfully!
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* BMI Dial (5 Columns) */}
@@ -457,17 +693,62 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center justify-center text-center p-6 bg-dark-950/40 border border-white/5 rounded-2xl space-y-4">
-                  <div className="p-4 rounded-full bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20">
-                    <Fingerprint className="w-10 h-10" />
+                {isMobile ? (
+                  <div className="space-y-4 w-full">
+                    <div className="flex items-center justify-between p-3.5 bg-dark-950/40 border border-white/5 rounded-xl">
+                      <div className="flex items-center gap-2.5">
+                        <Fingerprint className="w-5 h-5 text-brand-cyan" />
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Biometric Lock</h4>
+                          <p className="text-[10px] text-zinc-500">Lock session on app launch</p>
+                        </div>
+                      </div>
+                      <ToggleButton 
+                        enabled={biometricsEnabled} 
+                        onChange={handleToggleBiometrics} 
+                      />
+                    </div>
+
+                    {biometricsEnabled && (
+                      <div className="space-y-2 p-3 bg-dark-950/20 border border-white/5 rounded-xl">
+                        <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Biometric Method</label>
+                        <select
+                          value={biometricType}
+                          onChange={(e) => handleChangeBiometricType(e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet cursor-pointer"
+                        >
+                          {/iPhone|iPad|iPod|Mac/i.test(navigator.userAgent) ? (
+                            <option value="iPhone Face ID / Touch ID">iPhone Face ID / Touch ID</option>
+                          ) : (
+                            <>
+                              <option value="Android Fingerprint">Android Fingerprint</option>
+                              <option value="Android Face Unlock">Android Face Unlock</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-xs font-bold text-white">Biometric Unlock</h4>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed font-normal">
-                      Biometric authentication will be available in the FitAI mobile app.
-                    </p>
+                ) : (
+                  <div className="space-y-4 w-full opacity-60 pointer-events-none">
+                    <div className="flex items-center justify-between p-3.5 bg-dark-950/40 border border-white/5 rounded-xl">
+                      <div className="flex items-center gap-2.5">
+                        <Fingerprint className="w-5 h-5 text-brand-cyan" />
+                        <div>
+                          <h4 className="text-xs font-bold text-white">Biometric Lock</h4>
+                          <p className="text-[10px] text-zinc-500">Lock session on app launch</p>
+                        </div>
+                      </div>
+                      <ToggleButton 
+                        enabled={false} 
+                        onChange={() => {}} 
+                      />
+                    </div>
+                    <div className="text-[11px] text-zinc-400 font-semibold text-center italic bg-brand-violet/5 p-2.5 rounded-xl border border-brand-violet/10">
+                      Available in the FitAI mobile app.
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Log out CTA */}

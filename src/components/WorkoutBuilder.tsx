@@ -20,6 +20,7 @@ interface WorkoutBuilderProps {
   onDeleteRoutine: (id: string) => void;
   onDuplicateRoutine: (routine: WorkoutRoutine) => void;
   onStartWorkout: (routine: WorkoutRoutine) => void;
+  onBackToHub?: () => void;
 }
 
 export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
@@ -27,13 +28,28 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
   onSaveRoutine,
   onDeleteRoutine,
   onDuplicateRoutine,
-  onStartWorkout
+  onStartWorkout,
+  onBackToHub
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeRoutine, setActiveRoutine] = useState<WorkoutRoutine | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [muscleFilter, setMuscleFilter] = useState<string>('All');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [tempSelected, setTempSelected] = useState<string[]>([]);
+
+  // Sync tempSelected whenever the search modal is opened
+  useEffect(() => {
+    if (isSearchOpen && activeRoutine) {
+      setTempSelected(activeRoutine.exercises || []);
+    }
+  }, [isSearchOpen, activeRoutine]);
+
+  const handleToggleTempExercise = (id: string) => {
+    setTempSelected((prev) =>
+      prev.includes(id) ? prev.filter((eid) => eid !== id) : [...prev, id]
+    );
+  };
 
   // Intercept back button gesture inside Workout Logger
   useEffect(() => {
@@ -82,7 +98,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
   const handleSaveClick = () => {
     if (!activeRoutine || !activeRoutine.name.trim()) return;
     onSaveRoutine(activeRoutine);
-    window.history.back(); // Pop state triggers cleanup via popstate handler
+    setIsEditing(false);
+    setActiveRoutine(null);
   };
 
   const handleAddExerciseId = (id: string) => {
@@ -157,6 +174,18 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
         {/* View Switcher: List vs Editor */}
         {!isEditing ? (
           <div className="space-y-8 max-w-5xl mx-auto">
+            {/* Back to Training Hub Arrow */}
+            {onBackToHub && (
+              <div className="flex justify-start">
+                <button
+                  onClick={onBackToHub}
+                  className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] py-2 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass cursor-pointer"
+                >
+                  <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Training Hub
+                </button>
+              </div>
+            )}
+
             {/* Create Bar */}
             <div className="flex justify-end">
               <button
@@ -252,11 +281,11 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
           // Routine Editor View
           <div className="max-w-3xl mx-auto bg-dark-900/60 border border-white/5 rounded-2xl backdrop-blur-xl p-8 space-y-6 text-left shadow-glass">
             
-            {/* Mobile Prominent Back Button */}
-            <div className="md:hidden flex items-center mb-2">
+            {/* Prominent Back Button */}
+            <div className="flex items-center mb-2">
               <button
-                onClick={() => window.history.back()}
-                className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] min-w-[44px] py-3.5 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass"
+                onClick={() => { setIsEditing(false); setActiveRoutine(null); }}
+                className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-black text-xs uppercase tracking-wider transition-colors min-h-[44px] py-2 px-4 bg-dark-900 border border-white/5 rounded-xl shadow-glass cursor-pointer"
               >
                 <ArrowLeft className="h-4.5 w-4.5 text-brand-cyan" /> Back to Routines
               </button>
@@ -265,8 +294,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
             <div className="flex justify-between items-center border-b border-white/5 pb-4">
               <h3 className="text-xl font-display font-extrabold text-white">Routine Composer</h3>
               <button
-                onClick={() => window.history.back()}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                onClick={() => { setIsEditing(false); setActiveRoutine(null); }}
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -347,8 +376,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
             {/* Bottom Actions */}
             <div className="pt-6 border-t border-white/5 flex justify-end gap-3">
               <button
-                onClick={() => window.history.back()}
-                className="px-5 py-3 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 text-zinc-400 min-h-[44px] min-w-[80px]"
+                onClick={() => { setIsEditing(false); setActiveRoutine(null); }}
+                className="px-5 py-3 border border-white/10 rounded-xl text-xs font-bold hover:bg-white/5 text-zinc-400 min-h-[44px] min-w-[80px] cursor-pointer"
               >
                 Cancel
               </button>
@@ -370,8 +399,8 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => window.history.back()}
-                className="absolute inset-0 bg-dark-950/80 backdrop-blur-md"
+                onClick={() => setIsSearchOpen(false)}
+                className="absolute inset-0 bg-dark-950/80 backdrop-blur-md cursor-pointer"
               />
 
               <motion.div
@@ -383,10 +412,19 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                 {/* Search Bar */}
                 <div className="p-4 bg-dark-950/50 border-b border-white/5 flex flex-col gap-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-display font-bold text-white text-base">Select Exercises</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setIsSearchOpen(false)}
+                        className="p-1.5 rounded-lg text-brand-violet hover:text-brand-cyan bg-brand-violet/10 hover:bg-brand-violet/20 border border-brand-violet/20 hover:border-brand-violet/30 transition-all flex items-center justify-center cursor-pointer h-9 w-9 shrink-0"
+                        title="Back"
+                      >
+                        <ArrowLeft className="h-4.5 w-4.5" />
+                      </button>
+                      <h3 className="font-display font-bold text-white text-base">Select Exercises</h3>
+                    </div>
                     <button
-                      onClick={() => window.history.back()}
-                      className="p-1 rounded text-zinc-500 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      onClick={() => setIsSearchOpen(false)}
+                      className="p-1 rounded text-zinc-500 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -424,12 +462,12 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                 {/* List Container */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
                   {filteredExercises.map((ex) => {
-                    const isAdded = activeRoutine?.exercises.includes(ex.id) || false;
+                    const isAdded = tempSelected.includes(ex.id);
 
                     return (
                       <div
                         key={ex.id}
-                        onClick={() => handleAddExerciseId(ex.id)}
+                        onClick={() => handleToggleTempExercise(ex.id)}
                         className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                           isAdded
                             ? 'bg-brand-violet/10 border-brand-violet/40 text-white'
@@ -443,9 +481,13 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                         <div className={`h-5.5 w-5.5 rounded-full border flex items-center justify-center transition-all ${
                           isAdded
                             ? 'bg-brand-cyan border-brand-cyan text-dark-950'
-                            : 'border-white/10'
+                            : 'border-white/10 text-zinc-500 hover:text-white hover:border-zinc-500'
                         }`}>
-                          {isAdded && <Check className="h-3 w-3 stroke-[3]" />}
+                          {isAdded ? (
+                            <Check className="h-3 w-3 stroke-[3]" />
+                          ) : (
+                            <Plus className="h-3 w-3" />
+                          )}
                         </div>
                       </div>
                     );
@@ -455,6 +497,30 @@ export const WorkoutBuilder: React.FC<WorkoutBuilderProps> = ({
                       No matching exercises found in library.
                     </div>
                   )}
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-4 bg-dark-950/50 border-t border-white/5 flex items-center justify-between gap-4">
+                  <div className="text-xs text-zinc-400 font-semibold">
+                    {tempSelected.length === 1
+                      ? '1 exercise selected'
+                      : `${tempSelected.length} exercises selected`
+                    }
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (activeRoutine) {
+                        setActiveRoutine({
+                          ...activeRoutine,
+                          exercises: tempSelected
+                        });
+                      }
+                      setIsSearchOpen(false);
+                    }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-bold rounded-xl shadow-glow-purple cursor-pointer min-h-[40px] hover:scale-101 transition-transform"
+                  >
+                    Save Exercises
+                  </button>
                 </div>
               </motion.div>
             </div>

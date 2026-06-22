@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lock, Mail, User, Shield, 
   ArrowRight, ShieldAlert, 
-  Loader2, Ruler, Target, Heart, Eye, EyeOff
+  Eye, EyeOff
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
@@ -39,36 +39,29 @@ const SEEDED_USER: UserProfile = {
   dietPreference: 'Veg',
   activityLevel: 'Moderately Active',
   targetWeight: 68,
-  biometricsEnabled: true,
-  biometricType: 'iPhone Face ID / Touch ID'
+  biometricsEnabled: false
 };
 
 export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
-  const [view, setView] = useState<'login' | 'signup' | 'onboarding'>('login');
+  const [view, setView] = useState<'login' | 'signup' | 'forgot_password'>('login');
   
   // Input fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   
   // Registration specific fields
   const [name, setName] = useState('');
-  const [age, setAge] = useState(25);
-  const [gender, setGender] = useState<'Male' | 'Female'>('Male');
+  const age = 25;
+  const gender: 'Male' | 'Female' = 'Male';
   const [height, setHeight] = useState(170);
   const [weight, setWeight] = useState(70);
   const [goal, setGoal] = useState('Gain Muscle');
   const [dietPref, setDietPref] = useState<'Veg' | 'Non-Veg' | 'Eggetarian'>('Veg');
   
-  // Onboarding specific fields
-  const [activityLevel, setActivityLevel] = useState('Moderately Active');
-  const [targetWeight, setTargetWeight] = useState(65);
-  const [onboardingLoading, setOnboardingLoading] = useState(false);
-  const [onboardingPhase, setOnboardingPhase] = useState(0);
-
-  // Active user during flows
-  const [activeUser, setActiveUser] = useState<UserProfile | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Initial user seeding and checking remembered session
@@ -94,6 +87,147 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
     }
   }, []);
 
+  // Shared OAuth success handler
+  const handleOAuthSuccess = (googleEmail: string, googleName: string) => {
+    const isCoach = googleEmail.toLowerCase() === 'coach@fitai.com';
+    const defaultName = isCoach ? 'FitAI Coach' : (googleName || 'Google Athlete');
+    const defaultAge = isCoach ? 26 : 28;
+    const defaultHeight = isCoach ? 175 : 180;
+    const defaultWeight = isCoach ? 74 : 78;
+    const defaultGoal = isCoach ? 'Gain Muscle' : 'Lose Weight';
+    const defaultDiet = isCoach ? 'Veg' : 'Non-Veg';
+
+    const googleUser: UserProfile = {
+      name: defaultName,
+      email: googleEmail,
+      age: defaultAge,
+      gender: 'Male',
+      height: defaultHeight,
+      weight: defaultWeight,
+      goal: defaultGoal,
+      dietPreference: defaultDiet as any,
+      biometricsEnabled: false
+    };
+
+    if (isCoach) {
+      googleUser.password = 'password';
+      googleUser.activityLevel = 'Moderately Active';
+      googleUser.targetWeight = 68;
+    } else {
+      googleUser.activityLevel = 'Moderately Active';
+      googleUser.targetWeight = googleUser.goal === 'Lose Weight' ? Math.round(googleUser.weight - 6) : Math.round(googleUser.weight + 4);
+    }
+
+    const users = getRegisteredUsers();
+    let existing = users.find(u => u.email.toLowerCase() === googleUser.email.toLowerCase());
+    if (!existing) {
+      users.push(googleUser);
+      saveRegisteredUsers(users);
+      existing = googleUser;
+    }
+
+    handleLoginFlow(existing);
+  };
+
+  // Listen for simulated Google OAuth popup messages
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data && event.data.type === 'GOOGLE_OAUTH_SUCCESS') {
+        const { email: googleEmail, name: googleName } = event.data;
+        setErrorMsg('');
+        handleOAuthSuccess(googleEmail, googleName);
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+    };
+  }, []);
+
+  // Initialize Real Google OAuth if a Client ID is provided in window or environment
+  useEffect(() => {
+    const clientID = (window as any).VITE_GOOGLE_CLIENT_ID || "";
+    if (clientID) {
+      // Load GIS client library
+      const script = document.createElement('script');
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: clientID,
+            callback: (response: any) => {
+              // Decode JWT payload
+              const base64Url = response.credential.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              const payload = JSON.parse(jsonPayload);
+              
+              if (payload && payload.email) {
+                handleOAuthSuccess(payload.email, payload.name || 'Google User');
+              }
+            },
+            auto_select: false, // Ensure NO auto-login
+            prompt_parent_id: 'gsi-parent'
+          });
+        } catch (e) {
+          console.warn("Failed to initialize Google Identity Services SDK:", e);
+        }
+      };
+    }
+  }, []);
+
+  const triggerSimulatedGoogleOAuth = () => {
+    const width = 500;
+    const height = 650;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const popup = window.open(
+      '/google-oauth.html',
+      'GoogleOAuthPopup',
+      `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes`
+    );
+
+    if (!popup) {
+      setErrorMsg('Popup blocked! Please allow popups to sign in with Google.');
+    }
+  };
+
+  // Google Sign In handler
+  const handleGoogleSignIn = () => {
+    setErrorMsg('');
+    const clientID = (window as any).VITE_GOOGLE_CLIENT_ID || "";
+
+    if (clientID && (window as any).google?.accounts?.id) {
+      try {
+        // Trigger account picker popup via real Google Identity Services
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // One Tap skipped/blocked, fall back to request oauth code
+            try {
+              (window as any).google.accounts.id.requestCode();
+            } catch {
+              triggerSimulatedGoogleOAuth();
+            }
+          }
+        });
+      } catch {
+        triggerSimulatedGoogleOAuth();
+      }
+    } else {
+      triggerSimulatedGoogleOAuth();
+    }
+  };
+
   const getRegisteredUsers = (): UserProfile[] => {
     try {
       const raw = localStorage.getItem('fitai_users');
@@ -105,40 +239,6 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
 
   const saveRegisteredUsers = (users: UserProfile[]) => {
     localStorage.setItem('fitai_users', JSON.stringify(users));
-  };
-
-  // Simulated Google Sign In
-  const handleGoogleSignIn = () => {
-    setOnboardingLoading(true);
-    setOnboardingPhase(0);
-    setErrorMsg('');
-    
-    // Simulate API delay
-    setTimeout(() => {
-      setOnboardingLoading(false);
-      const googleUser: UserProfile = {
-        name: 'Google Athlete',
-        email: 'google.athlete@gmail.com',
-        age: 28,
-        gender: 'Male',
-        height: 180,
-        weight: 78,
-        goal: 'Lose Weight',
-        dietPreference: 'Non-Veg',
-        biometricsEnabled: false
-      };
-
-      // Add to registered users if not exists
-      const users = getRegisteredUsers();
-      let existing = users.find(u => u.email === googleUser.email);
-      if (!existing) {
-        users.push(googleUser);
-        saveRegisteredUsers(users);
-        existing = googleUser;
-      }
-      
-      handleLoginFlow(existing);
-    }, 1200);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -157,29 +257,23 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
   };
 
   const handleLoginFlow = (user: UserProfile) => {
-    setActiveUser(user);
-
     if (rememberMe) {
       localStorage.setItem('fitai_remembered_email', user.email);
     } else {
       localStorage.removeItem('fitai_remembered_email');
     }
 
-    // Check if onboarding completed for this user
-    const hasOnboarded = localStorage.getItem(`fitai_onboarded_${user.email}`) === 'true';
-    if (!hasOnboarded) {
-      setView('onboarding');
-      // Populate defaults for onboarding input based on register selection
-      setTargetWeight(user.goal === 'Lose Weight' ? Math.round(user.weight - 6) : Math.round(user.weight + 4));
-    } else {
-      // Direct login or check biometrics ask
-      completeAuthentication(user);
-    }
+    completeAuthentication(user);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify your password entry.');
+      return;
+    }
 
     const users = getRegisteredUsers();
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -187,6 +281,7 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       return;
     }
 
+    const defaultTargetWeight = goal === 'Lose Weight' ? Math.round(weight - 6) : Math.round(weight + 4);
     const newUser: UserProfile = {
       name,
       email,
@@ -197,6 +292,8 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       weight,
       goal,
       dietPreference: dietPref,
+      activityLevel: 'Moderately Active',
+      targetWeight: defaultTargetWeight,
       biometricsEnabled: false
     };
 
@@ -205,46 +302,22 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
     handleLoginFlow(newUser);
   };
 
-  // Onboarding workflow
-  const handleOnboardingSubmit = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeUser) return;
-    setOnboardingLoading(true);
-    setOnboardingPhase(0);
+    setErrorMsg('');
 
-    const phases = [
-      "Calculating biological constraints...",
-      "Matching custom workout programs...",
-      "Optimizing nutrient partitions...",
-      "Compiling fitness index dashboard..."
-    ];
+    const users = getRegisteredUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-    let current = 0;
-    const interval = setInterval(() => {
-      current++;
-      if (current >= phases.length) {
-        clearInterval(interval);
-        // Onboarding computation complete
-        const updatedUser = {
-          ...activeUser,
-          activityLevel,
-          targetWeight
-        };
+    if (!user) {
+      setErrorMsg('This email is not registered with FitAI.');
+      return;
+    }
 
-        // Update in database
-        const users = getRegisteredUsers();
-        const updatedList = users.map(u => u.email === activeUser.email ? updatedUser : u);
-        saveRegisteredUsers(updatedList);
-        setActiveUser(updatedUser);
-        localStorage.setItem(`fitai_onboarded_${activeUser.email}`, 'true');
-
-        setOnboardingLoading(false);
-        onAuthSuccess(updatedUser);
-      } else {
-        setOnboardingPhase(current);
-      }
-    }, 850);
+    setResetSent(true);
   };
+
+
 
   const completeAuthentication = (user: UserProfile) => {
     onAuthSuccess(user);
@@ -335,7 +408,7 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
                     </div>
                   </div>
 
-                  {/* Remember Me */}
+                  {/* Remember Me & Forgot Password */}
                   <div className="flex items-center justify-between pt-1">
                     <label className="flex items-center space-x-2 text-xs font-bold text-zinc-400 cursor-pointer">
                       <input
@@ -346,6 +419,13 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
                       />
                       <span>Remember Me</span>
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => { setView('forgot_password'); setErrorMsg(''); }}
+                      className="text-xs font-bold text-brand-cyan hover:underline cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
 
                   {/* Submit CTA */}
@@ -430,7 +510,7 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
                     </div>
 
                     {/* Email */}
-                    <div className="space-y-1">
+                    <div className="col-span-2 space-y-1">
                       <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Email</label>
                       <input
                         type="email"
@@ -455,30 +535,17 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
                       />
                     </div>
 
-                    {/* Age */}
+                    {/* Confirm Password */}
                     <div className="space-y-1">
-                      <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Age</label>
+                      <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Confirm Password</label>
                       <input
-                        type="number"
-                        min="12"
-                        value={age}
-                        onChange={(e) => setAge(Number(e.target.value) || 20)}
-                        className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none"
+                        type="password"
+                        placeholder="Repeat password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
                         required
                       />
-                    </div>
-
-                    {/* Gender */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Gender</label>
-                      <select
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none"
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
                     </div>
 
                     {/* Height */}
@@ -559,111 +626,73 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
             </motion.div>
           )}
 
-          {/* VIEW C: ONBOARDING WIZARD */}
-          {view === 'onboarding' && (
+          {/* VIEW C: FORGOT PASSWORD PAGE */}
+          {view === 'forgot_password' && (
             <motion.div
-              key="onboarding"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
+              key="forgot_password"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
             >
-              <SpotlightCard className="p-8 text-left">
-                {onboardingLoading ? (
-                  <div className="py-16 flex flex-col items-center justify-center space-y-6 text-center">
-                    <Loader2 className="w-12 h-12 text-brand-cyan animate-spin" />
-                    <div className="space-y-1.5">
-                      <h4 className="font-display font-extrabold text-white text-base">Configuring Onboarding Parameters</h4>
-                      <p className="text-brand-violet text-xs font-semibold animate-pulse">
-                        {onboardingPhase === 0 && "Analyzing biological constraints..."}
-                        {onboardingPhase === 1 && "Matching custom workout programs..."}
-                        {onboardingPhase === 2 && "Optimizing nutrient partitions..."}
-                        {onboardingPhase === 3 && "Compiling fitness index dashboard..."}
-                      </p>
-                    </div>
+              <SpotlightCard className="p-8">
+                <form onSubmit={handleForgotPasswordSubmit} className="space-y-5 text-left">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-display font-extrabold text-white">Reset Password</h3>
+                    <p className="text-xs text-zinc-400">Enter your email and we'll send you recovery steps.</p>
                   </div>
-                ) : (
-                  <form onSubmit={handleOnboardingSubmit} className="space-y-6">
-                    <div className="space-y-1">
-                      <span className="px-2.5 py-0.5 rounded-full bg-brand-violet/10 text-brand-violet border border-brand-violet/20 text-[9px] font-black uppercase tracking-widest">Onboarding Wizard</span>
-                      <h3 className="text-xl font-display font-black text-white mt-1">Configure Onboarding Goals</h3>
-                      <p className="text-xs text-zinc-500">Personalize calorie boundaries and activity multiplier adjustments.</p>
+
+                  {resetSent ? (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-xl text-center">
+                      Password reset link has been successfully dispatched to your email!
                     </div>
-
-                    <div className="space-y-4">
-                      {/* Step 1: Goal Select */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-1.5">
-                          <Target className="w-4 h-4 text-brand-cyan" /> Select Primary Target
-                        </label>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {['Gain Muscle', 'Lose Weight', 'Build Strength', 'Improve Stamina'].map((g) => (
-                            <button
-                              key={g}
-                              type="button"
-                              onClick={() => setGoal(g)}
-                              className={`py-3 px-3 rounded-xl border text-xs font-extrabold transition-all text-center ${
-                                goal === g 
-                                  ? 'bg-brand-violet/10 border-brand-violet text-white shadow-glow-purple' 
-                                  : 'bg-dark-950 border-white/5 text-zinc-400 hover:text-white'
-                              }`}
-                            >
-                              {g === 'Gain Muscle' && '💪 Muscle Gain'}
-                              {g === 'Lose Weight' && '🔥 Fat Loss'}
-                              {g === 'Build Strength' && '⚡ Powerlifting / Strength'}
-                              {g === 'Improve Stamina' && '🫁 Cardio Endurance'}
-                            </button>
-                          ))}
+                  ) : (
+                    <>
+                      {errorMsg && (
+                        <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl text-center">
+                          {errorMsg}
                         </div>
-                      </div>
-
-                      {/* Step 2: Activity level */}
-                      <div className="space-y-2 pt-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-1.5">
-                          <Heart className="w-4 h-4 text-brand-pink" /> Activity Level Multiplier
-                        </label>
-                        <select
-                          value={activityLevel}
-                          onChange={(e) => setActivityLevel(e.target.value)}
-                          className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
-                        >
-                          <option value="Sedentary">Sedentary (Office worker, minimal workouts)</option>
-                          <option value="Moderately Active">Moderately Active (Train 3-5 days/week)</option>
-                          <option value="Very Active">Very Active (Heavy training 6-7 days/week)</option>
-                          <option value="Athlete/Highly Active">Competitive Athlete (Double training sessions)</option>
-                        </select>
-                      </div>
-
-                      {/* Step 3: Target Weight */}
-                      <div className="space-y-2 pt-2">
-                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-1.5">
-                          <Ruler className="w-4 h-4 text-brand-lime" /> Target Body Weight (kg)
-                        </label>
+                      )}
+                      
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Email Address</label>
                         <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                           <input
-                            type="number"
-                            min="35"
-                            value={targetWeight}
-                            onChange={(e) => setTargetWeight(Number(e.target.value) || 60)}
-                            className="w-full px-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet font-semibold"
+                            type="email"
+                            placeholder="coach@fitai.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full pl-11 pr-4 py-3 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet font-semibold"
                             required
                           />
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-bold">kg</span>
                         </div>
                       </div>
-                    </div>
 
+                      <button
+                        type="submit"
+                        className="w-full py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 hover:shadow-glow-purple transition-all uppercase tracking-wider cursor-pointer"
+                      >
+                        Send Reset Link
+                      </button>
+                    </>
+                  )}
+
+                  <div className="pt-2 text-center">
                     <button
-                      type="submit"
-                      className="w-full py-3.5 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 hover:shadow-glow-purple transition-all uppercase tracking-wider"
+                      type="button"
+                      onClick={() => { setView('login'); setErrorMsg(''); setResetSent(false); }}
+                      className="text-xs font-bold text-brand-cyan hover:underline cursor-pointer"
                     >
-                      Process & Synthesize Plan
+                      Back to Login
                     </button>
-                  </form>
-                )}
+                  </div>
+                </form>
               </SpotlightCard>
             </motion.div>
           )}
+
+
 
         </AnimatePresence>
 

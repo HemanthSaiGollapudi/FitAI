@@ -9,7 +9,7 @@ import { Testimonials } from './components/Testimonials';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { Footer } from './components/Footer';
-import { OnboardingWizard } from './components/OnboardingWizard';
+
 import { DashboardView } from './components/DashboardView';
 import type { ActiveWorkout } from './components/DashboardView';
 import type { SavedDietPlan } from './components/DietModule';
@@ -17,7 +17,7 @@ import type { WorkoutRoutine } from './components/WorkoutBuilder';
 import type { LoggedWorkout, WeightLog, MeasurementLog } from './components/ProgressTracker';
 import { WarmUpProtocol } from './components/WarmUpProtocol';
 import { EXERCISE_DATABASE } from './data/exerciseDatabase';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { LoggedScannedFood } from './components/FoodScanner';
 import { ProfileView } from './components/ProfileView';
 import { AICoach } from './components/AICoach';
@@ -29,9 +29,11 @@ import { Trophy } from 'lucide-react';
 import { ActiveWorkoutSession } from './components/ActiveWorkoutSession';
 import { AuthModule } from './components/AuthModule';
 import type { UserProfile } from './components/AuthModule';
+import { BiometricLockScreen } from './components/BiometricLockScreen';
+import { Fingerprint, Scan, Unlock, Loader2 } from 'lucide-react';
 
 function App() {
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
   const [isWorkoutSessionExpanded, setIsWorkoutSessionExpanded] = useState(() => {
     return localStorage.getItem('fitai_active_workout_expanded') === 'true';
   });
@@ -48,6 +50,24 @@ function App() {
       return null;
     }
   });
+
+  const [isLocked, setIsLocked] = useState(() => {
+    const savedUser = localStorage.getItem('fitai_current_user');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
+        if (user.biometricsEnabled && isMobile) {
+          return true;
+        }
+      } catch {}
+    }
+    return false;
+  });
+
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
+  const [registeringBiometricType, setRegisteringBiometricType] = useState<'Android Fingerprint' | 'Android Face Unlock' | 'iPhone Face ID / Touch ID' | null>(null);
+  const [biometricRegisterPhase, setBiometricRegisterPhase] = useState<'ask' | 'select' | 'scan' | 'complete'>('ask');
 
   const handleAuthSuccess = (user: UserProfile) => {
     setCurrentUser(user);
@@ -123,29 +143,35 @@ function App() {
     localStorage.setItem('fitai_diet_carbs', String(targetCarb));
     localStorage.setItem('fitai_diet_fats', String(targetF));
     localStorage.setItem('fitai_diet_expected_change', expectedChange);
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
+    const prompted = localStorage.getItem(`fitai_biometrics_prompted_${user.email}`) === 'true';
+    if (isMobile && !prompted && !user.biometricsEnabled) {
+      setShowBiometricPrompt(true);
+      setBiometricRegisterPhase('ask');
+    }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setIsLocked(false);
+    setShowBiometricPrompt(false);
     
-    // Save registered users list before clearing storage
+    // Save registered users list and remembered email before clearing storage
     const users = localStorage.getItem('fitai_users');
+    const rememberedEmail = localStorage.getItem('fitai_remembered_email');
     
     localStorage.clear();
     sessionStorage.clear();
     
-    // Restore users database
+    // Restore users database and remembered email (Keep Remember Me)
     if (users) {
       localStorage.setItem('fitai_users', users);
     }
-    
-    // Clear specific authentication and biometric flags
-    localStorage.removeItem('fitai_is_authenticated');
-    localStorage.removeItem('fitai_current_user');
-    localStorage.removeItem('fitai_remembered_email');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('faceRecognitionEnabled');
+    if (rememberedEmail) {
+      localStorage.setItem('fitai_remembered_email', rememberedEmail);
+    }
 
     setActiveView('home');
   };
@@ -153,6 +179,35 @@ function App() {
   useEffect(() => {
     localStorage.setItem('fitai_active_workout_expanded', String(isWorkoutSessionExpanded));
   }, [isWorkoutSessionExpanded]);
+
+  useEffect(() => {
+    if (biometricRegisterPhase === 'scan' && currentUser && registeringBiometricType) {
+      const timer = setTimeout(() => {
+        const updatedUser = {
+          ...currentUser,
+          biometricsEnabled: true,
+          biometricType: registeringBiometricType
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
+        
+        try {
+          const usersRaw = localStorage.getItem('fitai_users');
+          if (usersRaw) {
+            const users = JSON.parse(usersRaw);
+            const idx = users.findIndex((u: any) => u.email.toLowerCase() === currentUser.email.toLowerCase());
+            if (idx !== -1) {
+              users[idx] = updatedUser;
+              localStorage.setItem('fitai_users', JSON.stringify(users));
+            }
+          }
+        } catch {}
+        localStorage.setItem(`fitai_biometrics_prompted_${currentUser.email}`, 'true');
+        setBiometricRegisterPhase('complete');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [biometricRegisterPhase, registeringBiometricType, currentUser]);
   
   // 1. Favorites and Checked checklist lists
   const [savedExercises, setSavedExercises] = useState<string[]>(() => {
@@ -312,8 +367,6 @@ function App() {
   }, [activeWorkout]);
 
   // Actions
-  const openOnboarding = () => setIsOnboardingOpen(true);
-  const closeOnboarding = () => setIsOnboardingOpen(false);
 
   // Toggle saving an exercise
   const handleSaveExercise = (id: string) => {
@@ -554,6 +607,7 @@ function App() {
     gender: 'Male' | 'Female';
     activity: string;
     type: 'Veg' | 'Non-Veg' | 'Eggetarian';
+    goal?: string;
   }) => {
     setUserName(settings.name);
     localStorage.setItem('fitai_user_name', settings.name);
@@ -562,6 +616,17 @@ function App() {
     setSavedDietType(settings.type);
     setUserActivity(settings.activity);
     localStorage.setItem('fitai_user_activity', settings.activity);
+
+    let currentDietGoal = savedDietGoal;
+    if (settings.goal) {
+      let dGoal = settings.goal;
+      if (settings.goal === 'Lose Weight') dGoal = 'Fat Loss';
+      else if (settings.goal === 'Gain Muscle') dGoal = 'Muscle Gain';
+      else if (settings.goal === 'Improve Stamina') dGoal = 'Stamina';
+      currentDietGoal = dGoal;
+      setSavedDietGoal(dGoal);
+      localStorage.setItem('fitai_diet_goal', dGoal);
+    }
 
     // Update current user and sync to user registry database
     if (currentUser) {
@@ -574,7 +639,8 @@ function App() {
         targetWeight: settings.goalWeight,
         gender: settings.gender,
         activityLevel: settings.activity,
-        dietPreference: settings.type === 'Veg' ? 'Veg' : settings.type === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian'
+        dietPreference: settings.type === 'Veg' ? 'Veg' : settings.type === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian',
+        goal: settings.goal || currentUser.goal
       };
       setCurrentUser(updatedUser);
       localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
@@ -609,10 +675,10 @@ function App() {
 
     let dailyCal = calculatedTdee;
     let expectedChange = '0.00 kg / week';
-    if (savedDietGoal === 'Fat Loss') {
+    if (currentDietGoal === 'Fat Loss') {
       dailyCal = calculatedTdee - 500;
       expectedChange = '-0.50 kg / week';
-    } else if (savedDietGoal === 'Muscle Gain') {
+    } else if (currentDietGoal === 'Muscle Gain') {
       dailyCal = calculatedTdee + 350;
       expectedChange = '+0.25 kg / week';
     }
@@ -665,11 +731,20 @@ function App() {
     return <AuthModule onAuthSuccess={handleAuthSuccess} />;
   }
 
+  if (isLocked && currentUser) {
+    return (
+      <BiometricLockScreen 
+        currentUser={currentUser} 
+        onUnlock={() => setIsLocked(false)} 
+        onLogout={handleLogout} 
+      />
+    );
+  }
+
   return (
     <div className="bg-[#03000a] min-h-screen text-zinc-100 selection:bg-brand-violet/30 selection:text-white relative">
       {/* Navbar Header */}
       <Navbar 
-        onStartOnboarding={openOnboarding} 
         activeView={activeView}
         onChangeView={(view) => handleNavigate(view)}
         isAuthenticated={isAuthenticated}
@@ -738,7 +813,7 @@ function App() {
       ) : (
         <>
           {/* Hero Presentation */}
-          <Hero onStartOnboarding={openOnboarding} />
+          <Hero />
 
           {/* Persistent User Control Centre Dashboard */}
           <DashboardView 
@@ -749,7 +824,6 @@ function App() {
             savedProtein={savedDietProtein}
             savedCarbs={savedDietCarbs}
             savedFats={savedDietFats}
-            onOpenOnboarding={openOnboarding}
             activeWorkout={activeWorkout}
             onStartEmptyWorkout={handleStartEmptyWorkout}
             completedMeals={completedMeals}
@@ -787,7 +861,7 @@ function App() {
           <Testimonials />
 
           {/* Pricing options */}
-          <Pricing onStartOnboarding={openOnboarding} />
+          <Pricing />
 
           {/* FAQ support accordion */}
           <FAQ />
@@ -797,12 +871,7 @@ function App() {
       {/* Footer Navigation details */}
       <Footer />
 
-      {/* Full-Screen AI wizard and user dashboard */}
-      <AnimatePresence>
-        {isOnboardingOpen && (
-          <OnboardingWizard isOpen={isOnboardingOpen} onClose={closeOnboarding} />
-        )}
-      </AnimatePresence>
+
 
       {/* Active Workout Session Logger */}
       {activeWorkout && (
@@ -881,6 +950,125 @@ function App() {
             >
               View in Progress Tracker
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Biometric Config Dialog Prompt */}
+      {showBiometricPrompt && currentUser && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
+          <div onClick={() => {
+            localStorage.setItem(`fitai_biometrics_prompted_${currentUser.email}`, 'true');
+            setShowBiometricPrompt(false);
+          }} className="absolute inset-0 bg-dark-950/80 backdrop-blur-md cursor-pointer" />
+          <div className="relative w-full max-w-md bg-gradient-to-br from-[#0d0720] via-dark-900 to-dark-950 border border-brand-violet/40 p-6 rounded-2xl shadow-glass z-10 text-left space-y-6">
+            <AnimatePresence mode="wait">
+              {biometricRegisterPhase === 'ask' && (
+                <motion.div key="ask" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                  <div className="text-center space-y-2">
+                    <div className="inline-flex p-3 rounded-full bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/30 animate-pulse">
+                      <Fingerprint className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-xl font-display font-black text-white">Enable Biometric Unlock?</h3>
+                    <p className="text-xs text-zinc-400">Secure your workouts, diet logs, and biological tracking with biometric device verification.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        localStorage.setItem(`fitai_biometrics_prompted_${currentUser.email}`, 'true');
+                        setShowBiometricPrompt(false);
+                      }}
+                      className="py-3 border border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white text-xs font-bold rounded-xl cursor-pointer text-center"
+                    >
+                      No Thanks
+                    </button>
+                    <button
+                      onClick={() => setBiometricRegisterPhase('select')}
+                      className="py-3 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-102 transition-transform cursor-pointer text-center"
+                    >
+                      Enable Biometrics
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {biometricRegisterPhase === 'select' && (
+                <motion.div key="select" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                  <h3 className="text-base font-display font-extrabold text-white">Select Biometric Method</h3>
+                  <p className="text-xs text-zinc-400">Choose the device credential verification system to register:</p>
+                  <div className="space-y-2 pt-2">
+                    {/iPhone|iPad|iPod|Mac/i.test(navigator.userAgent) ? (
+                      <button
+                        onClick={() => {
+                          setRegisteringBiometricType('iPhone Face ID / Touch ID');
+                          setBiometricRegisterPhase('scan');
+                        }}
+                        className="w-full p-3 bg-dark-950 hover:bg-white/5 border border-white/5 rounded-xl text-left text-xs font-bold flex items-center justify-between text-white cursor-pointer"
+                      >
+                        <span>iPhone Face ID / Touch ID</span>
+                        <Scan className="w-4 h-4 text-brand-cyan" />
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setRegisteringBiometricType('Android Fingerprint');
+                            setBiometricRegisterPhase('scan');
+                          }}
+                          className="w-full p-3 bg-dark-950 hover:bg-white/5 border border-white/5 rounded-xl text-left text-xs font-bold flex items-center justify-between text-white cursor-pointer"
+                        >
+                          <span>Android Fingerprint Sensor</span>
+                          <Fingerprint className="w-4 h-4 text-brand-cyan" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRegisteringBiometricType('Android Face Unlock');
+                            setBiometricRegisterPhase('scan');
+                          }}
+                          className="w-full p-3 bg-dark-950 hover:bg-white/5 border border-white/5 rounded-xl text-left text-xs font-bold flex items-center justify-between text-white cursor-pointer"
+                        >
+                          <span>Android Face Unlock</span>
+                          <Scan className="w-4 h-4 text-brand-cyan" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {biometricRegisterPhase === 'scan' && (
+                <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6 text-center flex flex-col items-center">
+                  <h3 className="text-base font-display font-extrabold text-white">Registering Biometrics</h3>
+                  <p className="text-xs text-zinc-400">Please interact with your device biometric scanner now.</p>
+                  
+                  <div className="relative h-24 w-24 flex items-center justify-center bg-dark-950 border border-white/5 rounded-full my-4">
+                    <div className="absolute inset-0 border border-brand-cyan rounded-full animate-ping opacity-25" />
+                    <div className="absolute w-full h-0.5 bg-brand-cyan top-0 left-0 animate-sweep rounded" />
+                    <Loader2 className="w-10 h-10 text-brand-cyan animate-spin" />
+                  </div>
+
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Establishing secure device link...</p>
+                  
+                  {/* Visual scanning sweep animation in progress */}
+                </motion.div>
+              )}
+
+              {biometricRegisterPhase === 'complete' && (
+                <motion.div key="complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 text-center">
+                  <div className="inline-flex p-3 rounded-full bg-brand-lime/15 text-brand-lime border border-brand-lime/30 my-2">
+                    <Unlock className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-display font-black text-white">Biometrics Activated!</h3>
+                  <p className="text-xs text-zinc-400">Your device authentication profile has been linked. You can lock/unlock securely on future app opens.</p>
+                  <button
+                    onClick={() => setShowBiometricPrompt(false)}
+                    className="w-full py-3 mt-4 bg-brand-violet text-white text-xs font-black rounded-xl hover:scale-102 transition-transform cursor-pointer block uppercase tracking-wider"
+                  >
+                    Done
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       )}

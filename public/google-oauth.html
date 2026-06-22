@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in - Google Accounts</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #ffffff;
+      color: #202124;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #202124;
+        color: #e8eaed;
+      }
+    }
+    .card {
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      .card {
+        border-color: #5f6368;
+        background-color: #303134;
+      }
+    }
+    @media (max-width: 500px) {
+      .card {
+        border: none;
+        padding: 24px;
+      }
+    }
+    .logo-container {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .logo-svg {
+      width: 74px;
+      height: 24px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 400;
+      margin: 0 0 8px 0;
+      line-height: 1.33;
+    }
+    h2 {
+      font-size: 16px;
+      font-weight: 400;
+      margin: 0 0 24px 0;
+      color: #5f6368;
+    }
+    @media (prefers-color-scheme: dark) {
+      h2 {
+        color: #9aa0a6;
+      }
+    }
+    .subtext {
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    @media (prefers-color-scheme: dark) {
+      .subtext {
+        color: #9aa0a6;
+      }
+    }
+    .account-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px 0;
+      text-align: left;
+      border-top: 1px solid #dadce0;
+    }
+    @media (prefers-color-scheme: dark) {
+      .account-list {
+        border-color: #5f6368;
+      }
+    }
+    .account-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #dadce0;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    @media (prefers-color-scheme: dark) {
+      .account-item {
+        border-color: #5f6368;
+      }
+    }
+    .account-item:hover {
+      background-color: #f8f9fa;
+    }
+    @media (prefers-color-scheme: dark) {
+      .account-item:hover {
+        background-color: #3c4043;
+      }
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #8b5cf6;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 14px;
+      margin-right: 12px;
+    }
+    .account-details {
+      display: flex;
+      flex-direction: column;
+    }
+    .account-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .account-email {
+      font-size: 12px;
+      color: #5f6368;
+    }
+    @media (prefers-color-scheme: dark) {
+      .account-email {
+        color: #9aa0a6;
+      }
+    }
+    .permissions-list {
+      text-align: left;
+      margin-bottom: 24px;
+      padding-left: 20px;
+    }
+    .permission-item {
+      font-size: 14px;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+    }
+    .btn {
+      font-size: 14px;
+      font-weight: 500;
+      padding: 9px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.2s;
+    }
+    .btn-text {
+      background-color: transparent;
+      color: #1a73e8;
+    }
+    @media (prefers-color-scheme: dark) {
+      .btn-text {
+        color: #8ab4f8;
+      }
+    }
+    .btn-text:hover {
+      background-color: rgba(26, 115, 232, 0.04);
+    }
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #1557b0;
+    }
+    @media (prefers-color-scheme: dark) {
+      .btn-primary {
+        background-color: #8ab4f8;
+        color: #202124;
+      }
+      .btn-primary:hover {
+        background-color: #9ec5fe;
+      }
+    }
+    .hidden {
+      display: none !important;
+    }
+    .form-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #5f6368;
+    }
+    @media (prefers-color-scheme: dark) {
+      .form-group label {
+        color: #9aa0a6;
+      }
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      background-color: transparent;
+      color: inherit;
+    }
+    .form-group input:focus {
+      border-color: #1a73e8;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-container">
+      <!-- Google Logo SVG -->
+      <svg class="logo-svg" viewBox="0 0 74 24">
+        <path fill="#4285F4" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.99 5.99 0 0 1 8 12.5a5.99 5.99 0 0 1 5.991-6.014c1.6 0 2.92.593 3.93 1.554l3.18-3.185C19.063 2.89 16.745 2 13.99 2 8.163 2 3.5 6.663 3.5 12.5S8.163 23 13.99 23c5.44 0 9.873-3.85 9.873-9.5 0-.585-.058-1.15-.175-1.715H12.24Z" />
+      </svg>
+    </div>
+
+    <!-- VIEW 1: ACCOUNT PICKER -->
+    <div id="view-picker">
+      <h1>Sign in with Google</h1>
+      <h2>to continue to FitAI Secure</h2>
+      
+      <ul class="account-list">
+        <li class="account-item" onclick="selectAccount('google.athlete@gmail.com', 'Google Athlete')">
+          <div class="avatar" style="background-color: #0fb5c4;">G</div>
+          <div class="account-details">
+            <span class="account-name">Google Athlete</span>
+            <span class="account-email">google.athlete@gmail.com</span>
+          </div>
+        </li>
+        <li class="account-item" onclick="selectAccount('coach@fitai.com', 'FitAI Coach')">
+          <div class="avatar" style="background-color: #8b5cf6;">C</div>
+          <div class="account-details">
+            <span class="account-name">FitAI Coach</span>
+            <span class="account-email">coach@fitai.com</span>
+          </div>
+        </li>
+        <li class="account-item" onclick="showCustomForm()">
+          <div class="avatar" style="background-color: #5f6368; font-size: 20px;">+</div>
+          <div class="account-details">
+            <span class="account-name" style="color: #1a73e8;">Use another account</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- VIEW 2: CUSTOM ACCOUNT FORM -->
+    <div id="view-custom" class="hidden">
+      <h1>Sign in</h1>
+      <h2>to continue to FitAI Secure</h2>
+      <div style="margin-bottom: 24px;">
+        <div class="form-group">
+          <label for="custom-name">Full Name</label>
+          <input type="text" id="custom-name" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label for="custom-email">Email Address</label>
+          <input type="email" id="custom-email" placeholder="name@example.com">
+        </div>
+      </div>
+      <div class="button-group">
+        <button class="btn btn-text" onclick="showPicker()">Back</button>
+        <button class="btn btn-primary" onclick="submitCustomAccount()">Next</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: CONSENT SCREEN -->
+    <div id="view-consent" class="hidden">
+      <h1 style="font-size: 22px;">FitAI Secure wants to access your Google Account</h1>
+      <p class="subtext" style="margin-bottom: 16px;">This will allow <strong id="selected-email-display"></strong> to:</p>
+      
+      <ul class="permissions-list">
+        <li class="permission-item">
+          <strong>Associate you with your personal info on Google</strong>
+          <div style="font-size: 12px; color: #5f6368; margin-top: 4px;">See your personal info, including any personal info you've made publicly available.</div>
+        </li>
+        <li class="permission-item">
+          <strong>See your primary Google Account email address</strong>
+          <div style="font-size: 12px; color: #5f6368; margin-top: 4px;">View the email address associated with your account.</div>
+        </li>
+      </ul>
+
+      <p class="subtext" style="font-size: 12px; border-top: 1px solid #dadce0; padding-top: 16px;">
+        Make sure you trust FitAI Secure. You may be sharing sensitive info with this site. You can always review or revoke permissions in your Google Account.
+      </p>
+
+      <div class="button-group">
+        <button class="btn btn-text" onclick="cancelConsent()">Cancel</button>
+        <button class="btn btn-primary" onclick="allowConsent()">Allow</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedUser = { email: '', name: '' };
+
+    function selectAccount(email, name) {
+      selectedUser = { email, name };
+      document.getElementById('selected-email-display').innerText = email;
+      document.getElementById('view-picker').classList.add('hidden');
+      document.getElementById('view-custom').classList.add('hidden');
+      document.getElementById('view-consent').classList.remove('hidden');
+    }
+
+    function showCustomForm() {
+      document.getElementById('view-picker').classList.add('hidden');
+      document.getElementById('view-consent').classList.add('hidden');
+      document.getElementById('view-custom').classList.remove('hidden');
+    }
+
+    function showPicker() {
+      document.getElementById('view-custom').classList.add('hidden');
+      document.getElementById('view-consent').classList.add('hidden');
+      document.getElementById('view-picker').classList.remove('hidden');
+    }
+
+    function submitCustomAccount() {
+      const name = document.getElementById('custom-name').value.trim() || 'Google Athlete';
+      const email = document.getElementById('custom-email').value.trim() || 'google.athlete@gmail.com';
+      if (!email.includes('@')) {
+        alert('Please enter a valid email address.');
+        return;
+      }
+      selectAccount(email, name);
+    }
+
+    function cancelConsent() {
+      window.close();
+    }
+
+    function allowConsent() {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'GOOGLE_OAUTH_SUCCESS',
+          email: selectedUser.email,
+          name: selectedUser.name
+        }, window.location.origin);
+      }
+      window.close();
+    }
+  </script>
+</body>
+</html>

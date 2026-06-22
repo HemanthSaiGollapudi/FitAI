@@ -141,7 +141,6 @@ interface DashboardViewProps {
   savedProtein: number;
   savedCarbs: number;
   savedFats: number;
-  onOpenOnboarding: () => void;
   
   // Active Workout Logger Props
   activeWorkout: ActiveWorkout | null;
@@ -174,7 +173,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   savedProtein,
   savedCarbs,
   savedFats,
-  onOpenOnboarding,
   activeWorkout,
   onStartEmptyWorkout,
   completedMeals,
@@ -332,10 +330,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Plus className="h-4 w-4" /> Log Empty Workout
             </button>
             <button
-              onClick={onOpenOnboarding}
+              onClick={() => onNavigate('profile')}
               className="px-5 py-3 rounded-xl border border-white/10 text-xs font-bold hover:bg-white/5 hover:border-brand-violet/40 transition-all text-zinc-300 flex items-center gap-2"
             >
-              <RefreshCw className="h-4 w-4" /> Synthesize Profile
+              <RefreshCw className="h-4 w-4" /> Edit Preferences
             </button>
           </div>
         </div>

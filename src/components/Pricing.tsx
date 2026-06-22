@@ -3,12 +3,17 @@ import { motion } from 'framer-motion';
 import { Check, Sparkles } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
-interface PricingProps {
-  onStartOnboarding: () => void;
-}
+interface PricingProps {}
 
-export const Pricing: React.FC<PricingProps> = ({ onStartOnboarding }) => {
+export const Pricing: React.FC<PricingProps> = () => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+
+  const handleScrollToDashboard = () => {
+    const el = document.getElementById('dashboard');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const tiers = [
     {
@@ -165,7 +170,7 @@ export const Pricing: React.FC<PricingProps> = ({ onStartOnboarding }) => {
                 {/* Pricing CTA Button */}
                 <div className="pt-8 text-left mt-6">
                   <button
-                    onClick={onStartOnboarding}
+                    onClick={handleScrollToDashboard}
                     className={`w-full py-3.5 text-xs font-bold rounded-xl text-center transition-all ${
                       tier.popular
                         ? 'bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-glow-purple hover:scale-[1.01]'

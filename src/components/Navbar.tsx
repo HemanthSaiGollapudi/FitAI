@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Menu, X, ArrowRight } from 'lucide-react';
+import { Activity, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NavbarProps {
-  onStartOnboarding: () => void;
   activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile';
   onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile') => void;
   isAuthenticated?: boolean;
   onLogout?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, onChangeView, isAuthenticated, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeView, onChangeView, isAuthenticated, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -116,16 +115,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
               Log Out 🚪
             </button>
           )}
-          <button
-            onClick={onStartOnboarding}
-            className="relative group overflow-hidden px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 border border-brand-violet/50 hover:border-brand-violet"
-          >
-            <span className="absolute inset-0 bg-gradient-to-r from-brand-violet to-brand-cyan opacity-80 group-hover:opacity-100 transition-opacity" />
-            <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity blur" />
-            <span className="relative flex items-center gap-1.5 text-white">
-              Get Started <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </span>
-          </button>
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -172,15 +161,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onStartOnboarding, activeView, o
                     Log Out 🚪
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    onStartOnboarding();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-sm font-semibold bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-glow-purple"
-                >
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </motion.div>
