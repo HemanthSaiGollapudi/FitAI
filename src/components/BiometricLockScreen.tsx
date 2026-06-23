@@ -8,105 +8,42 @@ interface BiometricLockScreenProps {
   currentUser: UserProfile;
   onUnlock: () => void;
   onLogout: () => void;
+  verifyPassword: (password: string) => Promise<boolean>;
 }
 
 export const BiometricLockScreen: React.FC<BiometricLockScreenProps> = ({
   currentUser,
   onUnlock,
-  onLogout
+  onLogout,
+  verifyPassword
 }) => {
   const [authMode, setAuthMode] = useState<'biometric' | 'password'>('biometric');
   const [isScanning, setIsScanning] = useState(false);
-  const [scanComplete, setScanComplete] = useState(false);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   const biometricLabel = currentUser.biometricType || 'Biometric Key';
 
   useEffect(() => {
-    // Automatically trigger scan on mount if in biometric mode
-    if (authMode === 'biometric') {
-      triggerBiometricScan(true);
-    }
+    // Automatically switch to password mode if biometrics are disabled for web
+    // but keep the biometric tab available for UI compliance
   }, [authMode]);
 
-  const triggerBiometricScan = async (isAutoMount: boolean = false) => {
-    setIsScanning(true);
-    setErrorMsg('');
-    setScanComplete(false);
 
-    // 1. Try real device biometrics via WebAuthn if available
-    if (navigator.credentials && (window as any).PublicKeyCredential) {
-      try {
-        // Just a check to see if platform authenticator is available
-        const isAvailable = await (window as any).PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-        if (isAvailable) {
-          // Trigger a lightweight WebAuthn request to query biometrics
-          const challenge = new Uint8Array(32);
-          window.crypto.getRandomValues(challenge);
-          
-          // Note: Since this runs locally and is purely for client-side authentication,
-          // we use the device-level local authentication prompt.
-          const credential = await navigator.credentials.get({
-            publicKey: {
-              challenge,
-              rpId: window.location.hostname,
-              userVerification: 'required',
-              timeout: 60000
-            }
-          });
-          
-          if (credential) {
-            setScanComplete(true);
-            setIsScanning(false);
-            setTimeout(() => {
-              onUnlock();
-            }, 800);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Real device WebAuthn check failed or cancelled:", err);
-        if (isAutoMount) {
-          setIsScanning(false);
-          return;
-        }
-      }
-    } else {
-      if (isAutoMount) {
-        setIsScanning(false);
-        return;
-      }
-    }
 
-    // 2. Simulated high-fidelity scan fallback for local web sandbox testing (only on manual tap)
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanComplete(true);
-      setTimeout(() => {
-        onUnlock();
-      }, 1000);
-    }, 2000);
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setIsScanning(true);
 
-    // Fetch matching registered user password
-    try {
-      const usersRaw = localStorage.getItem('fitai_users');
-      if (usersRaw) {
-        const users: UserProfile[] = JSON.parse(usersRaw);
-        const matched = users.find(u => u.email.toLowerCase() === currentUser.email.toLowerCase());
-        if (matched && matched.password === password) {
-          onUnlock();
-          return;
-        }
-      }
-    } catch {}
+    const success = await verifyPassword(password);
+    setIsScanning(false);
 
-    setErrorMsg('Invalid password. Please try again.');
+    if (success) {
+      onUnlock();
+    } else {
+      setErrorMsg('Invalid password. Please try again.');
+    }
   };
 
   return (
@@ -138,49 +75,28 @@ export const BiometricLockScreen: React.FC<BiometricLockScreenProps> = ({
               >
                 <div className="space-y-1">
                   <h3 className="text-lg font-display font-extrabold text-white">App is Locked</h3>
-                  <p className="text-xs text-zinc-400">Unlock using {biometricLabel} to restore your session.</p>
+                  <p className="text-xs text-zinc-400">Biometrics are configured for mobile environments.</p>
                 </div>
 
                 {/* Scanner Target Circle */}
-                <div className="relative h-32 w-32 flex items-center justify-center bg-dark-950 border border-white/5 rounded-full my-6">
-                  {/* Outer Pulsing Glow */}
-                  {isScanning && (
-                    <div className="absolute inset-0 border border-brand-cyan rounded-full animate-ping opacity-25" />
-                  )}
-                  
-                  {/* Scanner Grid Lines */}
-                  {isScanning && (
-                    <div className="absolute inset-2 border-t border-b border-brand-cyan/35 animate-pulse rounded-full" />
-                  )}
-
-                  {/* Scanning sweep line */}
-                  {isScanning && (
-                    <div className="absolute w-full h-0.5 bg-brand-cyan/70 top-0 left-0 animate-sweep rounded" />
-                  )}
-
-                  {/* Icon representation */}
+                <div className="relative h-32 w-32 flex items-center justify-center bg-dark-950 border border-white/5 rounded-full my-6 opacity-60">
+                  {/* Icon representation (disabled style) */}
                   {biometricLabel.includes('Fingerprint') || biometricLabel.includes('Touch ID') ? (
-                    <Fingerprint className={`w-14 h-14 transition-all duration-300 ${
-                      scanComplete ? 'text-brand-lime scale-110' : isScanning ? 'text-brand-cyan' : 'text-zinc-500 hover:text-white cursor-pointer'
-                    }`} onClick={() => triggerBiometricScan(false)} />
+                    <Fingerprint className="w-14 h-14 text-zinc-600 cursor-not-allowed" />
                   ) : (
-                    <Scan className={`w-14 h-14 transition-all duration-300 ${
-                      scanComplete ? 'text-brand-lime scale-110' : isScanning ? 'text-brand-cyan animate-pulse' : 'text-zinc-500 hover:text-white cursor-pointer'
-                    }`} onClick={() => triggerBiometricScan(false)} />
+                    <Scan className="w-14 h-14 text-zinc-600 cursor-not-allowed" />
                   )}
                 </div>
 
-                <div className="space-y-2 w-full">
-                  <p className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase h-5">
-                    {isScanning && "Verifying biological identity..."}
-                    {scanComplete && "Verification Successful! Access Granted."}
-                    {!isScanning && !scanComplete && "Click sensor to start scan"}
+                <div className="space-y-4 w-full">
+                  <p className="text-xs font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl leading-relaxed">
+                    Biometric unlock will be available in the FitAI mobile app.
                   </p>
 
                   <button
                     type="button"
                     onClick={() => setAuthMode('password')}
-                    className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Key className="w-3.5 h-3.5" /> Use Password Instead
                   </button>
@@ -221,9 +137,10 @@ export const BiometricLockScreen: React.FC<BiometricLockScreenProps> = ({
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 hover:shadow-glow-purple transition-all uppercase tracking-wider"
+                    disabled={isScanning}
+                    className="w-full py-3 bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black rounded-xl hover:scale-101 hover:shadow-glow-purple transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Verify & Unlock App
+                    {isScanning ? 'Verifying...' : 'Verify & Unlock App'}
                   </button>
 
                   <button

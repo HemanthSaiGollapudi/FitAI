@@ -191,7 +191,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate
 }) => {
 
+  // Load body fat metrics from localStorage
+  const bodyFatLogs = React.useMemo(() => {
+    try {
+      const saved = localStorage.getItem('fitai_body_fat_logs');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  }, []);
 
+  const latestScan = bodyFatLogs[0] || null;
+
+  const targetBodyFat = React.useMemo(() => {
+    const saved = localStorage.getItem('fitai_target_body_fat');
+    if (saved) return parseFloat(saved);
+    const gender = localStorage.getItem('fitai_user_gender') || 'Male';
+    return gender === 'Female' ? 22 : 15;
+  }, []);
+
+  const currentBF = latestScan ? latestScan.bodyFat : null;
+
+  // Recomposition calculations
+  const recompositionInfo = React.useMemo(() => {
+    if (currentBF === null) return null;
+    const diff = currentBF - targetBodyFat;
+    const isLoss = diff > 0;
+    
+    // Find the oldest body fat log in history to know the starting point
+    const startLog = bodyFatLogs[bodyFatLogs.length - 1] || null;
+    const startBF = startLog ? startLog.bodyFat : currentBF;
+    
+    let progressPct = 100;
+    if (isLoss) {
+      const totalToLose = startBF - targetBodyFat;
+      if (totalToLose > 0) {
+        const remainingToLose = currentBF - targetBodyFat;
+        progressPct = Math.max(0, Math.min(100, Math.round(((totalToLose - remainingToLose) / totalToLose) * 100)));
+      }
+    } else {
+      const totalToGain = targetBodyFat - startBF;
+      if (totalToGain > 0) {
+        const remainingToGain = targetBodyFat - currentBF;
+        progressPct = Math.max(0, Math.min(100, Math.round(((totalToGain - remainingToGain) / totalToGain) * 100)));
+      }
+    }
+
+    // Goal date estimation: safe reduction rate of 0.5% body fat per week
+    const weeksNeeded = Math.abs(currentBF - targetBodyFat) / 0.5;
+    const goalDate = new Date();
+    goalDate.setDate(goalDate.getDate() + Math.round(weeksNeeded * 7));
+    const goalDateStr = goalDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+    return {
+      progressPct,
+      weeksNeeded,
+      goalDateStr,
+      isLoss
+    };
+  }, [currentBF, targetBodyFat, bodyFatLogs]);
 
   const getGreeting = () => {
     const hrs = new Date().getHours();
@@ -738,8 +797,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            {/* Weight Profile Status & Personal Records listing */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Weight Profile Status, Body Fat Profile, & Personal Records listing */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {/* Weight Profile Card */}
               <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
@@ -761,6 +820,66 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <span className="text-brand-lime font-bold">{expectedWeightChange}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* AI Body Composition Profile Card */}
+              <div 
+                onClick={() => onNavigate('body-fat')}
+                className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4 hover:border-brand-cyan/40 hover:bg-brand-cyan/5 cursor-pointer transition-all flex flex-col justify-between group"
+              >
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                    <Scale className="h-4 w-4 text-brand-cyan" /> AI Body Composition
+                  </h3>
+                  
+                  {currentBF !== null ? (
+                    <div className="space-y-3 text-left">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-500 font-semibold">Current Body Fat:</span>
+                        <span className="text-white font-bold">{currentBF}%</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-zinc-500 font-semibold">Target Body Fat:</span>
+                        <span className="text-white font-bold">{targetBodyFat}%</span>
+                      </div>
+                      
+                      {recompositionInfo && (
+                        <>
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[10px]">
+                              <span className="text-zinc-500 font-bold uppercase">Target Progress</span>
+                              <span className="text-brand-cyan font-black">{recompositionInfo.progressPct}%</span>
+                            </div>
+                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className="bg-brand-cyan h-full rounded-full transition-all duration-500" 
+                                style={{ width: `${recompositionInfo.progressPct}%` }} 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-zinc-500 font-semibold">Estimated Goal Date:</span>
+                            <span className="text-brand-lime font-bold">{recompositionInfo.goalDateStr}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 space-y-2">
+                      <Scale className="h-6 w-6 text-zinc-600 mx-auto animate-pulse" />
+                      <p className="text-[10px] text-zinc-500 italic leading-relaxed">
+                        No AI scans found. Click to start scanning and set composition targets!
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {currentBF !== null && (
+                  <span className="text-[9px] text-brand-cyan font-bold block text-right mt-2 uppercase tracking-wider group-hover:underline">
+                    View estimator analytics &rarr;
+                  </span>
+                )}
               </div>
 
               {/* Personal Records Listing */}

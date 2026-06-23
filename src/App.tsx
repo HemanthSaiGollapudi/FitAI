@@ -25,12 +25,15 @@ import { BodyFatEstimator } from './components/BodyFatEstimator';
 import { AccessoriesStore } from './components/AccessoriesStore';
 import { NutritionHub } from './components/NutritionHub';
 import { TrainingHub } from './components/TrainingHub';
-import { Trophy } from 'lucide-react';
+import { Trophy, Fingerprint, Scan, Unlock, Loader2 } from 'lucide-react';
 import { ActiveWorkoutSession } from './components/ActiveWorkoutSession';
 import { AuthModule } from './components/AuthModule';
 import type { UserProfile } from './components/AuthModule';
 import { BiometricLockScreen } from './components/BiometricLockScreen';
-import { Fingerprint, Scan, Unlock, Loader2 } from 'lucide-react';
+
+// Real Firebase Auth
+import { auth, isFirebaseConfigured } from './firebase';
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 
 function App() {
 
@@ -39,25 +42,20 @@ function App() {
   });
   const [workoutSummaryData, setWorkoutSummaryData] = useState<LoggedWorkout | null>(null);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('fitai_is_authenticated') === 'true';
-  });
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('fitai_current_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const [authLoading, setAuthLoading] = useState(true);
+
 
   const [isLocked, setIsLocked] = useState(() => {
     const savedUser = localStorage.getItem('fitai_current_user');
     if (savedUser) {
       try {
         const user = JSON.parse(savedUser);
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
-        if (user.biometricsEnabled && isMobile) {
+        const isMobileApp = !!((window as any).Capacitor || (window as any).cordova);
+        if (user.biometricsEnabled && isMobileApp) {
           return true;
         }
       } catch {}
@@ -68,6 +66,95 @@ function App() {
   const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
   const [registeringBiometricType, setRegisteringBiometricType] = useState<'Android Fingerprint' | 'Android Face Unlock' | 'iPhone Face ID / Touch ID' | null>(null);
   const [biometricRegisterPhase, setBiometricRegisterPhase] = useState<'ask' | 'select' | 'scan' | 'complete'>('ask');
+
+  // Real Firebase auth listener
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (user.emailVerified) {
+          setIsAuthenticated(true);
+          
+          // Retrieve metadata from local database
+          const usersRaw = localStorage.getItem('fitai_users');
+          let profile: UserProfile | null = null;
+          if (usersRaw) {
+            try {
+              const users: UserProfile[] = JSON.parse(usersRaw);
+              profile = users.find(u => u.email.toLowerCase() === user.email?.toLowerCase()) || null;
+            } catch {}
+          }
+
+          if (!profile) {
+            profile = {
+              name: user.displayName || 'Athlete',
+              email: user.email!.toLowerCase(),
+              age: 25,
+              gender: 'Male',
+              height: 170,
+              weight: 70,
+              goal: 'Gain Muscle',
+              dietPreference: 'Veg',
+              activityLevel: 'Moderately Active',
+              targetWeight: 66,
+              biometricsEnabled: false
+            };
+          }
+
+          setCurrentUser(profile);
+          localStorage.setItem('fitai_is_authenticated', 'true');
+          localStorage.setItem('fitai_current_user', JSON.stringify(profile));
+
+          // Lock the screen if biometrics are enabled and it's a mobile environment
+          const isMobileApp = !!((window as any).Capacitor || (window as any).cordova);
+          if (profile.biometricsEnabled && isMobileApp) {
+            setIsLocked(true);
+          }
+
+          // Synchronize states
+          setUserName(profile.name);
+          localStorage.setItem('fitai_user_name', profile.name);
+          setUserWeight(profile.weight);
+          localStorage.setItem('fitai_user_weight', String(profile.weight));
+          const targetW = profile.targetWeight || 65;
+          setGoalWeight(targetW);
+          localStorage.setItem('fitai_user_goal_weight', String(targetW));
+
+          const dietType = profile.dietPreference === 'Veg' ? 'Veg' : profile.dietPreference === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian';
+          setSavedDietType(dietType);
+          localStorage.setItem('fitai_diet_type', dietType);
+
+          const dGoal = profile.goal === 'Lose Weight' ? 'Fat Loss' : profile.goal === 'Gain Muscle' ? 'Muscle Gain' : profile.goal === 'Build Strength' ? 'Build Strength' : 'Stamina';
+          setSavedDietGoal(dGoal);
+          localStorage.setItem('fitai_diet_goal', dGoal);
+
+          if (profile.activityLevel) {
+            setUserActivity(profile.activityLevel);
+            localStorage.setItem('fitai_user_activity', profile.activityLevel);
+          }
+        } else {
+          // Logged in but not verified
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          localStorage.removeItem('fitai_is_authenticated');
+          localStorage.removeItem('fitai_current_user');
+        }
+      } else {
+        // Logged out
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        localStorage.removeItem('fitai_is_authenticated');
+        localStorage.removeItem('fitai_current_user');
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleAuthSuccess = (user: UserProfile) => {
     setCurrentUser(user);
@@ -144,36 +231,55 @@ function App() {
     localStorage.setItem('fitai_diet_fats', String(targetF));
     localStorage.setItem('fitai_diet_expected_change', expectedChange);
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
+    const isMobileApp = !!((window as any).Capacitor || (window as any).cordova);
     const prompted = localStorage.getItem(`fitai_biometrics_prompted_${user.email}`) === 'true';
-    if (isMobile && !prompted && !user.biometricsEnabled) {
+    if (isMobileApp && !prompted && !user.biometricsEnabled) {
       setShowBiometricPrompt(true);
       setBiometricRegisterPhase('ask');
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (isFirebaseConfigured && auth) {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error("Firebase signOut error:", err);
+      }
+    }
+
     setIsAuthenticated(false);
     setCurrentUser(null);
     setIsLocked(false);
     setShowBiometricPrompt(false);
     
-    // Save registered users list and remembered email before clearing storage
-    const users = localStorage.getItem('fitai_users');
-    const rememberedEmail = localStorage.getItem('fitai_remembered_email');
-    
+    // Reset all React state to default values on logout
+    setSavedExercises([]);
+    setCompletedExercises([]);
+    setSavedDietGoal('');
+    setSavedDietType('');
+    setSavedDietCalories(0);
+    setSavedDietProtein(0);
+    setSavedDietCarbs(0);
+    setSavedDietFats(0);
+    setCompletedMeals([]);
+    setCustomRoutines([]);
+    setActiveWorkout(null);
+    setWorkoutHistory([]);
+    setWeightHistory([]);
+    setMeasurementHistory([]);
+    setLoggedScannedFoods([]);
+    setWaterLogs({});
+    setUserName('Champion');
+    setUserWeight(70);
+    setGoalWeight(65);
+    setExpectedWeightChange('0.00 kg / week');
+    setUserActivity('Moderately Active');
+
     localStorage.clear();
     sessionStorage.clear();
-    
-    // Restore users database and remembered email (Keep Remember Me)
-    if (users) {
-      localStorage.setItem('fitai_users', users);
-    }
-    if (rememberedEmail) {
-      localStorage.setItem('fitai_remembered_email', rememberedEmail);
-    }
 
-    setActiveView('home');
+    navigateToPath('/login');
   };
 
   useEffect(() => {
@@ -286,12 +392,29 @@ function App() {
     }
   });
 
+  // Navigation and simple routing state
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  const navigateToPath = (path: string) => {
+    window.history.pushState(null, '', path);
+    setCurrentPath(path);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [activeView, setActiveView] = useState<'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile'>('home');
   const [nutritionActiveTab, setNutritionActiveTab] = useState<'diet' | 'scanner'>('diet');
   const [trainingActiveTab, setTrainingActiveTab] = useState<'library' | 'logger' | 'progress'>('library');
 
   const handleNavigate = (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => {
-    setActiveView(view);
+    const path = view === 'home' ? '/dashboard' : `/${view}`;
+    navigateToPath(path);
     if (view === 'nutrition' && subTab) {
       setNutritionActiveTab(subTab as 'diet' | 'scanner');
     }
@@ -300,6 +423,37 @@ function App() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Route Guard matching path state with auth state
+  useEffect(() => {
+    if (authLoading) return;
+
+    const publicPaths = ['/login', '/signup', '/forgot-password'];
+    const protectedPaths = ['/dashboard', '/nutrition', '/training', '/coach', '/body-fat', '/store', '/profile'];
+
+    let path = currentPath;
+    if (path === '/' || path === '') {
+      path = (isAuthenticated && currentUser) ? '/dashboard' : '/login';
+    }
+
+    if (isAuthenticated && currentUser) {
+      if (publicPaths.includes(path)) {
+        navigateToPath('/dashboard');
+      } else if (protectedPaths.includes(path)) {
+        const view = path === '/dashboard' ? 'home' : path.substring(1);
+        setActiveView(view as any);
+      } else {
+        navigateToPath('/dashboard');
+      }
+    } else {
+      if (publicPaths.includes(path)) {
+        // let public auth modules render
+      } else {
+        navigateToPath('/login');
+      }
+    }
+  }, [currentPath, isAuthenticated, currentUser, authLoading]);
+
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem('fitai_user_name') || 'Champion';
   });
@@ -727,9 +881,30 @@ function App() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#03000a] flex items-center justify-center text-zinc-100 flex-col space-y-4">
+        <Loader2 className="w-10 h-10 text-brand-cyan animate-spin" />
+        <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider animate-pulse">Loading FitAI Secure...</p>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <AuthModule onAuthSuccess={handleAuthSuccess} />;
   }
+
+  // Re-authenticate with Firebase to securely verify password
+  const verifyPassword = async (pwd: string): Promise<boolean> => {
+    if (!currentUser || !auth) return false;
+    try {
+      await signInWithEmailAndPassword(auth, currentUser.email, pwd);
+      return true;
+    } catch (err) {
+      console.error("Biometric Lock password verification error:", err);
+      return false;
+    }
+  };
 
   if (isLocked && currentUser) {
     return (
@@ -737,6 +912,7 @@ function App() {
         currentUser={currentUser} 
         onUnlock={() => setIsLocked(false)} 
         onLogout={handleLogout} 
+        verifyPassword={verifyPassword}
       />
     );
   }

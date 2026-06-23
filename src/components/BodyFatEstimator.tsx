@@ -14,12 +14,18 @@ interface BodyScanLog {
   leanMass: number;
   fatMass: number;
   muscleMass: number;
-  calories: number;
-  proteinMin: number;
-  proteinMax: number;
+  ffmi: number;
+  maintenanceCalories: number;
+  fatLossCalories: number;
+  aggressiveCalories: number;
+  muscleGainCalories: number;
+  targetBodyFat: number;
   confidence: number;
   category: string;
   label: string;
+  proteinMin?: number;
+  proteinMax?: number;
+  images?: { front: string; side: string; back: string };
 }
 
 const getEstimatedCategory = (gender: 'Male' | 'Female', bodyFat: number): string => {
@@ -47,12 +53,17 @@ const DEFAULT_SCANS: BodyScanLog[] = [
     leanMass: 66.2,
     fatMass: 23.8,
     muscleMass: 50.3,
-    calories: 2200,
-    proteinMin: 150,
-    proteinMax: 190,
+    ffmi: 21.6,
+    maintenanceCalories: 2700,
+    fatLossCalories: 2200,
+    aggressiveCalories: 1950,
+    muscleGainCalories: 3050,
+    targetBodyFat: 18,
     confidence: 89,
     category: 'Obese',
-    label: 'Initial Scan'
+    label: 'Initial Scan',
+    proteinMin: 106,
+    proteinMax: 146
   },
   {
     id: 'scan-mock-2',
@@ -62,12 +73,17 @@ const DEFAULT_SCANS: BodyScanLog[] = [
     leanMass: 66.3,
     fatMass: 20.9,
     muscleMass: 50.4,
-    calories: 2150,
-    proteinMin: 145,
-    proteinMax: 185,
+    ffmi: 21.6,
+    maintenanceCalories: 2650,
+    fatLossCalories: 2150,
+    aggressiveCalories: 1900,
+    muscleGainCalories: 3000,
+    targetBodyFat: 18,
     confidence: 91,
     category: 'Average',
-    label: 'Consistency Check'
+    label: 'Consistency Check',
+    proteinMin: 106,
+    proteinMax: 146
   },
   {
     id: 'scan-mock-3',
@@ -77,12 +93,17 @@ const DEFAULT_SCANS: BodyScanLog[] = [
     leanMass: 66.8,
     fatMass: 17.7,
     muscleMass: 50.8,
-    calories: 2100,
-    proteinMin: 140,
-    proteinMax: 180,
+    ffmi: 21.8,
+    maintenanceCalories: 2600,
+    fatLossCalories: 2100,
+    aggressiveCalories: 1850,
+    muscleGainCalories: 2950,
+    targetBodyFat: 18,
     confidence: 93,
     category: 'Average',
-    label: 'Progress Review'
+    label: 'Progress Review',
+    proteinMin: 107,
+    proteinMax: 147
   }
 ];
 
@@ -172,6 +193,12 @@ export const BodyFatEstimator: React.FC = () => {
     return Number(localStorage.getItem('fitai_user_age') || '26');
   });
 
+  const [targetBodyFat, setTargetBodyFat] = useState<number>(() => {
+    const saved = localStorage.getItem('fitai_target_body_fat');
+    if (saved) return parseFloat(saved);
+    return gender === 'Female' ? 22 : 15;
+  });
+
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [sideImage, setSideImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
@@ -193,6 +220,46 @@ export const BodyFatEstimator: React.FC = () => {
 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [scanLabel, setScanLabel] = useState('My AI Scanner Log');
+
+  // Keep target body fat synced to local storage
+  useEffect(() => {
+    localStorage.setItem('fitai_target_body_fat', String(targetBodyFat));
+  }, [targetBodyFat]);
+
+  // Keep biometric parameters synced to local storage when changed
+  useEffect(() => {
+    localStorage.setItem('fitai_user_weight', String(weight));
+    localStorage.setItem('fitai_user_gender', gender);
+    localStorage.setItem('fitai_user_height', String(height));
+    localStorage.setItem('fitai_user_age', String(age));
+  }, [weight, gender, height, age]);
+
+  // Month-over-Month comparison logic
+  const mom = React.useMemo(() => {
+    if (logs.length < 2) return null;
+    const latest = logs[0];
+    const latestDate = new Date(latest.date);
+    let comparison = logs[logs.length - 1]; // default to oldest
+    
+    for (let i = 1; i < logs.length; i++) {
+      const scanDate = new Date(logs[i].date);
+      const diffTime = Math.abs(latestDate.getTime() - scanDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays >= 20) {
+        comparison = logs[i];
+        break;
+      }
+    }
+    
+    return {
+      latest,
+      comparison,
+      weightChange: latest.weight - comparison.weight,
+      bfChange: latest.bodyFat - comparison.bodyFat,
+      muscleChange: latest.muscleMass - comparison.muscleMass,
+      fatChange: latest.fatMass - comparison.fatMass
+    };
+  }, [logs]);
 
   useEffect(() => {
     localStorage.setItem('fitai_body_fat_logs', JSON.stringify(logs));
@@ -279,19 +346,21 @@ export const BodyFatEstimator: React.FC = () => {
         const fatMass = parseFloat((weight * (bf / 100)).toFixed(1));
         const leanMass = parseFloat((weight - fatMass).toFixed(1));
         const muscleMass = parseFloat((leanMass * 0.78).toFixed(1));
+        const ffmi = parseFloat((leanMass / ((height / 100) ** 2)).toFixed(2));
         
-        // Recommend calories based on body fat tier
-        let recommendedCals = Math.round(weight * 24);
-        if (bf >= 25 && gender === 'Male' || bf >= 32 && gender === 'Female') {
-          recommendedCals = Math.round((10 * weight + 6.25 * height - 5 * age + (gender === 'Male' ? 5 : -161)) * 1.2 - 500);
-        } else if (bf <= 13 && gender === 'Male' || bf <= 20 && gender === 'Female') {
-          recommendedCals = Math.round((10 * weight + 6.25 * height - 5 * age + (gender === 'Male' ? 5 : -161)) * 1.55 + 300);
-        }
-
-        const proteinMin = Math.round(weight * 1.6);
-        const proteinMax = Math.round(weight * 2.2);
+        // Recommended calories based on body fat tier (Mifflin-St Jeor)
+        const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === 'Male' ? 5 : -161);
+        const tdee = Math.round(bmr * 1.375); // baseline moderately active
+        
+        const maintenance = tdee;
+        const fatLoss = tdee - 500;
+        const aggressive = Math.max(gender === 'Male' ? 1500 : 1200, tdee - 750);
+        const muscleGain = tdee + 350;
         
         const cat = getEstimatedCategory(gender, bf);
+
+        const proteinMin = Math.round(leanMass * 1.6);
+        const proteinMax = Math.round(leanMass * 2.2);
 
         setScanResult({
           id: `scan-${Date.now()}`,
@@ -301,12 +370,22 @@ export const BodyFatEstimator: React.FC = () => {
           leanMass,
           fatMass,
           muscleMass,
-          calories: recommendedCals,
-          proteinMin,
-          proteinMax,
+          ffmi,
+          maintenanceCalories: maintenance,
+          fatLossCalories: fatLoss,
+          aggressiveCalories: aggressive,
+          muscleGainCalories: muscleGain,
+          targetBodyFat,
           confidence: Math.round(92 + Math.random() * 5),
           category: cat,
-          label: scanLabel
+          label: scanLabel,
+          proteinMin,
+          proteinMax,
+          images: {
+            front: frontImage,
+            side: sideImage,
+            back: backImage
+          }
         });
         setIsScanning(false);
       }
@@ -411,8 +490,7 @@ export const BodyFatEstimator: React.FC = () => {
                     max="250"
                     value={height}
                     onChange={(e) => setHeight(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none"
-                    disabled
+                    className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-cyan font-bold"
                   />
                 </div>
 
@@ -424,8 +502,7 @@ export const BodyFatEstimator: React.FC = () => {
                     max="100"
                     value={age}
                     onChange={(e) => setAge(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none"
-                    disabled
+                    className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-cyan font-bold"
                   />
                 </div>
 
@@ -439,6 +516,34 @@ export const BodyFatEstimator: React.FC = () => {
                     <option value="Male" className="bg-dark-950">Male</option>
                     <option value="Female" className="bg-dark-950">Female</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Target Body Fat Selection */}
+              <div className="space-y-2 border-t border-white/5 pt-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] text-zinc-500 font-bold uppercase block">Target Body Fat (%)</label>
+                  <span className="text-xs font-black text-brand-cyan">{targetBodyFat}%</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="5"
+                    max="40"
+                    step="0.5"
+                    value={targetBodyFat}
+                    onChange={(e) => setTargetBodyFat(Number(e.target.value))}
+                    className="w-full h-1 bg-white/5 rounded-lg appearance-none cursor-pointer accent-brand-cyan"
+                  />
+                  <input
+                    type="number"
+                    min="5"
+                    max="40"
+                    step="0.5"
+                    value={targetBodyFat}
+                    onChange={(e) => setTargetBodyFat(Number(e.target.value))}
+                    className="w-16 px-2 py-1 bg-dark-950 border border-white/5 rounded-xl text-xs text-center text-white focus:outline-none focus:border-brand-cyan font-bold"
+                  />
                 </div>
               </div>
 
@@ -636,15 +741,38 @@ export const BodyFatEstimator: React.FC = () => {
                     </div>
 
                     <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase block">Suggested Intake</span>
-                      <span className="text-xs font-black text-brand-lime truncate block">{scanResult.calories} kcal/d</span>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase block">FFMI (Fat-Free Mass Index)</span>
+                      <span className="text-sm font-black text-white">{scanResult.ffmi}</span>
                     </div>
 
                     <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1 col-span-2">
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase block">Suggested Protein Range</span>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase block">Suggested Protein Range (1.6 - 2.2g/kg LBM)</span>
                       <span className="text-xs font-black text-brand-cyan block">
-                        {scanResult.proteinMin} – {scanResult.proteinMax} g / day
+                        {scanResult.proteinMin || Math.round(scanResult.leanMass * 1.6)} – {scanResult.proteinMax || Math.round(scanResult.leanMass * 2.2)} g / day
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Daily Caloric Targets */}
+                  <div className="border-t border-white/5 pt-4 text-left space-y-3 w-full">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase block">Daily Caloric Targets (Mifflin-St Jeor)</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
+                        <span className="text-[8px] text-zinc-500 font-bold uppercase block">Maintenance (TDEE)</span>
+                        <span className="text-xs font-extrabold text-white">{scanResult.maintenanceCalories} kcal/d</span>
+                      </div>
+                      <div className="p-3 bg-brand-cyan/5 border border-brand-cyan/20 rounded-xl space-y-1">
+                        <span className="text-[8px] text-brand-cyan font-bold uppercase block">Fat Loss</span>
+                        <span className="text-xs font-extrabold text-brand-cyan">{scanResult.fatLossCalories} kcal/d</span>
+                      </div>
+                      <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl space-y-1">
+                        <span className="text-[8px] text-red-400 font-bold uppercase block">Aggressive Loss</span>
+                        <span className="text-xs font-extrabold text-red-400">{scanResult.aggressiveCalories} kcal/d</span>
+                      </div>
+                      <div className="p-3 bg-brand-lime/5 border border-brand-lime/20 rounded-xl space-y-1">
+                        <span className="text-[8px] text-brand-lime font-bold uppercase block">Muscle Gain</span>
+                        <span className="text-xs font-extrabold text-brand-lime">{scanResult.muscleGainCalories} kcal/d</span>
+                      </div>
                     </div>
                   </div>
 
@@ -754,6 +882,99 @@ export const BodyFatEstimator: React.FC = () => {
           </SpotlightCard>
         </div>
 
+        {/* Month-over-Month Recomposition Analytics */}
+        <div className="max-w-6xl mx-auto mt-8">
+          {mom ? (
+            <SpotlightCard className="p-6 space-y-6">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-white/5 pb-2">
+                <Activity className="h-4.5 w-4.5 text-brand-violet" /> Month-over-Month Recomposition
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                {/* Silhouettes / Photos comparison */}
+                <div className="md:col-span-5 flex items-center justify-center gap-8 bg-dark-950/40 p-4 rounded-2xl border border-white/5">
+                  <div className="text-center space-y-2">
+                    <span className="text-[10px] text-zinc-500 font-extrabold uppercase block">{mom.comparison.date}</span>
+                    <div className="h-28 flex items-center justify-center">
+                      {mom.comparison.images?.front && mom.comparison.images.front !== 'silhouette-front-placeholder' ? (
+                        <img src={mom.comparison.images.front} className="h-full object-cover rounded-lg border border-white/10" alt="Month A" />
+                      ) : (
+                        renderSilhouette('front')
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-400 block">{mom.comparison.weight} kg / {mom.comparison.bodyFat}%</span>
+                  </div>
+
+                  <div className="text-zinc-600 font-black text-lg">&rarr;</div>
+
+                  <div className="text-center space-y-2">
+                    <span className="text-[10px] text-brand-cyan font-extrabold uppercase block">{mom.latest.date}</span>
+                    <div className="h-28 flex items-center justify-center">
+                      {mom.latest.images?.front && mom.latest.images.front !== 'silhouette-front-placeholder' ? (
+                        <img src={mom.latest.images.front} className="h-full object-cover rounded-lg border border-white/10" alt="Month B" />
+                      ) : (
+                        renderSilhouette('front')
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-white block">{mom.latest.weight} kg / {mom.latest.bodyFat}%</span>
+                  </div>
+                </div>
+
+                {/* Delta Metrics */}
+                <div className="md:col-span-7 grid grid-cols-2 gap-4 text-left">
+                  <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase block">Weight Change</span>
+                    <span className={`text-sm font-black block ${mom.weightChange <= 0 ? 'text-brand-lime' : 'text-red-400'}`}>
+                      {mom.weightChange > 0 ? '+' : ''}{mom.weightChange.toFixed(1)} kg
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase block">Body Fat Change</span>
+                    <span className={`text-sm font-black block ${mom.bfChange <= 0 ? 'text-brand-lime' : 'text-red-400'}`}>
+                      {mom.bfChange > 0 ? '+' : ''}{mom.bfChange.toFixed(1)}%
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase block">Lean Mass Change</span>
+                    <span className={`text-sm font-black block ${mom.muscleChange >= 0 ? 'text-brand-lime' : 'text-red-400'}`}>
+                      {mom.muscleChange > 0 ? '+' : ''}{mom.muscleChange.toFixed(1)} kg
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase block">Fat Mass Change</span>
+                    <span className={`text-sm font-black block ${mom.fatChange <= 0 ? 'text-brand-lime' : 'text-red-400'}`}>
+                      {mom.fatChange > 0 ? '+' : ''}{mom.fatChange.toFixed(1)} kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Recomposition Insights */}
+              <div className="p-4 bg-brand-cyan/5 border border-brand-cyan/10 rounded-2xl flex items-start gap-2.5 text-xs text-left">
+                <Info className="h-5 w-5 text-brand-cyan shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold uppercase text-[10px] tracking-wider block mb-0.5 text-brand-cyan">AI Composition Insight</span>
+                  <p className="text-zinc-400 text-[11px] leading-relaxed">
+                    {mom.bfChange <= 0 
+                      ? `Your body fat decreased by ${Math.abs(mom.bfChange).toFixed(1)}% since ${mom.comparison.date}. Excellent fat-loss progress! Keep adhering to your calorie targets.` 
+                      : `Your body fat increased by ${mom.bfChange.toFixed(1)}% since ${mom.comparison.date}. Consider adjusting your caloric deficit or increasing activity level.`}
+                  </p>
+                </div>
+              </div>
+            </SpotlightCard>
+          ) : (
+            <SpotlightCard className="p-6 text-center space-y-3">
+              <Activity className="h-8 w-8 text-zinc-600 mx-auto animate-pulse" />
+              <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Month-over-Month Recomposition</h4>
+              <p className="text-xs text-zinc-500 italic max-w-md mx-auto">
+                Log at least two scans (ideally 20-30 days apart) to enable Month-over-Month before/after comparison analytics and AI composition insights.
+              </p>
+            </SpotlightCard>
+          )}
+        </div>
+
         {/* Progress Charts & Historical Logs */}
         <div className="max-w-6xl mx-auto mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -765,8 +986,20 @@ export const BodyFatEstimator: React.FC = () => {
               </h3>
 
               {logs.length > 0 ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Chart 1: Body Fat % */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Chart 1: Weight */}
+                  <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl">
+                    <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-2">Total Weight Trend (kg)</span>
+                    <SvgLineChart 
+                      data={logs.map(l => l.weight).reverse()} 
+                      dates={logs.map(l => l.date).reverse()} 
+                      strokeColor="#ec4899" 
+                      fillColorStart="#ec4899" 
+                      yUnit="kg" 
+                    />
+                  </div>
+
+                  {/* Chart 2: Body Fat % */}
                   <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl">
                     <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-2">Body Fat Percentage Trend (%)</span>
                     <SvgLineChart 
@@ -778,7 +1011,7 @@ export const BodyFatEstimator: React.FC = () => {
                     />
                   </div>
 
-                  {/* Chart 2: Lean Mass */}
+                  {/* Chart 3: Lean Mass */}
                   <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl">
                     <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-2">Lean Body Mass Trend (kg)</span>
                     <SvgLineChart 
@@ -790,14 +1023,14 @@ export const BodyFatEstimator: React.FC = () => {
                     />
                   </div>
 
-                  {/* Chart 3: Weight */}
+                  {/* Chart 4: Fat Mass */}
                   <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl">
-                    <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-2">Total Weight Trend (kg)</span>
+                    <span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block mb-2">Fat Mass Trend (kg)</span>
                     <SvgLineChart 
-                      data={logs.map(l => l.weight).reverse()} 
+                      data={logs.map(l => l.fatMass).reverse()} 
                       dates={logs.map(l => l.date).reverse()} 
-                      strokeColor="#ec4899" 
-                      fillColorStart="#ec4899" 
+                      strokeColor="#f59e0b" 
+                      fillColorStart="#f59e0b" 
                       yUnit="kg" 
                     />
                   </div>

@@ -6,7 +6,7 @@ import {
   Shield, Fingerprint, Target, Edit
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
-import type { UserProfile } from './AuthModule';
+
 
 interface ProfileViewProps {
   onSaveProfile: (settings: {
@@ -116,9 +116,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
     if (savedType) setType(savedType as 'Veg' | 'Non-Veg' | 'Eggetarian');
   }, []);
 
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
-  const [biometricType, setBiometricType] = useState<string>('Android Fingerprint');
   const [goal, setGoal] = useState<string>('Gain Muscle');
   const [isEditingPreferences, setIsEditingPreferences] = useState(false);
 
@@ -127,9 +124,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
     if (savedUser) {
       try {
         const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setBiometricsEnabled(user.biometricsEnabled || false);
-        setBiometricType(user.biometricType || 'Android Fingerprint');
 
         const savedGoalVal = localStorage.getItem('fitai_diet_goal') || user.goal || 'Gain Muscle';
         let mappedGoal = savedGoalVal;
@@ -140,58 +134,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
       } catch {}
     }
   }, []);
-
-  const handleToggleBiometrics = (enabled: boolean) => {
-    setBiometricsEnabled(enabled);
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        biometricsEnabled: enabled,
-        biometricType: enabled ? (biometricType as any || 'Android Fingerprint') : undefined
-      };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
-
-      try {
-        const usersRaw = localStorage.getItem('fitai_users');
-        if (usersRaw) {
-          const users = JSON.parse(usersRaw);
-          const idx = users.findIndex((u: any) => u.email.toLowerCase() === currentUser.email.toLowerCase());
-          if (idx !== -1) {
-            users[idx] = updatedUser;
-            localStorage.setItem('fitai_users', JSON.stringify(users));
-          }
-        }
-      } catch {}
-    }
-  };
-
-  const handleChangeBiometricType = (type: string) => {
-    setBiometricType(type);
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        biometricsEnabled: true,
-        biometricType: type as any
-      };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('fitai_current_user', JSON.stringify(updatedUser));
-
-      try {
-        const usersRaw = localStorage.getItem('fitai_users');
-        if (usersRaw) {
-          const users = JSON.parse(usersRaw);
-          const idx = users.findIndex((u: any) => u.email.toLowerCase() === currentUser.email.toLowerCase());
-          if (idx !== -1) {
-            users[idx] = updatedUser;
-            localStorage.setItem('fitai_users', JSON.stringify(users));
-          }
-        }
-      } catch {}
-    }
-  };
-
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window as any).Capacitor || (window as any).cordova;
 
   const activities = ['Sedentary', 'Moderately Active', 'Very Active', 'Athlete/Highly Active'];
 
@@ -693,62 +635,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGo
                   </span>
                 </div>
 
-                {isMobile ? (
-                  <div className="space-y-4 w-full">
-                    <div className="flex items-center justify-between p-3.5 bg-dark-950/40 border border-white/5 rounded-xl">
-                      <div className="flex items-center gap-2.5">
-                        <Fingerprint className="w-5 h-5 text-brand-cyan" />
-                        <div>
-                          <h4 className="text-xs font-bold text-white">Biometric Lock</h4>
-                          <p className="text-[10px] text-zinc-500">Lock session on app launch</p>
-                        </div>
+                <div className="space-y-4 w-full opacity-60 pointer-events-none">
+                  <div className="flex items-center justify-between p-3.5 bg-dark-950/40 border border-white/5 rounded-xl">
+                    <div className="flex items-center gap-2.5">
+                      <Fingerprint className="w-5 h-5 text-brand-cyan" />
+                      <div>
+                        <h4 className="text-xs font-bold text-white">Biometric Lock</h4>
+                        <p className="text-[10px] text-zinc-500">Lock session on app launch</p>
                       </div>
-                      <ToggleButton 
-                        enabled={biometricsEnabled} 
-                        onChange={handleToggleBiometrics} 
-                      />
                     </div>
-
-                    {biometricsEnabled && (
-                      <div className="space-y-2 p-3 bg-dark-950/20 border border-white/5 rounded-xl">
-                        <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Biometric Method</label>
-                        <select
-                          value={biometricType}
-                          onChange={(e) => handleChangeBiometricType(e.target.value)}
-                          className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet cursor-pointer"
-                        >
-                          {/iPhone|iPad|iPod|Mac/i.test(navigator.userAgent) ? (
-                            <option value="iPhone Face ID / Touch ID">iPhone Face ID / Touch ID</option>
-                          ) : (
-                            <>
-                              <option value="Android Fingerprint">Android Fingerprint</option>
-                              <option value="Android Face Unlock">Android Face Unlock</option>
-                            </>
-                          )}
-                        </select>
-                      </div>
-                    )}
+                    <ToggleButton 
+                      enabled={false} 
+                      onChange={() => {}} 
+                    />
                   </div>
-                ) : (
-                  <div className="space-y-4 w-full opacity-60 pointer-events-none">
-                    <div className="flex items-center justify-between p-3.5 bg-dark-950/40 border border-white/5 rounded-xl">
-                      <div className="flex items-center gap-2.5">
-                        <Fingerprint className="w-5 h-5 text-brand-cyan" />
-                        <div>
-                          <h4 className="text-xs font-bold text-white">Biometric Lock</h4>
-                          <p className="text-[10px] text-zinc-500">Lock session on app launch</p>
-                        </div>
-                      </div>
-                      <ToggleButton 
-                        enabled={false} 
-                        onChange={() => {}} 
-                      />
-                    </div>
-                    <div className="text-[11px] text-zinc-400 font-semibold text-center italic bg-brand-violet/5 p-2.5 rounded-xl border border-brand-violet/10">
-                      Available in the FitAI mobile app.
-                    </div>
+                  <div className="text-[11px] text-zinc-400 font-semibold text-center italic bg-brand-violet/5 p-2.5 rounded-xl border border-brand-violet/10">
+                    Biometric unlock will be available in the FitAI mobile app.
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Log out CTA */}
