@@ -1073,7 +1073,7 @@ export const BodyFatEstimator: React.FC = () => {
                           <div>Body Fat: <strong className="text-brand-cyan">{log.bodyFat}%</strong></div>
                           <div>Lean Mass: <strong className="text-brand-lime">{log.leanMass} kg</strong></div>
                           <div>Fat Mass: <strong className="text-brand-pink">{log.fatMass} kg</strong></div>
-                          <div>Diet target: <strong className="text-zinc-300">{log.calories} kcal</strong></div>
+                          <div>Diet target: <strong className="text-zinc-300">{log.maintenanceCalories} kcal</strong></div>
                         </div>
                       </div>
                     ))}

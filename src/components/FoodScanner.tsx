@@ -34,7 +34,110 @@ interface FoodItemInfo {
   fiber: number;
   sugar: number;
   confidence: number;
+  multiplier?: number;
 }
+
+export interface DatabaseFoodItem {
+  name: string;
+  category: 'Protein' | 'Dairy' | 'Vegetarian Protein' | 'Carbohydrates' | 'Vegetables' | 'Fruits' | 'Healthy Fats';
+  serving: string;
+  weightG: number;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  sugar: number;
+}
+
+export const HEALTHY_FOODS_DATABASE: DatabaseFoodItem[] = [
+  // Protein
+  { name: 'Chicken Breast', category: 'Protein', serving: '100g', weightG: 100, kcal: 165, protein: 31, carbs: 0, fats: 3.6, fiber: 0, sugar: 0 },
+  { name: 'Chicken Curry', category: 'Protein', serving: '1 serving', weightG: 150, kcal: 240, protein: 26, carbs: 6, fats: 12, fiber: 1.2, sugar: 1.5 },
+  { name: 'Grilled Chicken', category: 'Protein', serving: '150g', weightG: 150, kcal: 220, protein: 38, carbs: 0, fats: 6, fiber: 0, sugar: 0 },
+  { name: 'Boiled Eggs', category: 'Protein', serving: '2 eggs', weightG: 100, kcal: 155, protein: 13, carbs: 1.1, fats: 11, fiber: 0, sugar: 0.6 },
+  { name: 'Egg Omelette', category: 'Protein', serving: '2 eggs', weightG: 100, kcal: 180, protein: 13, carbs: 1.5, fats: 14, fiber: 0, sugar: 0.6 },
+  { name: 'Fish', category: 'Protein', serving: '150g', weightG: 150, kcal: 180, protein: 26, carbs: 0, fats: 8, fiber: 0, sugar: 0 },
+  { name: 'Salmon', category: 'Protein', serving: '150g', weightG: 150, kcal: 300, protein: 34, carbs: 0, fats: 18, fiber: 0, sugar: 0 },
+  { name: 'Tuna', category: 'Protein', serving: '150g', weightG: 150, kcal: 190, protein: 38, carbs: 0, fats: 3, fiber: 0, sugar: 0 },
+  { name: 'Prawns', category: 'Protein', serving: '150g', weightG: 150, kcal: 140, protein: 28, carbs: 1, fats: 2, fiber: 0, sugar: 0 },
+  { name: 'Mutton Curry', category: 'Protein', serving: '1 serving', weightG: 150, kcal: 320, protein: 24, carbs: 6, fats: 22, fiber: 1.2, sugar: 1.5 },
+  { name: 'Lean Beef', category: 'Protein', serving: '150g', weightG: 150, kcal: 250, protein: 36, carbs: 0, fats: 11, fiber: 0, sugar: 0 },
+  { name: 'Burger', category: 'Protein', serving: '1 pc', weightG: 150, kcal: 380, protein: 18, carbs: 40, fats: 16, fiber: 3, sugar: 5.0 },
+
+  // Dairy
+  { name: 'Paneer', category: 'Dairy', serving: '100g', weightG: 100, kcal: 290, protein: 18, carbs: 3.5, fats: 22, fiber: 0, sugar: 2.5 },
+  { name: 'Paneer Curry', category: 'Dairy', serving: '1 bowl', weightG: 150, kcal: 280, protein: 14, carbs: 10, fats: 20, fiber: 1.5, sugar: 2.0 },
+  { name: 'Low Fat Paneer', category: 'Dairy', serving: '100g', weightG: 100, kcal: 180, protein: 20, carbs: 4, fats: 9, fiber: 0, sugar: 3 },
+  { name: 'Greek Yogurt', category: 'Dairy', serving: '150g', weightG: 150, kcal: 130, protein: 15, carbs: 6, fats: 4, fiber: 0, sugar: 4 },
+  { name: 'Curd', category: 'Dairy', serving: '150g', weightG: 150, kcal: 98, protein: 5, carbs: 7, fats: 6, fiber: 0, sugar: 6 },
+  { name: 'Milk', category: 'Dairy', serving: '250ml', weightG: 250, kcal: 150, protein: 8, carbs: 12, fats: 8, fiber: 0, sugar: 12 },
+  { name: 'Whey Protein', category: 'Dairy', serving: '1 scoop', weightG: 33, kcal: 120, protein: 25, carbs: 2, fats: 1.5, fiber: 0.5, sugar: 1 },
+
+  // Vegetarian Protein
+  { name: 'Tofu', category: 'Vegetarian Protein', serving: '100g', weightG: 100, kcal: 76, protein: 8, carbs: 1.9, fats: 4.8, fiber: 0.3, sugar: 0 },
+  { name: 'Tempeh', category: 'Vegetarian Protein', serving: '100g', weightG: 100, kcal: 195, protein: 19, carbs: 9, fats: 11, fiber: 3.8, sugar: 0 },
+  { name: 'Soya Chunks', category: 'Vegetarian Protein', serving: '50g', weightG: 50, kcal: 170, protein: 26, carbs: 16, fats: 0.4, fiber: 4, sugar: 0 },
+  { name: 'Rajma', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 180, protein: 10, carbs: 28, fats: 3, fiber: 7, sugar: 1.5 },
+  { name: 'Chickpeas', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 210, protein: 8, carbs: 32, fats: 5, fiber: 6, sugar: 2.0 },
+  { name: 'Black Beans', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 220, protein: 13, carbs: 40, fats: 0.8, fiber: 15, sugar: 1 },
+  { name: 'Green Peas', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 120, protein: 8, carbs: 21, fats: 0.5, fiber: 7, sugar: 8 },
+  { name: 'Moong Dal', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 147, protein: 11, carbs: 25, fats: 0.4, fiber: 8, sugar: 1 },
+  { name: 'Masoor Dal', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 165, protein: 12, carbs: 28, fats: 0.6, fiber: 9, sugar: 1.2 },
+  { name: 'Dal', category: 'Vegetarian Protein', serving: '1 cup', weightG: 150, kcal: 150, protein: 9, carbs: 24, fats: 2, fiber: 6, sugar: 0.5 },
+
+  // Carbohydrates
+  { name: 'White Rice', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 200, protein: 4, carbs: 44, fats: 0.4, fiber: 0.6, sugar: 0 },
+  { name: 'Brown Rice', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 215, protein: 5, carbs: 45, fats: 1.6, fiber: 3.5, sugar: 0.5 },
+  { name: 'Basmati Rice', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 205, protein: 4.2, carbs: 45, fats: 0.4, fiber: 0.8, sugar: 0.5 },
+  { name: 'Quinoa', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 180, protein: 6, carbs: 32, fats: 3, fiber: 4, sugar: 0.8 },
+  { name: 'Oats', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 150, protein: 5, carbs: 27, fats: 2.5, fiber: 4, sugar: 1 },
+  { name: 'Sweet Potato', category: 'Carbohydrates', serving: '150g', weightG: 150, kcal: 130, protein: 2.5, carbs: 30, fats: 0.2, fiber: 4.5, sugar: 9 },
+  { name: 'Potato', category: 'Carbohydrates', serving: '150g', weightG: 150, kcal: 110, protein: 2.5, carbs: 26, fats: 0.1, fiber: 2.5, sugar: 1 },
+  { name: 'Whole Wheat Roti', category: 'Carbohydrates', serving: '1 pc', weightG: 40, kcal: 85, protein: 3, carbs: 18, fats: 0.5, fiber: 2.5, sugar: 0.1 },
+  { name: 'Chapati', category: 'Carbohydrates', serving: '1 pc', weightG: 40, kcal: 85, protein: 3, carbs: 18, fats: 0.5, fiber: 2.5, sugar: 0.1 },
+  { name: 'Idli', category: 'Carbohydrates', serving: '2 pcs', weightG: 80, kcal: 120, protein: 3, carbs: 26, fats: 0.5, fiber: 1.5, sugar: 0.2 },
+  { name: 'Dosa', category: 'Carbohydrates', serving: '1 pc', weightG: 100, kcal: 160, protein: 4, carbs: 29, fats: 3, fiber: 2, sugar: 0.5 },
+  { name: 'Upma', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 210, protein: 4, carbs: 38, fats: 4, fiber: 2.5, sugar: 1.2 },
+  { name: 'Poha', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 180, protein: 3, carbs: 33, fats: 3.5, fiber: 2, sugar: 0.8 },
+  { name: 'Rice', category: 'Carbohydrates', serving: '1 cup', weightG: 150, kcal: 200, protein: 4, carbs: 44, fats: 0.4, fiber: 0.6, sugar: 0 },
+  { name: 'Biryani', category: 'Carbohydrates', serving: '1 plate', weightG: 300, kcal: 550, protein: 22, carbs: 70, fats: 18, fiber: 3, sugar: 1.0 },
+  { name: 'Tacos', category: 'Carbohydrates', serving: '2 pcs', weightG: 150, kcal: 290, protein: 14, carbs: 32, fats: 12, fiber: 5, sugar: 2.0 },
+  { name: 'Sandwich', category: 'Carbohydrates', serving: '1 serving', weightG: 150, kcal: 290, protein: 12, carbs: 36, fats: 10, fiber: 4, sugar: 3.0 },
+
+  // Vegetables
+  { name: 'Mixed Salad', category: 'Vegetables', serving: '1 bowl', weightG: 150, kcal: 45, protein: 1.5, carbs: 8, fats: 0.5, fiber: 4, sugar: 2.5 },
+  { name: 'Cucumber', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 15, protein: 0.7, carbs: 3.6, fats: 0.1, fiber: 0.5, sugar: 1.7 },
+  { name: 'Tomato', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 18, protein: 0.9, carbs: 3.9, fats: 0.2, fiber: 1.2, sugar: 2.6 },
+  { name: 'Spinach', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 23, protein: 3, carbs: 3.8, fats: 0.3, fiber: 2.4, sugar: 0.4 },
+  { name: 'Broccoli', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 35, protein: 2.8, carbs: 7, fats: 0.4, fiber: 2.6, sugar: 1.7 },
+  { name: 'Cauliflower', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 25, protein: 1.9, carbs: 5, fats: 0.3, fiber: 2, sugar: 1.9 },
+  { name: 'Beans', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 35, protein: 1.8, carbs: 8, fats: 0.2, fiber: 3.2, sugar: 3.3 },
+  { name: 'Capsicum', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 20, protein: 0.9, carbs: 4.6, fats: 0.2, fiber: 1.7, sugar: 2.4 },
+  { name: 'Carrots', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 41, protein: 0.9, carbs: 9.6, fats: 0.2, fiber: 2.8, sugar: 4.7 },
+  { name: 'Cabbage', category: 'Vegetables', serving: '100g', weightG: 100, kcal: 23, protein: 1.3, carbs: 6, fats: 0.1, fiber: 2.5, sugar: 3.2 },
+  { name: 'Salad', category: 'Vegetables', serving: '1 bowl', weightG: 150, kcal: 45, protein: 1.5, carbs: 8, fats: 0.5, fiber: 4, sugar: 2.5 },
+
+  // Fruits
+  { name: 'Banana', category: 'Fruits', serving: '1 pc', weightG: 120, kcal: 105, protein: 1.3, carbs: 27, fats: 0.4, fiber: 3.1, sugar: 14 },
+  { name: 'Apple', category: 'Fruits', serving: '1 pc', weightG: 150, kcal: 78, protein: 0.4, carbs: 21, fats: 0.2, fiber: 3.6, sugar: 15 },
+  { name: 'Orange', category: 'Fruits', serving: '1 pc', weightG: 130, kcal: 60, protein: 1.2, carbs: 15, fats: 0.2, fiber: 3, sugar: 12 },
+  { name: 'Papaya', category: 'Fruits', serving: '150g', weightG: 150, kcal: 65, protein: 0.7, carbs: 16, fats: 0.4, fiber: 2.7, sugar: 11 },
+  { name: 'Watermelon', category: 'Fruits', serving: '150g', weightG: 150, kcal: 45, protein: 0.9, carbs: 11, fats: 0.2, fiber: 0.6, sugar: 9 },
+  { name: 'Mango', category: 'Fruits', serving: '150g', weightG: 150, kcal: 99, protein: 1.2, carbs: 25, fats: 0.6, fiber: 2.6, sugar: 22 },
+  { name: 'Pineapple', category: 'Fruits', serving: '150g', weightG: 150, kcal: 75, protein: 0.8, carbs: 20, fats: 0.2, fiber: 2, sugar: 15 },
+  { name: 'Blueberries', category: 'Fruits', serving: '100g', weightG: 100, kcal: 57, protein: 0.7, carbs: 14, fats: 0.3, fiber: 2.4, sugar: 10 },
+  { name: 'Strawberries', category: 'Fruits', serving: '100g', weightG: 100, kcal: 32, protein: 0.7, carbs: 7.7, fats: 0.3, fiber: 2, sugar: 4.9 },
+
+  // Healthy Fats
+  { name: 'Almonds', category: 'Healthy Fats', serving: '28g', weightG: 28, kcal: 164, protein: 6, carbs: 6, fats: 14, fiber: 3.5, sugar: 1.2 },
+  { name: 'Walnuts', category: 'Healthy Fats', serving: '28g', weightG: 28, kcal: 185, protein: 4.3, carbs: 3.9, fats: 18.5, fiber: 1.9, sugar: 0.7 },
+  { name: 'Peanut Butter', category: 'Healthy Fats', serving: '1 tbsp', weightG: 16, kcal: 95, protein: 3.8, carbs: 3, fats: 8, fiber: 1, sugar: 1.5 },
+  { name: 'Cashews', category: 'Healthy Fats', serving: '28g', weightG: 28, kcal: 157, protein: 5, carbs: 9, fats: 12, fiber: 0.9, sugar: 1.7 },
+  { name: 'Avocado', category: 'Healthy Fats', serving: '100g', weightG: 100, kcal: 160, protein: 2, carbs: 8.5, fats: 14.7, fiber: 6.7, sugar: 0.7 },
+  { name: 'Olive Oil', category: 'Healthy Fats', serving: '1 tbsp', weightG: 14, kcal: 119, protein: 0, carbs: 0, fats: 13.5, fiber: 0, sugar: 0 },
+  { name: 'Flax Seeds', category: 'Healthy Fats', serving: '1 tbsp', weightG: 10, kcal: 55, protein: 1.9, carbs: 3, fats: 4.2, fiber: 2.8, sugar: 0.2 }
+];
 
 // Full lookup database for the requested single and combo foods
 const FOOD_METADATA: Record<string, FoodItemInfo[]> = {
@@ -99,6 +202,18 @@ const FOOD_METADATA: Record<string, FoodItemInfo[]> = {
   'Egg Curry': [
     { name: 'Egg Curry', serving: '1 serving', weightG: 150, kcal: 220, protein: 14, carbs: 8, fats: 14, fiber: 1, sugar: 2.0, confidence: 95 }
   ],
+  'Mutton Curry': [
+    { name: 'Mutton Curry', serving: '1 serving', weightG: 150, kcal: 320, protein: 24, carbs: 6, fats: 22, fiber: 1.2, sugar: 1.5, confidence: 90 }
+  ],
+  'Lamb Curry': [
+    { name: 'Lamb Curry', serving: '1 serving', weightG: 150, kcal: 310, protein: 23, carbs: 6, fats: 21, fiber: 1.2, sugar: 1.5, confidence: 90 }
+  ],
+  'Beef Curry': [
+    { name: 'Beef Curry', serving: '1 serving', weightG: 150, kcal: 290, protein: 26, carbs: 6, fats: 18, fiber: 1.2, sugar: 1.5, confidence: 90 }
+  ],
+  'Fish Curry': [
+    { name: 'Fish Curry', serving: '1 serving', weightG: 150, kcal: 210, protein: 20, carbs: 6, fats: 11, fiber: 1.2, sugar: 1.5, confidence: 90 }
+  ],
 
   // --- International Single Foods ---
   'Pizza': [
@@ -160,6 +275,53 @@ const FOOD_METADATA: Record<string, FoodItemInfo[]> = {
   ]
 };
 
+// Merge healthy foods database into FOOD_METADATA dynamically for any missing keys
+HEALTHY_FOODS_DATABASE.forEach(item => {
+  if (!FOOD_METADATA[item.name]) {
+    FOOD_METADATA[item.name] = [{
+      name: item.name,
+      serving: item.serving,
+      weightG: item.weightG,
+      kcal: item.kcal,
+      protein: item.protein,
+      carbs: item.carbs,
+      fats: item.fats,
+      fiber: item.fiber,
+      sugar: item.sugar,
+      confidence: 90
+    }];
+  }
+});
+
+const ALTERNATIVE_PREDICTIONS: Record<string, string[]> = {
+  'Chicken Curry': ['Mutton Curry', 'Lamb Curry', 'Beef Curry', 'Fish Curry', 'Paneer Curry', 'Egg Curry'],
+  'Mutton Curry': ['Chicken Curry', 'Lamb Curry', 'Beef Curry', 'Fish Curry', 'Paneer Curry', 'Egg Curry'],
+  'Lamb Curry': ['Chicken Curry', 'Mutton Curry', 'Beef Curry', 'Fish Curry', 'Paneer Curry', 'Egg Curry'],
+  'Beef Curry': ['Chicken Curry', 'Mutton Curry', 'Lamb Curry', 'Fish Curry', 'Paneer Curry', 'Egg Curry'],
+  'Fish Curry': ['Chicken Curry', 'Mutton Curry', 'Lamb Curry', 'Beef Curry', 'Paneer Curry', 'Egg Curry'],
+  'Paneer Curry': ['Chicken Curry', 'Mutton Curry', 'Lamb Curry', 'Beef Curry', 'Fish Curry', 'Egg Curry'],
+  'Egg Curry': ['Chicken Curry', 'Mutton Curry', 'Lamb Curry', 'Beef Curry', 'Fish Curry', 'Paneer Curry'],
+  'Steamed Rice': ['Chicken Biryani', 'Vegetable Pulao', 'Dal (Lentils)'],
+  'Rice': ['Biryani', 'Pulao', 'Dal'],
+  'Chicken Biryani': ['Steamed Rice', 'Vegetable Pulao', 'Chicken Curry'],
+  'Biryani': ['Rice', 'Pulao', 'Chicken Curry'],
+  'Dal (Lentils)': ['Sambar', 'Rajma (Kidney Beans)', 'Steamed Rice'],
+  'Dal': ['Sambar', 'Rajma', 'Rice'],
+  'Idli': ['Dosa', 'Mendu Vada', 'Upma'],
+  'Dosa': ['Idli', 'Mendu Vada', 'Upma'],
+  'Mendu Vada': ['Idli', 'Dosa', 'Upma'],
+  'Sambar': ['Dal (Lentils)', 'Chole (Chickpeas)'],
+  'Upma': ['Poha', 'Idli', 'Dosa'],
+  'Poha': ['Upma', 'Idli', 'Dosa'],
+  'Pizza': ['Cheeseburger', 'Club Sandwich', 'Beef Tacos'],
+  'Cheeseburger': ['Pizza', 'Club Sandwich', 'Beef Tacos'],
+  'Burger': ['Pizza', 'Sandwich', 'Tacos'],
+  'Club Sandwich': ['Cheeseburger', 'Pizza', 'Tomato Pasta'],
+  'Sandwich': ['Burger', 'Pizza', 'Pasta'],
+  'Beef Tacos': ['Cheeseburger', 'Pizza', 'Club Sandwich'],
+  'Tacos': ['Burger', 'Pizza', 'Sandwich'],
+};
+
 export const FoodScanner: React.FC<FoodScannerProps> = ({ 
   onAddScannedFood 
 }) => {
@@ -173,7 +335,11 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<FoodItemInfo[] | null>(null);
-  const [portionMultiplier, setPortionMultiplier] = useState(1);
+  const [aiPredictions, setAiPredictions] = useState<FoodItemInfo[] | null>(null);
+  const [editingItemIdx, setEditingItemIdx] = useState<number | null>(null);
+  const [showAddFoodPanel, setShowAddFoodPanel] = useState<boolean>(false);
+  const [dbSearchQuery, setDbSearchQuery] = useState('');
+  const [dbSelectedCategory, setDbSelectedCategory] = useState<string>('All');
   const [diarySaveSuccess, setDiarySaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -358,6 +524,17 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       if (fileName) {
         const nameLower = fileName.toLowerCase();
         
+        // Low confidence simulation
+        if (nameLower.includes('low_confidence')) {
+          resolve({
+            status: 'success',
+            items: [
+              { name: 'Chicken Curry', serving: '1 serving', weightG: 150, kcal: 240, protein: 26, carbs: 6, fats: 12, fiber: 1.2, sugar: 1.5, confidence: 65 }
+            ]
+          });
+          return;
+        }
+
         // Human elements detection check
         const humanKeywords = ['face', 'selfie', 'hair', 'clothing', 'shirt', 'dress', 'person', 'body', 'hand', 'hands', 'finger', 'fingers', 'human', 'man', 'woman', 'guy', 'girl', 'boy', 'portrait', 'people', 'me', 'avatar', 'profile'];
         if (humanKeywords.some(kw => nameLower.includes(kw))) {
@@ -552,7 +729,6 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     setIsAnalyzing(true);
     setAnalysisError(null);
     setAnalysisResults(null);
-    setPortionMultiplier(1);
 
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1800));
@@ -560,15 +736,10 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     try {
       const result = await analyzeImageContent(selectedImage, imageName);
       if (result.status === 'success' && result.items) {
-        const lowConf = result.items.some(item => item.confidence < 80);
-        if (lowConf) {
-          setAnalysisError('Unable to confidently identify food.');
-          setAnalysisResults(null);
-        } else {
-          setAnalysisResults(result.items);
-          setAnalysisError(null);
-          window.history.pushState({ app: 'fitai', view: 'scanner', selectedFood: null, hasResults: true }, '');
-        }
+        setAnalysisResults(result.items);
+        setAiPredictions(JSON.parse(JSON.stringify(result.items)));
+        setAnalysisError(null);
+        window.history.pushState({ app: 'fitai', view: 'scanner', selectedFood: null, hasResults: true }, '');
       } else {
         setAnalysisError(result.message || 'Unable to confidently identify food.');
         setAnalysisResults(null);
@@ -588,16 +759,18 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
   const handleAddScannedFoodToDiary = () => {
     if (!analysisResults) return;
 
-    // Sum matching active portion multiplier
-    const totalKcal = Math.round(analysisResults.reduce((sum, item) => sum + item.kcal, 0) * portionMultiplier);
-    const totalProt = Math.round(analysisResults.reduce((sum, item) => sum + item.protein, 0) * portionMultiplier);
-    const totalCarb = Math.round(analysisResults.reduce((sum, item) => sum + item.carbs, 0) * portionMultiplier);
-    const totalFat = Math.round(analysisResults.reduce((sum, item) => sum + item.fats, 0) * portionMultiplier);
-    const totalFiber = Math.round(analysisResults.reduce((sum, item) => sum + item.fiber, 0) * portionMultiplier);
-    const totalSugar = Math.round(analysisResults.reduce((sum, item) => sum + item.sugar, 0) * portionMultiplier);
+    const totalKcal = Math.round(analysisResults.reduce((sum, item) => sum + item.kcal * (item.multiplier || 1), 0));
+    const totalProt = Math.round(analysisResults.reduce((sum, item) => sum + item.protein * (item.multiplier || 1), 0));
+    const totalCarb = Math.round(analysisResults.reduce((sum, item) => sum + item.carbs * (item.multiplier || 1), 0));
+    const totalFat = Math.round(analysisResults.reduce((sum, item) => sum + item.fats * (item.multiplier || 1), 0));
+    const totalFiber = Math.round(analysisResults.reduce((sum, item) => sum + item.fiber * (item.multiplier || 1), 0));
+    const totalSugar = Math.round(analysisResults.reduce((sum, item) => sum + item.sugar * (item.multiplier || 1), 0));
 
-    const foodNameString = analysisResults.map(item => item.name).join(' + ');
-    const displayServingSize = `${portionMultiplier}x portion (${Math.round(analysisResults.reduce((sum, item) => sum + item.weightG, 0) * portionMultiplier)}g)`;
+    const foodNameString = analysisResults.map(item => {
+      const mult = item.multiplier || 1;
+      return mult !== 1 ? `${mult}x ${item.name}` : item.name;
+    }).join(' + ');
+    const displayServingSize = `${analysisResults.length} items verified`;
 
     onAddScannedFood({
       name: foodNameString,
@@ -628,7 +801,14 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     localStorage.setItem('fitai_scan_history', JSON.stringify([newHistoryEntry, ...localHistory]));
 
     setDiarySaveSuccess(true);
-    setTimeout(() => setDiarySaveSuccess(false), 2000);
+    setTimeout(() => {
+      setDiarySaveSuccess(false);
+      setAnalysisResults(null);
+      setAiPredictions(null);
+      setSelectedImage(null);
+      setImageName(null);
+      setActiveTab('history');
+    }, 1500);
   };
 
   // Retrieve scan history from localstorage
@@ -649,8 +829,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
       const list = JSON.parse(localStorage.getItem('fitai_scan_history') || '[]');
       const filtered = list.filter((item: any) => item.id !== id);
       localStorage.setItem('fitai_scan_history', JSON.stringify(filtered));
-      // Trigger update
-      setHistorySearchQuery(historySearchQuery); // Force re-render state
+      setHistorySearchQuery(historySearchQuery);
     } catch (err) {
       console.error(err);
     }
@@ -658,16 +837,105 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
 
   const scanHistory = getScanHistoryList();
 
+  // Helper functions for user correction and manual selection
+  const getPossibleAlternatives = (foodName: string): string[] => {
+    const key = Object.keys(ALTERNATIVE_PREDICTIONS).find(
+      k => k.toLowerCase() === foodName.toLowerCase() || 
+           foodName.toLowerCase().includes(k.toLowerCase()) ||
+           k.toLowerCase().includes(foodName.toLowerCase())
+    );
+    if (key && ALTERNATIVE_PREDICTIONS[key]) {
+      return ALTERNATIVE_PREDICTIONS[key];
+    }
+    return [];
+  };
+
+  const getFilteredDatabaseFoods = () => {
+    return HEALTHY_FOODS_DATABASE.filter(food => {
+      const matchesSearch = food.name.toLowerCase().includes(dbSearchQuery.toLowerCase());
+      const matchesCategory = dbSelectedCategory === 'All' || food.category === dbSelectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const handleSelectCorrection = (idx: number, foodName: string) => {
+    if (!analysisResults || !aiPredictions) return;
+
+    const matched = HEALTHY_FOODS_DATABASE.find(
+      f => f.name.toLowerCase() === foodName.toLowerCase()
+    );
+
+    if (matched) {
+      const newResults = [...analysisResults];
+      const currentMult = newResults[idx].multiplier || 1;
+      const originalConfidence = aiPredictions[idx] ? aiPredictions[idx].confidence : 90;
+      
+      newResults[idx] = {
+        name: matched.name,
+        serving: matched.serving,
+        weightG: matched.weightG,
+        kcal: matched.kcal,
+        protein: matched.protein,
+        carbs: matched.carbs,
+        fats: matched.fats,
+        fiber: matched.fiber,
+        sugar: matched.sugar,
+        confidence: originalConfidence,
+        multiplier: currentMult
+      };
+      setAnalysisResults(newResults);
+    }
+  };
+
+  const handleRemoveFood = (idx: number) => {
+    if (!analysisResults) return;
+    const newResults = analysisResults.filter((_, i) => i !== idx);
+    setAnalysisResults(newResults);
+    setEditingItemIdx(null);
+  };
+
+  const handleAddFood = (food: DatabaseFoodItem) => {
+    const newResults = analysisResults ? [...analysisResults] : [];
+    const newItem: FoodItemInfo = {
+      name: food.name,
+      serving: food.serving,
+      weightG: food.weightG,
+      kcal: food.kcal,
+      protein: food.protein,
+      carbs: food.carbs,
+      fats: food.fats,
+      fiber: food.fiber,
+      sugar: food.sugar,
+      confidence: 100,
+      multiplier: 1
+    };
+    newResults.push(newItem);
+    setAnalysisResults(newResults);
+    setEditingItemIdx(newResults.length - 1);
+  };
+
+  const handleUpdateMultiplier = (idx: number, amount: number) => {
+    if (!analysisResults) return;
+    const newResults = [...analysisResults];
+    const currentMult = newResults[idx].multiplier || 1;
+    const nextMult = Math.max(0.25, Math.min(5, currentMult + amount));
+    newResults[idx] = {
+      ...newResults[idx],
+      multiplier: nextMult
+    };
+    setAnalysisResults(newResults);
+  };
+
   // Results math
   const getMacroSummary = () => {
     if (!analysisResults) return { kcal: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0 };
     return {
-      kcal: Math.round(analysisResults.reduce((sum, item) => sum + item.kcal, 0) * portionMultiplier),
-      protein: Math.round(analysisResults.reduce((sum, item) => sum + item.protein, 0) * portionMultiplier),
-      carbs: Math.round(analysisResults.reduce((sum, item) => sum + item.carbs, 0) * portionMultiplier),
-      fats: Math.round(analysisResults.reduce((sum, item) => sum + item.fats, 0) * portionMultiplier),
-      fiber: Math.round(analysisResults.reduce((sum, item) => sum + item.fiber, 0) * portionMultiplier),
-      sugar: Math.round(analysisResults.reduce((sum, item) => sum + item.sugar, 0) * portionMultiplier),
+      kcal: Math.round(analysisResults.reduce((sum, item) => sum + item.kcal * (item.multiplier || 1), 0)),
+      protein: Math.round(analysisResults.reduce((sum, item) => sum + item.protein * (item.multiplier || 1), 0)),
+      carbs: Math.round(analysisResults.reduce((sum, item) => sum + item.carbs * (item.multiplier || 1), 0)),
+      fats: Math.round(analysisResults.reduce((sum, item) => sum + item.fats * (item.multiplier || 1), 0)),
+      fiber: Math.round(analysisResults.reduce((sum, item) => sum + item.fiber * (item.multiplier || 1), 0)),
+      sugar: Math.round(analysisResults.reduce((sum, item) => sum + item.sugar * (item.multiplier || 1), 0)),
     };
   };
 
@@ -885,95 +1153,14 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                           type="file" 
                           accept="image/jpeg,image/jpg,image/png,image/webp" 
                           onChange={handleFileChange}
-                          className="hidden"
+                          className="block mt-2 text-xs text-zinc-400"
                         />
                       </label>
                     </div>
                   )}
                 </div>
 
-                {import.meta.env.DEV && (
-                  <div className="p-4 bg-dark-900/60 border border-white/5 rounded-2xl space-y-2 mt-4 text-xs">
-                    <div className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1 text-left">Developer Simulation Portal</div>
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          const file = new File(["mock"], "selfie.jpg", { type: "image/jpeg" });
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.files = dt.files;
-                            fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                          }
-                        }}
-                        className="py-2 bg-white/5 border border-white/10 hover:border-red-500/40 text-zinc-300 hover:text-red-400 rounded-lg font-semibold"
-                      >
-                        Simulate Human Selfie
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          const file = new File(["mock"], "wall.png", { type: "image/png" });
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.files = dt.files;
-                            fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                          }
-                        }}
-                        className="py-2 bg-white/5 border border-white/10 hover:border-amber-500/40 text-zinc-300 hover:text-amber-400 rounded-lg font-semibold"
-                      >
-                        Simulate Solid Wall
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          const file = new File(["mock"], "laptop.jpg", { type: "image/jpeg" });
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.files = dt.files;
-                            fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                          }
-                        }}
-                        className="py-2 bg-white/5 border border-white/10 hover:border-amber-500/40 text-zinc-300 hover:text-amber-400 rounded-lg font-semibold"
-                      >
-                        Simulate Laptop
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          const file = new File(["mock"], "unknown.jpg", { type: "image/jpeg" });
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.files = dt.files;
-                            fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                          }
-                        }}
-                        className="py-2 bg-white/5 border border-white/10 hover:border-amber-500/40 text-zinc-300 hover:text-amber-400 rounded-lg font-semibold"
-                      >
-                        Simulate Unknown
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          const file = new File(["mock"], "rice_chicken_curry.jpg", { type: "image/jpeg" });
-                          const dt = new DataTransfer();
-                          dt.items.add(file);
-                          if (fileInputRef.current) {
-                            fileInputRef.current.files = dt.files;
-                            fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
-                          }
-                        }}
-                        className="py-2 bg-white/5 border border-white/10 hover:border-brand-lime/40 text-zinc-300 hover:text-brand-lime rounded-lg font-semibold col-span-2"
-                      >
-                        Simulate Rice + Chicken Curry + Salad Plate
-                      </button>
-                    </div>
-                  </div>
-                )}
+
               </SpotlightCard>
 
               {/* Disclaimer */}
@@ -1046,79 +1233,245 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                   <SpotlightCard className="p-6">
                     <div className="space-y-4">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                        <Scale className="h-4 w-4 text-brand-cyan" /> Detected Food Elements
+                        <Scale className="h-4 w-4 text-brand-cyan" /> Detected Meal Elements
                       </h4>
 
                       <div className="space-y-3">
-                        {analysisResults.map((item, idx) => (
-                          <div 
-                            key={idx} 
-                            className="p-4 bg-dark-950/50 border border-white/5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-semibold"
-                          >
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{item.name}</span>
-                                <span className="text-[9px] bg-brand-cyan/10 text-brand-cyan px-2 py-0.5 rounded font-bold">
-                                  {item.confidence}% Match
-                                </span>
+                        {analysisResults.map((item: FoodItemInfo, idx: number) => {
+                          const aiItem: FoodItemInfo = (aiPredictions && aiPredictions[idx]) || item;
+                          const isCorrected = aiPredictions ? (item.name !== aiItem.name) : false;
+                          const confidence = aiItem.confidence;
+                          const multiplier = item.multiplier || 1;
+
+                          return (
+                            <div 
+                              key={idx} 
+                              className="p-4 bg-dark-950/50 border border-white/5 rounded-2xl flex flex-col gap-3 transition-all duration-300 hover:border-white/10"
+                            >
+                              {/* Top Header Row of the food item */}
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="h-6 w-6 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center text-brand-cyan shrink-0 text-[10px] font-black">
+                                    ✓
+                                  </div>
+                                  <div>
+                                    <h5 className="text-sm font-black text-white leading-snug">
+                                      {item.name}
+                                    </h5>
+                                    {isCorrected && (
+                                      <span className="text-[10px] text-zinc-500 block font-semibold">
+                                        AI predicted: {aiItem.name} ({confidence}%)
+                                      </span>
+                                    )}
+                                    {!isCorrected && confidence < 100 && (
+                                      <span className="text-[10px] text-zinc-500 block font-semibold">
+                                        Confidence: {confidence}%
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">
+                                      Serving: {item.serving} ({Math.round(item.weightG * multiplier)}g) {multiplier !== 1 && `x ${multiplier.toFixed(2)}`}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Individual Item Macros Display */}
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                  <div className="text-brand-lime text-xs font-black">
+                                    {Math.round(item.kcal * multiplier)} kcal
+                                  </div>
+                                  <div className="flex gap-2 text-[9px] text-zinc-400 font-bold uppercase tracking-wider">
+                                    <span>P: <strong className="text-brand-lime">{Math.round(item.protein * multiplier)}g</strong></span>
+                                    <span>C: <strong className="text-brand-cyan">{Math.round(item.carbs * multiplier)}g</strong></span>
+                                    <span>F: <strong className="text-brand-pink">{Math.round(item.fats * multiplier)}g</strong></span>
+                                  </div>
+                                </div>
                               </div>
-                              <span className="text-[10px] text-zinc-400 font-medium block">
-                                Serving: {item.serving} ({Math.round(item.weightG * portionMultiplier)}g)
-                              </span>
+
+                              {/* Warning message if confidence < 70% and not corrected */}
+                              {confidence < 70 && !isCorrected && (
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl flex items-start gap-2 text-[10px] leading-relaxed font-semibold">
+                                  <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                                  <p>Food identification may be inaccurate. Please verify the food type.</p>
+                                </div>
+                              )}
+
+                              {/* Action Buttons Row */}
+                              <div className="flex justify-between items-center border-t border-white/5 pt-2 text-[10px] font-bold">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingItemIdx(editingItemIdx === idx ? null : idx)}
+                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border transition-all cursor-pointer min-h-[32px] ${
+                                    editingItemIdx === idx
+                                      ? 'bg-brand-violet/20 border-brand-violet/50 text-white'
+                                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-brand-violet/30 text-zinc-300'
+                                  }`}
+                                >
+                                  ✏️ {editingItemIdx === idx ? 'Close Edit' : 'Edit Portion'}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveFood(idx)}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/5 bg-white/5 hover:bg-red-500/10 hover:border-red-500/30 text-zinc-300 hover:text-red-400 transition-all cursor-pointer min-h-[32px]"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                                </button>
+                              </div>
+
+                              {/* Editing drawer for this specific item */}
+                              {editingItemIdx === idx && (
+                                <div className="bg-dark-900/60 border border-white/5 rounded-xl p-3 mt-1 space-y-4">
+                                  {/* Portion Scaling Control */}
+                                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <div className="text-left">
+                                      <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Adjust Portion Multiplier</span>
+                                      <span className="text-[9px] text-zinc-500">Scale macros by factor</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateMultiplier(idx, -0.25)}
+                                        className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center text-sm cursor-pointer"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="text-xs font-mono font-bold text-white w-14 text-center bg-dark-950 px-2 py-1.5 border border-white/5 rounded-lg">
+                                        {multiplier.toFixed(2)}x
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUpdateMultiplier(idx, 0.25)}
+                                        className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center text-sm cursor-pointer"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Quick Swap Options */}
+                                  <div className="space-y-2">
+                                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Swap with alternatives:</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {/* Original Pred */}
+                                      {item.name !== aiItem.name && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSelectCorrection(idx, aiItem.name)}
+                                          className="px-2.5 py-1.5 bg-brand-violet/10 hover:bg-brand-violet/20 border border-brand-violet/20 hover:border-brand-violet/40 text-brand-violet hover:text-white rounded-lg text-[9px] font-bold transition-all cursor-pointer min-h-[30px]"
+                                        >
+                                          Swap back to {aiItem.name}
+                                        </button>
+                                      )}
+                                      {/* Alternatives mapped */}
+                                      {getPossibleAlternatives(aiItem.name).map((altName) => {
+                                        if (altName === item.name) return null;
+                                        return (
+                                          <button
+                                            key={altName}
+                                            type="button"
+                                            onClick={() => handleSelectCorrection(idx, altName)}
+                                            className="px-2.5 py-1.5 bg-white/5 hover:bg-brand-cyan/10 border border-white/10 hover:border-brand-cyan/30 text-zinc-300 hover:text-white rounded-lg text-[9px] font-semibold transition-all cursor-pointer min-h-[30px]"
+                                          >
+                                            {altName}
+                                          </button>
+                                        );
+                                      })}
+                                      {/* If no alternatives listed */}
+                                      {getPossibleAlternatives(aiItem.name).filter(alt => alt !== item.name).length === 0 && (
+                                        <span className="text-[9px] text-zinc-600">No alternate suggestions available for this item.</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            
-                            {/* Individual Item Macros Grid */}
-                            <div className="grid grid-cols-5 gap-2 text-center text-[10px] uppercase font-bold sm:min-w-[280px]">
-                              <div className="bg-white/5 p-1.5 rounded-lg border border-white/5">
-                                <span className="block text-[8px] text-zinc-500">Kcal</span>
-                                <span className="text-brand-lime text-xs font-black">{Math.round(item.kcal * portionMultiplier)}</span>
-                              </div>
-                              <div className="bg-white/5 p-1.5 rounded-lg border border-white/5">
-                                <span className="block text-[8px] text-zinc-500">Prot</span>
-                                <span className="text-brand-lime">{Math.round(item.protein * portionMultiplier)}g</span>
-                              </div>
-                              <div className="bg-white/5 p-1.5 rounded-lg border border-white/5">
-                                <span className="block text-[8px] text-zinc-500">Carbs</span>
-                                <span className="text-brand-cyan">{Math.round(item.carbs * portionMultiplier)}g</span>
-                              </div>
-                              <div className="bg-white/5 p-1.5 rounded-lg border border-white/5">
-                                <span className="block text-[8px] text-zinc-500">Fats</span>
-                                <span className="text-brand-pink">{Math.round(item.fats * portionMultiplier)}g</span>
-                              </div>
-                              <div className="bg-white/5 p-1.5 rounded-lg border border-white/5">
-                                <span className="block text-[8px] text-zinc-500">Fiber</span>
-                                <span className="text-white">{Math.round(item.fiber * portionMultiplier)}g</span>
-                              </div>
-                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Add Food Trigger Button */}
+                      <div className="pt-2 flex justify-center border-t border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddFoodPanel(!showAddFoodPanel)}
+                          className={`w-full py-3 border hover:bg-white/10 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] ${
+                            showAddFoodPanel ? 'bg-brand-pink/15 border-brand-pink/50 text-brand-pink hover:border-brand-pink' : 'bg-white/5 border-white/10 hover:border-brand-cyan text-zinc-300'
+                          }`}
+                        >
+                          <span>{showAddFoodPanel ? '✕ Close Add Food Drawer' : '➕ Add Food to Meal'}</span>
+                        </button>
+                      </div>
+
+                      {/* Expandable Database Panel */}
+                      {showAddFoodPanel && (
+                        <div className="bg-dark-900/40 border border-white/5 rounded-2xl p-4 space-y-4 mt-2">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <h5 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <Apple className="h-4 w-4 text-brand-cyan" /> Healthy Foods Database
+                            </h5>
+                            <input
+                              type="text"
+                              placeholder="Search foods (e.g. Avocado, Paneer...)"
+                              value={dbSearchQuery}
+                              onChange={(e) => setDbSearchQuery(e.target.value)}
+                              className="px-3 py-2 bg-[#06030e] border border-white/10 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-brand-violet w-full sm:w-64"
+                            />
                           </div>
-                        ))}
-                      </div>
 
-                      {/* Portion Multiplier Controller */}
-                      <div className="pt-4 border-t border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="text-left">
-                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Modify Serving Portions</span>
-                          <span className="text-xs text-zinc-400">Scale all calculated metrics dynamically.</span>
-                        </div>
+                          {/* Categories scrollable pill list */}
+                          <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-[10px] font-bold">
+                            {['All', 'Protein', 'Dairy', 'Vegetarian Protein', 'Carbohydrates', 'Vegetables', 'Fruits', 'Healthy Fats'].map((cat) => (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setDbSelectedCategory(cat)}
+                                className={`px-3 py-1.5 rounded-lg border transition-all cursor-pointer whitespace-nowrap min-h-[30px] ${
+                                  dbSelectedCategory === cat
+                                    ? 'bg-brand-violet/20 border-brand-violet/50 text-white font-black'
+                                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-zinc-400 hover:text-zinc-300'
+                                }`}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                          </div>
 
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => setPortionMultiplier(prev => Math.max(0.25, prev - 0.25))}
-                            className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center text-sm"
-                          >
-                            -
-                          </button>
-                          <span className="text-sm font-mono font-bold text-white w-14 text-center bg-dark-950 px-2 py-1.5 border border-white/5 rounded-lg">
-                            {portionMultiplier.toFixed(2)}x
-                          </span>
-                          <button 
-                            onClick={() => setPortionMultiplier(prev => Math.min(5, prev + 0.25))}
-                            className="h-8 w-8 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center text-sm"
-                          >
-                            +
-                          </button>
+                          {/* Scrollable list of matched database items */}
+                          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                            {getFilteredDatabaseFoods().map((food) => (
+                              <div
+                                key={food.name}
+                                className="p-3 bg-dark-950/60 border border-white/5 hover:border-white/10 rounded-xl flex items-center justify-between gap-4 text-xs font-semibold"
+                              >
+                                <div className="text-left">
+                                  <span className="text-white font-bold block">{food.name}</span>
+                                  <span className="text-[10px] text-zinc-500 font-medium">
+                                    Category: {food.category} • Serving: {food.serving}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right text-[10px] text-zinc-400 font-bold uppercase shrink-0">
+                                    <span className="text-brand-lime text-xs block font-black">{food.kcal} kcal</span>
+                                    P: {food.protein}g • C: {food.carbs}g • F: {food.fats}g
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddFood(food)}
+                                    className="px-3 py-1.5 bg-brand-cyan text-dark-950 font-black rounded-lg hover:scale-105 transition-transform text-[10px] cursor-pointer min-h-[32px]"
+                                  >
+                                    Add +
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            {getFilteredDatabaseFoods().length === 0 && (
+                              <div className="text-center text-zinc-500 py-6 text-xs font-medium">
+                                No matching foods found in this category.
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </SpotlightCard>
 
