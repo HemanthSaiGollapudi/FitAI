@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NotificationCenter } from './NotificationCenter';
 
 interface NavbarProps {
   activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile';
@@ -107,6 +108,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, onChangeView, isAuth
 
         {/* Desktop Action Buttons */}
         <div className="hidden md:flex items-center space-x-4">
+          {isAuthenticated && (
+            <NotificationCenter onChangeView={onChangeView} />
+          )}
           {isAuthenticated && onLogout && (
             <button
               onClick={onLogout}
@@ -118,7 +122,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, onChangeView, isAuth
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="xl:hidden">
+        <div className="xl:hidden flex items-center space-x-2">
+          {isAuthenticated && (
+            <NotificationCenter onChangeView={onChangeView} />
+          )}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 text-zinc-400 hover:text-white transition-colors"

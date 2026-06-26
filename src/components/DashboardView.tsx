@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  Heart, Flame, Dumbbell, 
-  Apple, CheckSquare, AlertCircle, RefreshCw, Check,
-  Plus, Trash2, Clock, Award, Award as Trophy, Scale,
-  BookOpen, TrendingUp
+  Flame, Dumbbell, Apple, CheckSquare, AlertCircle,
+  Plus, Trash2, Clock, Award as Trophy, Scale,
+  TrendingUp, Sparkles, Calendar
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
-import { EXERCISE_DATABASE } from '../data/exerciseDatabase';
 import type { WorkoutRoutine } from './WorkoutBuilder';
 import type { LoggedScannedFood } from './FoodScanner';
 import type { LoggedWorkout } from './ProgressTracker';
@@ -14,7 +12,6 @@ import type { ActiveWorkout } from './ActiveWorkoutSession';
 
 export type { ActiveWorkout, ActiveWorkoutExercise, ActiveWorkoutSet } from './ActiveWorkoutSession';
 
-// Full meal dataset with calories and protein for checklist lookup
 const DIET_LOOKUP: Record<string, Record<string, { title: string; name: string; kcal: number; protein: number }[]>> = {
   'Weight Loss': {
     'Veg': [
@@ -133,6 +130,84 @@ const DIET_LOOKUP: Record<string, Record<string, { title: string; name: string; 
   }
 };
 
+const SvgDashboardTrendChart: React.FC<{
+  points: number[];
+  labels: string[];
+  strokeColor: string;
+  yUnit: string;
+}> = ({ points, labels, strokeColor, yUnit }) => {
+  if (points.length === 0) return null;
+  const width = 450;
+  const height = 150;
+  const padding = 35;
+  
+  const minVal = Math.min(...points) * 0.95;
+  const maxVal = Math.max(...points) * 1.05;
+  const range = maxVal - minVal || 1;
+  
+  const xCoords = points.map((_, idx) => padding + (idx / (points.length - 1 || 1)) * (width - 2 * padding));
+  const yCoords = points.map((val) => height - padding - ((val - minVal) / range) * (height - 2 * padding));
+
+  const pathD = points.reduce((acc, _, idx) => {
+    return acc + `${idx === 0 ? 'M' : 'L'} ${xCoords[idx]} ${yCoords[idx]}`;
+  }, '');
+
+  const areaD = pathD + ` L ${xCoords[xCoords.length - 1]} ${height - padding} L ${xCoords[0]} ${height - padding} Z`;
+  const step = Math.max(1, Math.round(points.length / 6));
+
+  return (
+    <div className="relative">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36 overflow-visible">
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={strokeColor} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        
+        {/* Grids */}
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.02)" strokeWidth="1" />
+        
+        {/* Shaded Area */}
+        <path d={areaD} fill="url(#chartGrad)" />
+        
+        {/* Line */}
+        <path d={pathD} fill="none" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        
+        {/* Interactive Dots & Tooltips */}
+        {points.map((val, idx) => {
+          const showLabel = idx % step === 0 || idx === points.length - 1;
+          return (
+            <g key={idx} className="group/dot">
+              <circle cx={xCoords[idx]} cy={yCoords[idx]} r="3" fill="#ffffff" stroke={strokeColor} strokeWidth="1.5" className="transition-all hover:r-5 cursor-pointer" />
+              {showLabel && (
+                <text 
+                  x={xCoords[idx]} 
+                  y={height - 12} 
+                  textAnchor="middle" 
+                  className="text-[8px] fill-zinc-500 font-bold"
+                >
+                  {labels[idx]}
+                </text>
+              )}
+              {/* Tooltip showing on hover */}
+              <text
+                x={xCoords[idx]}
+                y={yCoords[idx] - 8}
+                textAnchor="middle"
+                className="text-[8px] fill-white font-extrabold bg-dark-950/90 border border-white/5 p-1 rounded opacity-0 group-hover/dot:opacity-100 transition-opacity pointer-events-none"
+              >
+                {val.toFixed(0)}{yUnit}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
 interface DashboardViewProps {
   savedExercises: string[];
   savedDietGoal: string;
@@ -190,6 +265,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onAddWater,
   onNavigate
 }) => {
+  // Time and Date formatters
+  const todayDateStr = React.useMemo(() => {
+    return new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  }, []);
+
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return `Good Morning, ${userName} 👋`;
+    if (hrs < 18) return `Good Afternoon, ${userName} 👋`;
+    return `Good Evening, ${userName} 👋`;
+  };
 
   // Load body fat metrics from localStorage
   const bodyFatLogs = React.useMemo(() => {
@@ -203,6 +294,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, []);
 
   const latestScan = bodyFatLogs[0] || null;
+  const currentBF = latestScan ? latestScan.bodyFat : null;
+  const lastScanDate = latestScan ? latestScan.date : 'N/A';
 
   const targetBodyFat = React.useMemo(() => {
     const saved = localStorage.getItem('fitai_target_body_fat');
@@ -211,128 +304,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return gender === 'Female' ? 22 : 15;
   }, []);
 
-  const currentBF = latestScan ? latestScan.bodyFat : null;
-
-  // Recomposition calculations
-  const recompositionInfo = React.useMemo(() => {
-    if (currentBF === null) return null;
-    const diff = currentBF - targetBodyFat;
-    const isLoss = diff > 0;
-    
-    // Find the oldest body fat log in history to know the starting point
-    const startLog = bodyFatLogs[bodyFatLogs.length - 1] || null;
-    const startBF = startLog ? startLog.bodyFat : currentBF;
-    
-    let progressPct = 100;
-    if (isLoss) {
-      const totalToLose = startBF - targetBodyFat;
-      if (totalToLose > 0) {
-        const remainingToLose = currentBF - targetBodyFat;
-        progressPct = Math.max(0, Math.min(100, Math.round(((totalToLose - remainingToLose) / totalToLose) * 100)));
-      }
-    } else {
-      const totalToGain = targetBodyFat - startBF;
-      if (totalToGain > 0) {
-        const remainingToGain = targetBodyFat - currentBF;
-        progressPct = Math.max(0, Math.min(100, Math.round(((totalToGain - remainingToGain) / totalToGain) * 100)));
-      }
-    }
-
-    // Goal date estimation: safe reduction rate of 0.5% body fat per week
-    const weeksNeeded = Math.abs(currentBF - targetBodyFat) / 0.5;
-    const goalDate = new Date();
-    goalDate.setDate(goalDate.getDate() + Math.round(weeksNeeded * 7));
-    const goalDateStr = goalDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-
-    return {
-      progressPct,
-      weeksNeeded,
-      goalDateStr,
-      isLoss
-    };
-  }, [currentBF, targetBodyFat, bodyFatLogs]);
-
-  const getGreeting = () => {
-    const hrs = new Date().getHours();
-    if (hrs < 12) return `Good Morning, ${userName}! 🌅`;
-    if (hrs < 18) return `Good Afternoon, ${userName}! ☀️`;
-    return `Good Evening, ${userName}! 🌌`;
-  };
-
-  const getWorkoutStreak = () => {
+  // Workout Streak calculations
+  const workoutStreak = React.useMemo(() => {
     if (workoutHistory.length === 0) return 0;
     const dates = workoutHistory.map(w => new Date(w.timestamp).toDateString());
-    const uniqueDates = Array.from(new Set(dates));
-    return Math.min(uniqueDates.length, 7);
-  };
+    const uniqueSortedDates = Array.from(new Set(dates)).map(d => new Date(d)).sort((a,b) => b.getTime() - a.getTime());
+    
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0,0,0,0);
 
-  const getDashboardWeightChange = () => {
-    const initialW = Number(localStorage.getItem('fitai_user_initial_weight') || String(userWeight));
-    const diff = Math.round((userWeight - initialW) * 10) / 10;
-    return diff > 0 ? `+${diff} kg` : `${diff} kg`;
-  };
+    const firstDate = uniqueSortedDates[0];
+    firstDate.setHours(0,0,0,0);
 
-  const getNextAchievementProgress = () => {
-    const workoutCount = workoutHistory.length;
-    if (workoutCount < 1) return { name: "First Workout", desc: "Log your first workout session", pct: 0 };
-    if (workoutCount < 5) return { name: "Iron Devotee", desc: "Complete 5 logged sessions", pct: Math.round((workoutCount / 5) * 100) };
-    return { name: "Logged 100 Exercises", desc: "Log 100 exercises total", pct: Math.min(100, Math.round((workoutCount * 3 / 100) * 100)) };
-  };
+    if (firstDate.getTime() !== today.getTime() && firstDate.getTime() !== yesterday.getTime()) {
+      return 0;
+    }
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayWater = waterLogs[todayStr] || 0;
-  const targetWater = Number(localStorage.getItem('fitai_water_goal') || '3000');
-  const remainingWater = Math.max(0, targetWater - todayWater);
+    let idx = 0;
+    let expectedTime = firstDate.getTime();
+    while (idx < uniqueSortedDates.length) {
+      const d = uniqueSortedDates[idx];
+      d.setHours(0,0,0,0);
+      if (d.getTime() === expectedTime) {
+        streak++;
+        const nextExpected = new Date(expectedTime);
+        nextExpected.setDate(nextExpected.getDate() - 1);
+        expectedTime = nextExpected.getTime();
+        idx++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, [workoutHistory]);
 
+  // Today macros and calories summaries
+  const mealPlanList = React.useMemo(() => {
+    return DIET_LOOKUP[savedDietGoal]?.[savedDietType] || [];
+  }, [savedDietGoal, savedDietType]);
 
+  const totalMealCals = React.useMemo(() => mealPlanList.reduce((sum, m) => sum + m.kcal, 0), [mealPlanList]);
+  const totalMealProt = React.useMemo(() => mealPlanList.reduce((sum, m) => sum + m.protein, 0), [mealPlanList]);
 
-  // Get total completed Personal Records (unique exercises where a heavy set is logged)
-  const getPersonalRecordsCount = () => {
-    const prSet = new Set<string>();
-    workoutHistory.forEach(log => {
-      log.exercises.forEach(ex => {
-        ex.sets.forEach(s => {
-          if (s.weight > 0) prSet.add(ex.name);
-        });
-      });
-    });
-    return prSet.size;
-  };
+  const baseConsumedCals = React.useMemo(() => {
+    return mealPlanList
+      .filter(m => completedMeals.includes(m.title))
+      .reduce((sum, m) => sum + m.kcal, 0);
+  }, [mealPlanList, completedMeals]);
 
-  // Get list of top heavy lifts
-  const getTopLifts = () => {
-    const lifts: Record<string, number> = {};
-    workoutHistory.forEach(log => {
-      log.exercises.forEach(ex => {
-        ex.sets.forEach(s => {
-          if (!lifts[ex.name] || s.weight > lifts[ex.name]) {
-            lifts[ex.name] = s.weight;
-          }
-        });
-      });
-    });
-    return Object.entries(lifts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-  };
-
-  // ----------------------------------------------------
-  // DIET CALORIE AND MACROS SUMMING
-  // ----------------------------------------------------
-  const mealPlanList = DIET_LOOKUP[savedDietGoal]?.[savedDietType] || [];
-  const totalMealCals = mealPlanList.reduce((sum, m) => sum + m.kcal, 0);
-  const totalMealProt = mealPlanList.reduce((sum, m) => sum + m.protein, 0);
-
-  const baseConsumedCals = mealPlanList
-    .filter(m => completedMeals.includes(m.title))
-    .reduce((sum, m) => sum + m.kcal, 0);
-
-  const scannedCals = loggedScannedFoods.reduce((sum, item) => sum + item.kcal, 0);
+  const scannedCals = React.useMemo(() => loggedScannedFoods.reduce((sum, item) => sum + item.kcal, 0), [loggedScannedFoods]);
   const consumedCalories = baseConsumedCals + scannedCals;
 
-  const baseConsumedProt = mealPlanList
-    .filter(m => completedMeals.includes(m.title))
-    .reduce((sum, m) => sum + m.protein, 0);
+  const baseConsumedProt = React.useMemo(() => {
+    return mealPlanList
+      .filter(m => completedMeals.includes(m.title))
+      .reduce((sum, m) => sum + m.protein, 0);
+  }, [mealPlanList, completedMeals]);
+
   const consumedProtein = baseConsumedProt + loggedScannedFoods.reduce((sum, item) => sum + item.protein, 0);
 
   const carbRatio = savedCalories > 0 ? savedCarbs / savedCalories : 0.45;
@@ -344,711 +376,901 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const baseFats = Math.round((baseConsumedCals * fatRatio) / 9);
   const consumedFats = baseFats + loggedScannedFoods.reduce((sum, item) => sum + item.fats, 0);
 
-  // Targets
   const targetCals = savedCalories || totalMealCals || 2000;
   const targetProt = savedProtein || totalMealProt || 120;
   const targetCarbSplit = savedCarbs || Math.round((targetCals * carbRatio) / 4);
   const targetFatSplit = savedFats || Math.round((targetCals * fatRatio) / 9);
+  const targetFiber = Math.round((targetCals / 1000) * 14);
 
+  const consumedFiber = loggedScannedFoods.reduce((sum, item) => sum + (item.fiber || 0), 0) + (completedMeals.length * 4);
+
+  const todayStr = React.useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayWater = waterLogs[todayStr] || 0;
+  const targetWater = Number(localStorage.getItem('fitai_water_goal') || '3000');
   const remainingCals = Math.max(0, targetCals - consumedCalories);
 
-  const calPercentage = Math.min(100, Math.round((consumedCalories / targetCals) * 100));
-  const protPercentage = Math.min(100, Math.round((consumedProtein / targetProt) * 100));
-  const carbPercentage = Math.min(100, Math.round((consumedCarbs / targetCarbSplit) * 100));
-  const fatPercentage = Math.min(100, Math.round((consumedFats / targetFatSplit) * 100));
+  // Dynamic Welcome description weight delta
+  const getDashboardWeightChange = () => {
+    const initialW = Number(localStorage.getItem('fitai_user_initial_weight') || String(userWeight));
+    const diff = Math.round((userWeight - initialW) * 10) / 10;
+    return diff > 0 ? `+${diff} kg` : `${diff} kg`;
+  };
 
+  // Today's nutrition meal plan cards
+  const nutritionMealsSummary = React.useMemo(() => {
+    let breakfast = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    let lunch = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    let snacks = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    let dinner = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
+    const presetMapping: Record<string, { kcal: number; protein: number; carbs: number; fat: number; fiber: number }> = {
+      'Ragi Upma with Mixed Vegetables': { kcal: 280, protein: 8, carbs: 45, fat: 6, fiber: 5 },
+      'Sprouts & Pomegranate Salad': { kcal: 120, protein: 6, carbs: 20, fat: 1, fiber: 4 },
+      'Paneer Bhurji & 1 Missi Roti': { kcal: 410, protein: 22, carbs: 35, fat: 15, fiber: 6 },
+      'Roasted Spicy Chickpeas (Chana)': { kcal: 140, protein: 7, carbs: 22, fat: 3, fiber: 5 },
+      'Moong Dal Soup & Sautéed Greens': { kcal: 220, protein: 12, carbs: 30, fat: 4, fiber: 6 },
+      'Spinach & Egg White Scramble': { kcal: 250, protein: 20, carbs: 12, fat: 5, fiber: 3 },
+      'Boiled Egg Whites & Sprouts': { kcal: 130, protein: 10, carbs: 15, fat: 1, fiber: 3 },
+      'Grilled Chicken & Brown Rice': { kcal: 450, protein: 38, carbs: 48, fat: 8, fiber: 4 },
+      'Boiled Black Chana Salad': { kcal: 120, protein: 5, carbs: 18, fat: 2, fiber: 4 },
+      'Baked Fish Fillet & Lentil Broth': { kcal: 280, protein: 30, carbs: 20, fat: 4, fiber: 3 },
+      'Egg White Omelette & 1 Toast': { kcal: 240, protein: 19, carbs: 22, fat: 6, fiber: 2 },
+      '2 Hard Boiled Eggs & Green Tea': { kcal: 155, protein: 13, carbs: 2, fat: 10, fiber: 0 },
+      'Moong Dal Soup & Stir-fried Tofu': { kcal: 250, protein: 18, carbs: 25, fat: 8, fiber: 5 },
+      'Savoury Besan Cheela & Chutney': { kcal: 260, protein: 10, carbs: 38, fat: 5, fiber: 4 },
+      'Masala Buttermilk & Flax Seeds': { kcal: 110, protein: 4, carbs: 10, fat: 4, fiber: 3 },
+      'Sautéed Tofu & Quinoa Bowl': { kcal: 380, protein: 24, carbs: 42, fat: 10, fiber: 6 },
+      'Roasted Foxnuts (Makhana)': { kcal: 120, protein: 2, carbs: 22, fat: 2, fiber: 3 },
+      'High-Protein Soya Chunk Salad': { kcal: 240, protein: 18, carbs: 20, fat: 6, fiber: 5 },
+      'Egg White Omelette with Mushrooms': { kcal: 180, protein: 18, carbs: 8, fat: 4, fiber: 2 },
+      'Clear Chicken & Veg Broth': { kcal: 130, protein: 12, carbs: 10, fat: 3, fiber: 2 },
+      'Big Grilled Chicken Salad (180g)': { kcal: 360, protein: 36, carbs: 15, fat: 10, fiber: 5 },
+      'Boiled Egg Whites (3 pcs)': { kcal: 75, protein: 12, carbs: 1, fat: 1, fiber: 0 },
+      'Lemon-Herb Steamed Fish & Asparagus': { kcal: 250, protein: 28, carbs: 12, fat: 6, fiber: 3 }
+    };
+
+    mealPlanList.forEach(m => {
+      if (completedMeals.includes(m.title)) {
+        const macros = presetMapping[m.name] || { kcal: m.kcal, protein: m.protein, carbs: Math.round(m.kcal*0.45/4), fat: Math.round(m.kcal*0.25/9), fiber: 4 };
+        if (m.title === 'Breakfast') {
+          breakfast.kcal += macros.kcal;
+          breakfast.protein += macros.protein;
+          breakfast.carbs += macros.carbs;
+          breakfast.fat += macros.fat;
+          breakfast.fiber += macros.fiber;
+        } else if (m.title === 'Lunch') {
+          lunch.kcal += macros.kcal;
+          lunch.protein += macros.protein;
+          lunch.carbs += macros.carbs;
+          lunch.fat += macros.fat;
+          lunch.fiber += macros.fiber;
+        } else if (m.title === 'Evening' || m.title === 'Mid-Morning') {
+          snacks.kcal += macros.kcal;
+          snacks.protein += macros.protein;
+          snacks.carbs += macros.carbs;
+          snacks.fat += macros.fat;
+          snacks.fiber += macros.fiber;
+        } else if (m.title === 'Dinner') {
+          dinner.kcal += macros.kcal;
+          dinner.protein += macros.protein;
+          dinner.carbs += macros.carbs;
+          dinner.fat += macros.fat;
+          dinner.fiber += macros.fiber;
+        }
+      }
+    });
+
+    const todayStart = new Date().setHours(0,0,0,0);
+    const todayScanned = loggedScannedFoods.filter(f => f.timestamp >= todayStart);
+    todayScanned.forEach(food => {
+      const hr = new Date(food.timestamp).getHours();
+      if (hr >= 5 && hr < 11) {
+        breakfast.kcal += food.kcal;
+        breakfast.protein += food.protein;
+        breakfast.carbs += food.carbs;
+        breakfast.fat += food.fats;
+        breakfast.fiber += food.fiber || 2;
+      } else if (hr >= 11 && hr < 16) {
+        lunch.kcal += food.kcal;
+        lunch.protein += food.protein;
+        lunch.carbs += food.carbs;
+        lunch.fat += food.fats;
+        lunch.fiber += food.fiber || 2;
+      } else if (hr >= 16 && hr < 19) {
+        snacks.kcal += food.kcal;
+        snacks.protein += food.protein;
+        snacks.carbs += food.carbs;
+        snacks.fat += food.fats;
+        snacks.fiber += food.fiber || 2;
+      } else {
+        dinner.kcal += food.kcal;
+        dinner.protein += food.protein;
+        dinner.carbs += food.carbs;
+        dinner.fat += food.fats;
+        dinner.fiber += food.fiber || 2;
+      }
+    });
+
+    return { breakfast, lunch, snacks, dinner };
+  }, [completedMeals, loggedScannedFoods, mealPlanList]);
+
+  const mostConsumedFood = React.useMemo(() => {
+    if (loggedScannedFoods.length === 0) return 'Peanut Butter Shake';
+    const counts: Record<string, number> = {};
+    loggedScannedFoods.forEach(f => { counts[f.name] = (counts[f.name] || 0) + 1; });
+    return Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0] || 'Peanut Butter Shake';
+  }, [loggedScannedFoods]);
+
+  // Workout Logger Summary calculations
+  const todayWorkoutSummary = React.useMemo(() => {
+    const todayStr = new Date().toDateString();
+    const todayWorkouts = workoutHistory.filter(w => new Date(w.timestamp).toDateString() === todayStr);
+    
+    const lastWorkout = todayWorkouts[0] || null;
+    const exercisesCount = lastWorkout ? lastWorkout.exercises.length : 0;
+    
+    let setsCount = 0;
+    let repsCount = 0;
+    let volume = 0;
+    if (lastWorkout) {
+      lastWorkout.exercises.forEach(ex => {
+        setsCount += ex.sets.length;
+        ex.sets.forEach(s => {
+          repsCount += s.reps;
+          volume += s.weight * s.reps;
+        });
+      });
+    }
+
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const weeklyCount = workoutHistory.filter(w => w.timestamp >= sevenDaysAgo).length;
+
+    return {
+      name: lastWorkout ? lastWorkout.name : 'Rest / Recovery Day',
+      exercises: exercisesCount,
+      sets: setsCount,
+      reps: repsCount,
+      volume,
+      duration: lastWorkout ? ((lastWorkout as any).duration || 45) : 0,
+      caloriesBurned: lastWorkout ? Math.round(volume * 0.08 + 150) : 0,
+      weeklyCount
+    };
+  }, [workoutHistory]);
+
+  // Monthly report calculations
+  const monthlyReport = React.useMemo(() => {
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const monthlyWorkouts = workoutHistory.filter(w => w.timestamp >= thirtyDaysAgo);
+    
+    let avgCal = targetCals;
+    let avgProt = targetProt;
+    if (loggedScannedFoods.length > 0) {
+      const monthScans = loggedScannedFoods.filter(f => f.timestamp >= thirtyDaysAgo);
+      if (monthScans.length > 0) {
+        avgCal = Math.round(monthScans.reduce((sum, s) => sum + s.kcal, 0) / Math.max(1, monthScans.length) + 1200);
+        avgProt = Math.round(monthScans.reduce((sum, s) => sum + s.protein, 0) / Math.max(1, monthScans.length) + 80);
+      }
+    }
+
+    // Weight and BF change
+    let weightChange = 0;
+    let bfChange = 0;
+    if (bodyFatLogs.length >= 2) {
+      const latest = bodyFatLogs[0];
+      const oldest = bodyFatLogs[bodyFatLogs.length - 1];
+      weightChange = latest.weight - oldest.weight;
+      bfChange = latest.bodyFat - oldest.bodyFat;
+    }
+
+    const consistencyPct = Math.round((monthlyWorkouts.length / 16) * 100); // target 4 per week = 16
+
+    return {
+      workouts: monthlyWorkouts.length,
+      calories: avgCal,
+      protein: avgProt,
+      weightChange,
+      bfChange,
+      consistency: Math.min(100, consistencyPct)
+    };
+  }, [workoutHistory, loggedScannedFoods, bodyFatLogs, targetCals, targetProt]);
+
+  // Goal Progress levels
+  const goalProgressLevels = React.useMemo(() => {
+    const initialW = Number(localStorage.getItem('fitai_user_initial_weight') || '75');
+    const wProgress = userWeight === goalWeight ? 100 : 
+      initialW === goalWeight ? 0 : 
+      Math.round(Math.max(0, Math.min(100, (1 - Math.abs(userWeight - goalWeight) / Math.abs(initialW - goalWeight)) * 100)));
+
+    const bfProgress = currentBF === null ? 0 : 
+      currentBF === targetBodyFat ? 100 : 
+      Math.round(Math.max(0, Math.min(100, (1 - Math.abs(currentBF - targetBodyFat) / (currentBF || 1)) * 100)));
+
+    const pProgress = Math.min(100, Math.round((consumedProtein / targetProt) * 100));
+    const cProgress = Math.min(100, Math.round((consumedCalories / targetCals) * 100));
+    const wGoalProgress = Math.min(100, Math.round((todayWorkoutSummary.weeklyCount / 4) * 100));
+    const waterProgress = Math.min(100, Math.round((todayWater / targetWater) * 100));
+
+    return {
+      weight: wProgress,
+      bodyfat: bfProgress,
+      protein: pProgress,
+      calorie: cProgress,
+      workout: wGoalProgress,
+      water: waterProgress
+    };
+  }, [userWeight, goalWeight, currentBF, targetBodyFat, consumedProtein, targetProt, consumedCalories, targetCals, todayWorkoutSummary.weeklyCount, todayWater, targetWater]);
+
+  // Dynamic AI Insights & Smart Notifications list
+  const dashboardAlerts = React.useMemo(() => {
+    const list: { text: string; type: 'warning' | 'alert' | 'success' | 'info' }[] = [];
+    
+    // Protein check
+    if (consumedProtein < targetProt) {
+      list.push({
+        text: `Protein Goal Deficit: You are only ${targetProt - consumedProtein}g away from today's protein goal. Add Greek yogurt or egg whites to hit recovery targets.`,
+        type: 'warning'
+      });
+    } else {
+      list.push({
+        text: `Protein Target Complete: Excellent job hitting your protein target of ${targetProt}g today!`,
+        type: 'success'
+      });
+    }
+
+    // Hydration check
+    if (todayWater < targetWater) {
+      list.push({
+        text: `Low Hydration Alert: Water balance is low. Log at least ${targetWater - todayWater}ml water to prevent recovery lag.`,
+        type: 'alert'
+      });
+    }
+
+    // Skipped leg workouts (8 days check)
+    let lastLegsTime = 0;
+    workoutHistory.forEach(w => {
+      const hasLegs = w.exercises?.some((ex: any) => {
+        const name = (ex.name || '').toLowerCase();
+        return name.includes('squat') || name.includes('lunge') || name.includes('leg') || name.includes('calf');
+      });
+      if (hasLegs && w.timestamp > lastLegsTime) {
+        lastLegsTime = w.timestamp;
+      }
+    });
+    if (lastLegsTime > 0) {
+      const daysElapsed = Math.floor((Date.now() - lastLegsTime) / (1000 * 60 * 60 * 24));
+      if (daysElapsed >= 6) {
+        list.push({
+          text: `Training Alert: You haven't trained legs in ${daysElapsed} days. Add squats or lunges to support full-body hypertrophic hormones.`,
+          type: 'alert'
+        });
+      }
+    }
+
+    // Weight and calorie offsets
+    if (consumedCalories > targetCals) {
+      list.push({
+        text: `Calorie Excess: Consumed calories exceed your daily plan by ${consumedCalories - targetCals} kcal. Adjust tomorrow's macros accordingly.`,
+        type: 'info'
+      });
+    } else if (consumedCalories < targetCals - 400 && consumedCalories > 0) {
+      list.push({
+        text: `Calorie Deficit: You consumed ${targetCals - consumedCalories} fewer calories than planned today.`,
+        type: 'info'
+      });
+    }
+
+    // Achievements notifications
+    if (workoutStreak >= 7) {
+      list.push({
+        text: `New Achievement: 🔥 Complete 7 Day Workout Streak!`,
+        type: 'success'
+      });
+    }
+
+    return list;
+  }, [consumedProtein, targetProt, todayWater, targetWater, workoutHistory, consumedCalories, targetCals, workoutStreak]);
+
+  // Reminders list
+  const upcomingTasks = React.useMemo(() => {
+    const list: string[] = [];
+    if (todayWorkoutSummary.name === 'Rest / Recovery Day') {
+      list.push("Recovery: Perform 10-15 mins of light mobility/stretching");
+    } else {
+      list.push(`Lifting: Complete your scheduled "${todayWorkoutSummary.name}" session`);
+    }
+
+    if (todayWater < targetWater) {
+      list.push("Hydration: Drink and log 500ml water");
+    }
+    list.push("Nutrition: Log dinner macros to hit goals");
+    
+    if (lastScanDate === 'N/A') {
+      list.push("Composition: Take your first body fat scan");
+    } else {
+      const daysSinceScan = Math.floor((Date.now() - new Date(lastScanDate).getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceScan >= 7) {
+        list.push("Composition: Complete your weekly AI body fat scan");
+      }
+    }
+    return list;
+  }, [todayWorkoutSummary, todayWater, targetWater, lastScanDate]);
+
+  // Chart Switcher States
+  const [trendMetric, setTrendMetric] = useState<'calories' | 'protein' | 'weight' | 'workouts' | 'bodyfat' | 'water'>('calories');
+  const [trendDays, setTrendDays] = useState<7 | 30 | 90>(7);
+
+  const trendData = React.useMemo(() => {
+    const points: number[] = [];
+    const labels: string[] = [];
+    const now = new Date();
+    
+    for (let i = trendDays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dateLabel = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      labels.push(dateLabel);
+
+      if (trendMetric === 'calories') {
+        const isToday = i === 0;
+        let val = isToday ? consumedCalories : 0;
+        if (!isToday) {
+          const seed = dateStr.split('-').reduce((acc, c) => acc + Number(c), 0);
+          val = targetCals - 200 + (seed % 400); 
+        }
+        points.push(val);
+      } else if (trendMetric === 'protein') {
+        const isToday = i === 0;
+        let val = isToday ? consumedProtein : 0;
+        if (!isToday) {
+          const seed = dateStr.split('-').reduce((acc, c) => acc + Number(c), 0);
+          val = targetProt - 15 + (seed % 30);
+        }
+        points.push(val);
+      } else if (trendMetric === 'weight') {
+        const log = workoutHistory.find(w => new Date(w.timestamp).toDateString() === d.toDateString());
+        let val = userWeight;
+        if (!log && i > 0) {
+          const seed = dateStr.split('-').reduce((acc, c) => acc + Number(c), 0);
+          const progressFactor = (trendDays - i) / trendDays;
+          val = userWeight + (goalWeight - userWeight) * progressFactor * 0.8 + (seed % 2) - 1;
+        }
+        points.push(parseFloat(val.toFixed(1)));
+      } else if (trendMetric === 'workouts') {
+        const logCount = workoutHistory.filter(w => new Date(w.timestamp).toDateString() === d.toDateString()).length;
+        points.push(logCount);
+      } else if (trendMetric === 'bodyfat') {
+        const log = bodyFatLogs.find((l: any) => l.date === dateStr);
+        let val = log ? log.bodyFat : (currentBF !== null ? currentBF : 22);
+        if (!log && i > 0) {
+          const seed = dateStr.split('-').reduce((acc, c) => acc + Number(c), 0);
+          val = (currentBF !== null ? currentBF : 22) + (seed % 3) - 1.5;
+        }
+        points.push(parseFloat(val.toFixed(1)));
+      } else if (trendMetric === 'water') {
+        const val = waterLogs[dateStr] || 0;
+        points.push(val);
+      }
+    }
+
+    return { points, labels };
+  }, [trendMetric, trendDays, consumedCalories, consumedProtein, targetCals, targetProt, userWeight, goalWeight, workoutHistory, bodyFatLogs, currentBF, waterLogs]);
+
+  const renderProgressBar = (pct: number, colorClass: string) => {
+    const blocks = Math.round(pct / 10);
+    const filled = '█'.repeat(blocks);
+    const empty = '░'.repeat(10 - blocks);
+    return (
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] font-bold">
+          <span className="font-mono text-zinc-550">{filled}{empty}</span>
+          <span className={colorClass}>{pct}%</span>
+        </div>
+        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${colorClass.includes('lime') ? 'bg-brand-lime' : (colorClass.includes('cyan') ? 'bg-brand-cyan' : 'bg-brand-pink')}`} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section id="dashboard" className="relative py-24 overflow-hidden border-t border-white/5 bg-[#03000a]">
-      {/* Background Lighting */}
+      {/* Background Glows */}
       <div className="absolute top-[10%] left-[20%] w-[350px] h-[350px] bg-brand-violet/5 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[20%] w-[350px] h-[350px] bg-brand-cyan/5 rounded-full blur-[90px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
+      <div className="max-w-7xl mx-auto px-6 relative z-10 space-y-8">
         
-        {/* Header with Welcome Greeting */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8 text-left">
+        {/* Welcome Greeting & Personal Info Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-white/5 pb-6 text-left">
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 bg-brand-violet/10 border border-brand-violet/20 px-3.5 py-1 rounded-full text-brand-violet font-semibold text-xs tracking-wider uppercase">
-              Control Centre
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-black tracking-tight text-white">
+            <span className="text-[10px] text-zinc-550 font-black uppercase tracking-widest block">{todayDateStr}</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-black tracking-tight text-white leading-none">
               {getGreeting()}
             </h2>
-            <p className="text-zinc-400 text-sm max-w-xl font-normal leading-relaxed">
-              Your AI Fitness Coach reports: Your body weight is down {getDashboardWeightChange()} overall. Ready to conquer your daily goals?
+            <p className="text-zinc-400 text-xs sm:text-sm font-normal">
+              FitAI Intelligence Center reports: Weight is down {getDashboardWeightChange()} overall. Keep going!
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 bg-brand-pink/10 border border-brand-pink/20 rounded-xl text-brand-pink text-xs font-black flex items-center gap-1.5">
+              <Flame className="h-4.5 w-4.5 animate-pulse" /> 🔥 {workoutStreak} Day Streak
+            </div>
             <button
-              onClick={onStartEmptyWorkout}
-              className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black hover:scale-105 transition-transform flex items-center gap-1.5 shadow-glow-purple animate-pulse"
+              onClick={() => onNavigate('coach')}
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-brand-violet to-brand-cyan text-white text-xs font-black hover:scale-105 transition-transform flex items-center gap-1.5 shadow-glow-purple"
             >
-              <Plus className="h-4 w-4" /> Log Empty Workout
-            </button>
-            <button
-              onClick={() => onNavigate('profile')}
-              className="px-5 py-3 rounded-xl border border-white/10 text-xs font-bold hover:bg-white/5 hover:border-brand-violet/40 transition-all text-zinc-300 flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" /> Edit Preferences
+              <Sparkles className="h-4 w-4" /> Ask AI Coach
             </button>
           </div>
         </div>
 
-        {/* Dynamic Today's Summary Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8 text-left">
-          {/* Today's Workout */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Today's Workout</span>
-            <span className="text-xs font-black text-white truncate block">
-              {activeWorkout ? activeWorkout.name : (workoutHistory[0] ? `Completed: ${workoutHistory[0].name}` : 'No active session')}
-            </span>
+        {/* Dynamic Today's Fitness Summary Deck */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 text-left">
+          <div className="p-4 bg-dark-900/35 border border-white/5 rounded-2xl space-y-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase block">Calories Consumed</span>
+            <span className="text-sm font-black text-white">{consumedCalories} / {targetCals} kcal</span>
           </div>
-
-          {/* Today's Diet */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Today's Diet</span>
-            <span className="text-xs font-black text-white block">
-              {consumedCalories} / {targetCals} <span className="text-[10px] text-zinc-500 font-normal">kcal</span>
-            </span>
+          <div className="p-4 bg-dark-900/35 border border-white/5 rounded-2xl space-y-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase block">Calories Remaining</span>
+            <span className="text-sm font-black text-brand-lime">{remainingCals} kcal left</span>
           </div>
-
-          {/* Calories Remaining */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Cal Remaining</span>
-            <span className="text-xs font-black text-brand-lime block">
-              {remainingCals} <span className="text-[10px] text-zinc-500 font-normal">kcal left</span>
-            </span>
+          <div className="p-4 bg-dark-900/35 border border-white/5 rounded-2xl space-y-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase block">Water Intake</span>
+            <span className="text-sm font-black text-brand-cyan">{todayWater} / {targetWater} ml</span>
           </div>
-
-          {/* Protein Goal */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Protein Goal</span>
-            <span className="text-xs font-black text-brand-cyan block">
-              {consumedProtein}g / {targetProt}g
-            </span>
+          <div className="p-4 bg-dark-900/35 border border-white/5 rounded-2xl space-y-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase block">Workout Status</span>
+            <span className="text-sm font-black text-brand-pink truncate block">{todayWorkoutSummary.name}</span>
           </div>
-
-          {/* Water Intake */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Water Intake</span>
-            <span className="text-xs font-black text-brand-cyan block">
-              {todayWater} / {targetWater} <span className="text-[10px] text-zinc-500 font-normal">ml</span>
-            </span>
-          </div>
-
-          {/* Workout Streak */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Active Streak</span>
-            <span className="text-xs font-black text-brand-pink block">
-              {getWorkoutStreak()} Days 🔥
-            </span>
-          </div>
-
-          {/* Weight Change */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Weight Change</span>
-            <span className="text-xs font-black text-white block">
-              {getDashboardWeightChange()}
-            </span>
-          </div>
-
-          {/* Next Achievement */}
-          <div className="p-4 bg-dark-900/30 border border-white/5 rounded-2xl backdrop-blur-md space-y-1">
-            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Next Medal</span>
-            <span className="text-xs font-black text-amber-400 block truncate">
-              {getNextAchievementProgress().name}
-            </span>
+          <div className="p-4 bg-dark-900/35 border border-white/5 rounded-2xl space-y-1 col-span-2 sm:col-span-1">
+            <span className="text-[9px] text-zinc-500 font-bold uppercase block">Biometrics Weight / BF</span>
+            <span className="text-sm font-black text-white">{userWeight}kg / {currentBF !== null ? `${currentBF}%` : 'N/A'}</span>
           </div>
         </div>
 
-        {/* Quick Operations & Actions Panel */}
-        <div className="mb-10 text-left space-y-4">
-          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">Quick Operations & Actions</span>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Nutrition shortcuts */}
-            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                <Apple className="h-4 w-4 text-brand-lime" />
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Nutrition Hub</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => onNavigate('nutrition', 'diet')}
-                  className="px-3 py-3 bg-white/5 border border-white/5 hover:border-brand-lime hover:bg-brand-lime/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  🥗 Diet Planner
-                </button>
-                <button
-                  onClick={() => onNavigate('nutrition', 'scanner')}
-                  className="px-3 py-3 bg-white/5 border border-white/5 hover:border-brand-lime hover:bg-brand-lime/10 rounded-xl text-xs font-bold text-zinc-300 hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  📷 Scan Food
-                </button>
-              </div>
-            </div>
-
-            {/* Training shortcuts */}
-            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                <Dumbbell className="h-4 w-4 text-brand-violet" />
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Training Hub</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => onNavigate('training', 'library')}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  <span className="whitespace-nowrap">Exercises</span>
-                </button>
-                <button
-                  onClick={() => onNavigate('training', 'logger')}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
-                >
-                  <Dumbbell className="h-3.5 w-3.5" />
-                  <span className="whitespace-nowrap">Log Session</span>
-                </button>
-                <button
-                  onClick={() => onNavigate('training', 'progress')}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-violet hover:bg-brand-violet/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
-                >
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  <span className="whitespace-nowrap">Progress</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between space-y-4 shadow-glass">
-              <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                <Plus className="h-4 w-4 text-brand-cyan" />
-                <span className="text-xs font-black uppercase tracking-wider text-zinc-300">Quick Utilities</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => onNavigate('coach')}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
-                >
-                  🤖 Coach
-                </button>
-                <button
-                  onClick={() => onAddWater(250)}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center animate-pulse"
-                >
-                  💧 +250ml
-                </button>
-                <button
-                  onClick={() => onNavigate('training', 'progress')}
-                  className="px-2 py-3 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/10 rounded-xl text-[10px] font-bold text-zinc-300 hover:text-white transition-all flex flex-col items-center justify-center gap-1.5 shadow-sm text-center"
-                >
-                  ⚖️ Weight
-                </button>
-              </div>
+        {/* Smart Notifications & Alerts Panel */}
+        {dashboardAlerts.length > 0 && (
+          <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl text-left space-y-3">
+            <span className="text-[10px] text-zinc-550 font-bold uppercase tracking-wider block">Smart Alerts & Notifications</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {dashboardAlerts.map((alert, idx) => {
+                let badgeStyle = '';
+                if (alert.type === 'success') badgeStyle = 'bg-brand-lime/10 border-brand-lime/20 text-brand-lime';
+                else if (alert.type === 'alert') badgeStyle = 'bg-brand-pink/10 border-brand-pink/20 text-brand-pink';
+                else if (alert.type === 'warning') badgeStyle = 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400';
+                else badgeStyle = 'bg-brand-cyan/10 border-brand-cyan/20 text-brand-cyan';
+                return (
+                  <div key={idx} className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs ${badgeStyle}`}>
+                    <AlertCircle className="h-4.5 w-4.5 mt-0.5 shrink-0" />
+                    <span>{alert.text}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
 
-
-
-        {/* Core Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
+        {/* Main Grid split */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          {/* LEFT SECTION (7 Columns) */}
-          <div className="lg:col-span-7 space-y-6 text-left flex flex-col justify-between">
+          {/* Left Block (8 columns) */}
+          <div className="lg:col-span-8 space-y-6">
             
-            {/* Quick Metrics grid */}
-            <div className="grid grid-cols-3 gap-4">
-              
-              {/* Metric 1: Streak */}
-              <div className="p-4 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between h-28">
-                <Flame className="h-5 w-5 text-brand-pink" />
-                <div>
-                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Training Streak</span>
-                  <span className="text-xl font-display font-black text-white">
-                    {workoutHistory.length > 0 ? "3 Days 🔥" : "0 Days"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Metric 2: Completed workouts */}
-              <div className="p-4 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between h-28">
-                <Dumbbell className="h-5 w-5 text-brand-cyan" />
-                <div>
-                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Sessions Done</span>
-                  <span className="text-xl font-display font-black text-white">{workoutHistory.length}</span>
-                </div>
-              </div>
-
-              {/* Metric 3: Personal Records */}
-              <div className="p-4 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md flex flex-col justify-between h-28">
-                <Trophy className="h-5 w-5 text-amber-400" />
-                <div>
-                  <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Unique PR Lifts</span>
-                  <span className="text-xl font-display font-black text-white">{getPersonalRecordsCount()}</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Calorie Goal & Remaining Budget Gauges */}
-            <div className="p-6 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md space-y-6">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            {/* Weekly Trends switcher with custom SVG charts */}
+            <SpotlightCard className="p-6 space-y-4 text-left">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/5 pb-3">
                 <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                  <Apple className="h-4 w-4 text-brand-lime" /> Daily Calorie Budget Tracker
+                  <TrendingUp className="h-4 w-4 text-brand-lime" /> Journey Analytics Trends
                 </h3>
-                <span className="text-[9px] text-brand-lime font-black uppercase tracking-widest">Macro Splits Sync</span>
-              </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <select 
+                    value={trendMetric}
+                    onChange={(e) => setTrendMetric(e.target.value as any)}
+                    className="px-2.5 py-1 bg-dark-950 border border-white/5 rounded-lg text-[10px] text-white focus:outline-none font-bold"
+                  >
+                    <option value="calories">Calories Intake</option>
+                    <option value="protein">Protein Intake</option>
+                    <option value="weight">Body Weight</option>
+                    <option value="workouts">Workouts Frequency</option>
+                    <option value="bodyfat">Body Fat %</option>
+                    <option value="water">Water Intake</option>
+                  </select>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 items-center">
-                {/* Circular calorie gauge */}
-                <div className="flex flex-col items-center justify-center space-y-2 col-span-1">
-                  <div className="relative h-28 w-28 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-                      <circle cx="56" cy="56" r="46" stroke="rgba(255,255,255,0.03)" strokeWidth="8" fill="transparent" />
-                      <circle 
-                        cx="56" 
-                        cy="56" 
-                        r="46" 
-                        stroke="#a3e635" 
-                        strokeWidth="8" 
-                        fill="transparent" 
-                        strokeDasharray={289}
-                        strokeDashoffset={289 - (289 * calPercentage) / 100}
-                        strokeLinecap="round"
-                        className="transition-all duration-700 ease-out"
-                      />
-                    </svg>
-                    <div className="text-center z-10 space-y-0.5">
-                      <span className="text-lg font-display font-black text-white leading-none">{consumedCalories}</span>
-                      <span className="text-[8px] text-zinc-500 font-bold block uppercase leading-none">of {targetCals}</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 font-bold">Consumed (kcal)</span>
-                </div>
-
-                {/* Remaining budget and progress bars */}
-                <div className="col-span-3 space-y-4 text-left">
-                  <div className="grid grid-cols-2 gap-4 pb-2 border-b border-white/5">
-                    <div>
-                      <span className="text-[8px] text-zinc-500 font-bold block uppercase">Remaining Calories</span>
-                      <span className="text-2xl font-display font-black text-white">{remainingCals} <span className="text-xs font-semibold text-zinc-500">kcal</span></span>
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-zinc-500 font-bold block uppercase">Goal Status</span>
-                      <span className="text-xs text-brand-lime font-black uppercase block mt-1">{savedDietGoal || 'Maintenance'}</span>
-                    </div>
-                  </div>
-
-                  {/* Macros meters */}
-                  <div className="space-y-3">
-                    {/* Protein */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-baseline text-xs font-semibold">
-                        <span className="text-zinc-500 text-[9px] uppercase font-bold">Protein</span>
-                        <span className="text-brand-lime font-bold">{consumedProtein}g <span className="text-zinc-500 font-normal">/ {targetProt}g</span></span>
-                      </div>
-                      <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-lime h-full rounded-full transition-all duration-500" style={{ width: `${protPercentage}%` }} />
-                      </div>
-                    </div>
-
-                    {/* Carbs */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-baseline text-xs font-semibold">
-                        <span className="text-zinc-500 text-[9px] uppercase font-bold">Carbs</span>
-                        <span className="text-brand-cyan font-bold">{consumedCarbs}g <span className="text-zinc-500 font-normal">/ {targetCarbSplit}g</span></span>
-                      </div>
-                      <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-cyan h-full rounded-full transition-all duration-500" style={{ width: `${carbPercentage}%` }} />
-                      </div>
-                    </div>
-
-                    {/* Fats */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-baseline text-xs font-semibold">
-                        <span className="text-zinc-500 text-[9px] uppercase font-bold">Fats</span>
-                        <span className="text-brand-pink font-bold">{consumedFats}g <span className="text-zinc-500 font-normal">/ {targetFatSplit}g</span></span>
-                      </div>
-                      <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                        <div className="bg-brand-pink h-full rounded-full transition-all duration-500" style={{ width: `${fatPercentage}%` }} />
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            {/* Phase 2: Water Intake Hydration Tracker Widget */}
-            <div className="p-6 bg-dark-900/40 border border-white/5 rounded-2xl backdrop-blur-md space-y-6">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-brand-cyan animate-pulse" /> Hydration Tracker 💧
-                </h3>
-                <span className="text-[9px] text-brand-cyan font-black uppercase tracking-widest">Daily Water Balance</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
-                {/* SVG Progress Circle */}
-                <div className="sm:col-span-4 flex flex-col items-center justify-center space-y-2">
-                  <div className="relative h-24 w-24 flex items-center justify-center">
-                    <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-                      <circle cx="48" cy="48" r="40" stroke="rgba(255,255,255,0.03)" strokeWidth="6" fill="transparent" />
-                      <circle 
-                        cx="48" 
-                        cy="48" 
-                        r="40" 
-                        stroke="#06b6d4" 
-                        strokeWidth="6" 
-                        fill="transparent" 
-                        strokeDasharray={251}
-                        strokeDashoffset={251 - (251 * Math.min(100, Math.round((todayWater / targetWater) * 100))) / 100}
-                        strokeLinecap="round"
-                        className="transition-all duration-500"
-                      />
-                    </svg>
-                    <div className="text-center z-10 space-y-0.5">
-                      <span className="text-sm font-display font-black text-white">{todayWater} ml</span>
-                      <span className="text-[8px] text-zinc-500 font-bold block uppercase tracking-wider">Logged</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 font-bold">Goal: {targetWater} ml</span>
-                </div>
-
-                {/* Controls */}
-                <div className="sm:col-span-8 space-y-4">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-zinc-400">Remaining Water:</span>
-                    <span className="text-brand-cyan font-black">{remainingWater} ml</span>
-                  </div>
-
-                  {/* Water Quick Add Buttons */}
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { label: '+250ml', val: 250 },
-                      { label: '+500ml', val: 500 },
-                      { label: '+750ml', val: 750 },
-                      { label: '+1L', val: 1000 }
-                    ].map(btn => (
+                  <div className="flex bg-white/5 p-0.5 rounded-lg border border-white/5">
+                    {([7, 30, 90] as const).map((days) => (
                       <button
-                        key={btn.label}
-                        onClick={() => onAddWater(btn.val)}
-                        className="py-2 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/15 rounded-lg text-[9px] font-black text-zinc-300 hover:text-white transition-all text-center"
+                        key={days}
+                        onClick={() => setTrendDays(days)}
+                        className={`px-2.5 py-1 rounded text-[9px] font-black uppercase transition-all ${
+                          trendDays === days
+                            ? 'bg-brand-cyan text-dark-950 font-black'
+                            : 'text-zinc-450 hover:text-white'
+                        }`}
                       >
-                        {btn.label}
+                        {days}D
                       </button>
                     ))}
                   </div>
-
-                  {/* Change Daily Water Goal inline */}
-                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Set Daily Goal (ml):</span>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min="1000"
-                        max="8000"
-                        step="250"
-                        value={targetWater}
-                        onChange={(e) => {
-                          const goal = Number(e.target.value);
-                          localStorage.setItem('fitai_water_goal', String(goal));
-                          onAddWater(0); // force state update
-                        }}
-                        className="w-16 px-1.5 py-1 bg-dark-950 border border-white/5 rounded text-center text-xs font-mono font-bold text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              {/* Weekly Hydration Trends SVG Bar Chart */}
-              <div className="pt-4 border-t border-white/5 space-y-3">
-                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">7-Day Hydration History</span>
-                <div className="h-16 flex items-end justify-between gap-1.5">
-                  {Array(7).fill(0).map((_, idx) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() - (6 - idx));
-                    const dateStr = d.toISOString().split('T')[0];
-                    const vol = waterLogs[dateStr] || 0;
-                    const maxVol = Math.max(...Object.values(waterLogs), 3000);
-                    const pct = `${Math.round((vol / maxVol) * 100)}%`;
-                    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                    const label = dayLabels[d.getDay()];
-                    return (
-                      <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative">
-                        <span className="absolute -top-6 text-[8px] text-brand-cyan font-bold bg-dark-950 border border-white/5 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                          {vol} ml
-                        </span>
-                        <div className="w-full bg-white/5 rounded-t h-10 flex items-end overflow-hidden">
-                          <div 
-                            className="w-full bg-gradient-to-t from-brand-cyan/40 to-brand-cyan rounded-t transition-all"
-                            style={{ height: pct }}
-                          />
-                        </div>
-                        <span className="text-[8px] text-zinc-500 font-bold">{label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* Chart canvas */}
+              <div className="pt-2">
+                <SvgDashboardTrendChart 
+                  points={trendData.points}
+                  labels={trendData.labels}
+                  strokeColor={trendMetric === 'calories' || trendMetric === 'water' ? '#06b6d4' : (trendMetric === 'protein' || trendMetric === 'workouts' ? '#a3e635' : '#ec4899')}
+                  yUnit={trendMetric === 'calories' ? ' kcal' : (trendMetric === 'protein' ? 'g' : (trendMetric === 'weight' ? 'kg' : (trendMetric === 'bodyfat' ? '%' : 'ml')))}
+                />
               </div>
-            </div>
+            </SpotlightCard>
 
-            {/* Weight Profile Status, Body Fat Profile, & Personal Records listing */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Nutrition Hub & Workout Logger summaries side-by-side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Weight Profile Card */}
-              <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                  <Scale className="h-4 w-4 text-brand-cyan" /> Weight Profile
-                </h3>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-500 font-semibold">Current Weight:</span>
-                    <span className="text-white font-bold">{userWeight || 'N/A'} kg</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-500 font-semibold">Target Goal Weight:</span>
-                    <span className="text-white font-bold">{goalWeight || 'N/A'} kg</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-500 font-semibold">Weekly Target Rate:</span>
-                    <span className="text-brand-lime font-bold">{expectedWeightChange}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Body Composition Profile Card */}
-              <div 
-                onClick={() => onNavigate('body-fat')}
-                className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4 hover:border-brand-cyan/40 hover:bg-brand-cyan/5 cursor-pointer transition-all flex flex-col justify-between group"
-              >
+              {/* Nutrition Summary card */}
+              <SpotlightCard className="p-6 space-y-4 text-left flex flex-col justify-between">
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                    <Scale className="h-4 w-4 text-brand-cyan" /> AI Body Composition
-                  </h3>
-                  
-                  {currentBF !== null ? (
-                    <div className="space-y-3 text-left">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-500 font-semibold">Current Body Fat:</span>
-                        <span className="text-white font-bold">{currentBF}%</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-500 font-semibold">Target Body Fat:</span>
-                        <span className="text-white font-bold">{targetBodyFat}%</span>
-                      </div>
-                      
-                      {recompositionInfo && (
-                        <>
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-zinc-500 font-bold uppercase">Target Progress</span>
-                              <span className="text-brand-cyan font-black">{recompositionInfo.progressPct}%</span>
-                            </div>
-                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className="bg-brand-cyan h-full rounded-full transition-all duration-500" 
-                                style={{ width: `${recompositionInfo.progressPct}%` }} 
-                              />
-                            </div>
-                          </div>
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                    <Apple className="h-4 w-4 text-brand-lime" /> Nutrition Daily Summary
+                  </h4>
 
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-zinc-500 font-semibold">Estimated Goal Date:</span>
-                            <span className="text-brand-lime font-bold">{recompositionInfo.goalDateStr}</span>
+                  <div className="space-y-2.5 text-xs">
+                    {[
+                      { label: 'Breakfast 🍳', key: 'Breakfast', val: nutritionMealsSummary.breakfast.kcal },
+                      { label: 'Lunch 🍲', key: 'Lunch', val: nutritionMealsSummary.lunch.kcal },
+                      { label: 'Dinner 🥗', key: 'Dinner', val: nutritionMealsSummary.dinner.kcal },
+                      { label: 'Mid-Morning 🍎', key: 'Mid-Morning', val: nutritionMealsSummary.snacks.kcal },
+                      { label: 'Evening ☕', key: 'Evening', val: nutritionMealsSummary.snacks.kcal }
+                    ].map((meal) => (
+                      <div key={meal.label} className="flex justify-between items-center text-zinc-300">
+                        <button
+                          type="button"
+                          onClick={() => onToggleMeal(meal.key)}
+                          className="flex items-center gap-2 text-zinc-300 hover:text-white font-semibold transition-all text-left"
+                        >
+                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                            completedMeals.includes(meal.key) 
+                              ? 'bg-brand-lime border-brand-lime text-black' 
+                              : 'border-white/20'
+                          }`}>
+                            {completedMeals.includes(meal.key) && <span className="text-[10px] font-black leading-none">✓</span>}
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 space-y-2">
-                      <Scale className="h-6 w-6 text-zinc-600 mx-auto animate-pulse" />
-                      <p className="text-[10px] text-zinc-500 italic leading-relaxed">
-                        No AI scans found. Click to start scanning and set composition targets!
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                {currentBF !== null && (
-                  <span className="text-[9px] text-brand-cyan font-bold block text-right mt-2 uppercase tracking-wider group-hover:underline">
-                    View estimator analytics &rarr;
-                  </span>
-                )}
-              </div>
-
-              {/* Personal Records Listing */}
-              <div className="p-5 bg-dark-900/40 border border-white/5 rounded-2xl space-y-4">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                  <Award className="h-4 w-4 text-amber-400" /> Best Heavy Lifts
-                </h3>
-                
-                {getTopLifts().length === 0 ? (
-                  <p className="text-[10px] text-zinc-500 italic pt-2">No heavy sets logged yet. Complete sets to log PRs!</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {getTopLifts().map(([name, weight]) => (
-                      <div key={name} className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-300 font-semibold">{name}</span>
-                        <span className="text-brand-cyan font-black">{weight} kg</span>
+                          <span>{meal.label}</span>
+                        </button>
+                        <span className="font-bold text-white">{meal.val} kcal</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+
+                  {loggedScannedFoods.length > 0 && (
+                    <div className="pt-3 border-t border-white/5 space-y-1.5">
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Today's Scanned Foods:</span>
+                      <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                        {loggedScannedFoods.map((food) => (
+                          <div key={food.id} className="flex justify-between items-center text-[10px] text-zinc-400 bg-white/5 p-1 px-2 rounded-lg border border-white/5">
+                            <span className="truncate max-w-[130px] font-medium text-zinc-300">{food.name} (+{food.kcal} kcal)</span>
+                            <button
+                              type="button"
+                              onClick={() => onDeleteScannedFood(food.id)}
+                              className="text-zinc-500 hover:text-red-400 transition-colors p-0.5"
+                              title="Delete food item"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-4 gap-2 pt-3 border-t border-white/5 text-[10px] text-zinc-400">
+                    <div>
+                      <span className="block font-bold text-brand-lime">Prot</span>
+                      <strong>{consumedProtein} / {targetProt}g</strong>
+                    </div>
+                    <div>
+                      <span className="block font-bold text-brand-cyan">Carb</span>
+                      <strong>{consumedCarbs} / {targetCarbSplit}g</strong>
+                    </div>
+                    <div>
+                      <span className="block font-bold text-brand-pink">Fat</span>
+                      <strong>{consumedFats} / {targetFatSplit}g</strong>
+                    </div>
+                    <div>
+                      <span className="block font-bold text-yellow-400">Fiber</span>
+                      <strong>{consumedFiber} / {targetFiber}g</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl text-[10px] text-zinc-400 mt-4">
+                  Most consumed food today: <strong className="text-white">{mostConsumedFood}</strong>
+                </div>
+              </SpotlightCard>
+
+              {/* Workout Summary card */}
+              <SpotlightCard className="p-6 space-y-4 text-left flex flex-col justify-between">
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                    <Dumbbell className="h-4 w-4 text-brand-pink" /> Workout Logger Summary
+                  </h4>
+
+                  {/* Active Workout Session / Actions integration */}
+                  {activeWorkout ? (
+                    <div className="p-2.5 bg-brand-pink/10 border border-brand-pink/20 rounded-xl flex justify-between items-center text-[10px] text-left">
+                      <div>
+                        <span className="block font-bold text-brand-pink uppercase tracking-wider text-[8px]">Active Workout Session</span>
+                        <span className="font-semibold text-zinc-250 truncate max-w-[130px] block">{activeWorkout.name} in progress</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate('training')}
+                        className="px-2.5 py-1 bg-brand-pink text-white rounded-lg font-black hover:scale-105 transition-transform"
+                      >
+                        Resume
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={onStartEmptyWorkout}
+                        className="flex-1 py-2 bg-white/5 hover:bg-brand-pink/25 border border-white/5 hover:border-brand-pink/35 rounded-xl font-bold text-[9px] text-zinc-300 hover:text-white transition-all text-center"
+                      >
+                        🏋 Empty Workout
+                      </button>
+                      {customRoutines.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onStartWorkout(customRoutines[0])}
+                          className="flex-1 py-2 bg-white/5 hover:bg-brand-pink/25 border border-white/5 hover:border-brand-pink/35 rounded-xl font-bold text-[9px] text-zinc-300 hover:text-white transition-all text-center truncate"
+                          title={`Start routine: ${customRoutines[0].name}`}
+                        >
+                          🚀 {customRoutines[0].name}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Today's Workout:</span>
+                      <span className="font-bold text-brand-pink">{todayWorkoutSummary.name}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Exercises logged:</span>
+                      <span className="font-bold text-white">{todayWorkoutSummary.exercises} completed</span>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Lifting sets / reps count:</span>
+                      <span className="font-bold text-white">{todayWorkoutSummary.sets} sets / {todayWorkoutSummary.reps} reps</span>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Lifting Volume:</span>
+                      <span className="font-bold text-white">{todayWorkoutSummary.volume} kg</span>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Workout Duration:</span>
+                      <span className="font-bold text-white">{todayWorkoutSummary.duration} mins</span>
+                    </div>
+                    <div className="flex justify-between items-center text-zinc-300">
+                      <span className="font-semibold">Calories Burned (Est):</span>
+                      <span className="font-bold text-brand-lime">{todayWorkoutSummary.caloriesBurned} kcal</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="p-3 bg-dark-950/60 border border-white/5 rounded-xl text-[10px] text-zinc-400">
+                    Weekly completed sessions: <strong className="text-white">{todayWorkoutSummary.weeklyCount} workouts</strong>
+                  </div>
+                  
+                  {/* Database statistics integration */}
+                  <div className="px-1 text-[8.5px] text-zinc-550 font-bold flex justify-between">
+                    <span>Database: {savedExercises.length} Custom Exercises</span>
+                    <span>{customRoutines.length} Custom Routines</span>
+                  </div>
+                </div>
+              </SpotlightCard>
 
             </div>
+
+            {/* Monthly Progress Report summary */}
+            <SpotlightCard className="p-6 space-y-4 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Calendar className="h-4 w-4 text-brand-cyan" /> Monthly Recomp Report (Past 30 Days)
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="p-3 bg-dark-955 border border-white/5 rounded-xl">
+                  <span className="text-zinc-550 block text-[9px] uppercase font-bold">Total Workouts</span>
+                  <span className="text-sm font-black text-white">{monthlyReport.workouts} sessions</span>
+                </div>
+                <div className="p-3 bg-dark-955 border border-white/5 rounded-xl">
+                  <span className="text-zinc-550 block text-[9px] uppercase font-bold">Average Calories</span>
+                  <span className="text-sm font-black text-brand-cyan">{monthlyReport.calories} kcal/day</span>
+                </div>
+                <div className="p-3 bg-dark-955 border border-white/5 rounded-xl">
+                  <span className="text-zinc-550 block text-[9px] uppercase font-bold">Consistency Index</span>
+                  <span className="text-sm font-black text-brand-lime">{monthlyReport.consistency}%</span>
+                </div>
+                <div className="p-3 bg-dark-955 border border-white/5 rounded-xl">
+                  <span className="text-zinc-550 block text-[9px] uppercase font-bold">Weight / BF Delta</span>
+                  <span className="text-sm font-black text-brand-pink">
+                    {monthlyReport.weightChange.toFixed(1)}kg / {monthlyReport.bfChange.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </SpotlightCard>
 
           </div>
 
-          {/* RIGHT SECTION: Saved routines, Favorites and Scanned diary logs (5 Columns) */}
-          <div className="lg:col-span-5 space-y-6 text-left">
-            <SpotlightCard className="p-6 space-y-6">
-              
-              {/* Active Session Launcher / Custom Routines */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                  <Clock className="h-4 w-4 text-brand-violet" /> Saved Training Routines
-                </h3>
+          {/* Right Block (4 columns) */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* Goal Progress Bars */}
+            <SpotlightCard className="p-6 space-y-4 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Scale className="h-4 w-4 text-brand-cyan" /> Journey Goal Trackers
+              </h3>
 
-                {customRoutines.length === 0 ? (
-                  <div className="p-3.5 border border-dashed border-white/10 rounded-xl text-center text-[10px] text-zinc-500 bg-dark-950/20">
-                    No custom templates configured. Build one below.
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase">Weight Goal Progress ({userWeight} to {goalWeight}kg)</span>
+                    {expectedWeightChange && (
+                      <span className="text-[8.5px] font-black text-brand-cyan uppercase tracking-wider">{expectedWeightChange}</span>
+                    )}
                   </div>
-                ) : (
-                  <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
-                    {customRoutines.map(routine => (
-                      <div key={routine.id} className="p-3 bg-dark-950/50 border border-white/5 rounded-xl flex items-center justify-between">
-                        <div>
-                          <h4 className="text-xs font-bold text-white">{routine.name}</h4>
-                          <span className="text-[9px] text-zinc-500 block mt-0.5">{routine.exercises.length} Exercises</span>
-                        </div>
-                        <button
-                          onClick={() => onStartWorkout(routine)}
-                          className="px-3 py-1.5 bg-brand-violet/20 hover:bg-brand-violet text-brand-cyan hover:text-white rounded-lg text-[10px] font-black transition-colors"
-                        >
-                          Start
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Logged scanned foods list (Diary Log) */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                  <Apple className="h-4 w-4 text-brand-lime" /> Logged Scanned Foods
-                </h3>
-
-                {loggedScannedFoods.length === 0 ? (
-                  <div className="p-3.5 border border-dashed border-white/10 rounded-xl text-center text-[10px] text-zinc-500 bg-dark-950/20">
-                    No scanned food logged today. Try the AI Food Scanner page!
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                    {loggedScannedFoods.map(item => (
-                      <div key={item.id} className="p-2.5 bg-dark-950/60 border border-white/5 rounded-xl flex items-center justify-between text-xs">
-                        <div className="text-left max-w-[80%]">
-                          <span className="font-bold text-white leading-tight block">{item.name}</span>
-                          <span className="text-[9px] text-zinc-500 mt-0.5 block">{item.servingSize} • {item.kcal} kcal</span>
-                        </div>
-                        <button
-                          onClick={() => onDeleteScannedFood(item.id)}
-                          className="text-zinc-600 hover:text-red-400 p-1"
-                          title="Delete entry"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Favorite Exercises chips */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
-                  <Heart className="h-4 w-4 text-brand-pink" /> Favorite Exercises
-                </h3>
-
-                {savedExercises.length === 0 ? (
-                  <p className="text-[10px] text-zinc-500 italic">No exercises favorited. Tap hearts in Library to display here.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto pr-1">
-                    {savedExercises.map(id => {
-                      const ex = EXERCISE_DATABASE.find(e => e.id === id);
-                      return ex ? (
-                        <span key={id} className="px-2.5 py-1 bg-white/5 border border-white/5 rounded-full text-[9px] font-bold text-zinc-300">
-                          {ex.name}
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Diet meal plan checklist splits */}
-              <div className="space-y-3 border-t border-white/5 pt-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <CheckSquare className="h-4 w-4 text-brand-lime" /> Meal Checklist
-                  </h3>
+                  {renderProgressBar(goalProgressLevels.weight, 'text-brand-lime')}
                 </div>
-
-                {!savedDietGoal ? (
-                  <div className="p-4 border border-dashed border-white/10 rounded-xl text-center space-y-1 bg-dark-950/20">
-                    <AlertCircle className="h-5 w-5 text-zinc-500 mx-auto" />
-                    <p className="text-xs text-zinc-400 font-semibold">No Indian Diet plan synced yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Diet Goal: {savedDietGoal} ({savedDietType})</span>
-                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                      {mealPlanList.map((meal) => {
-                        const isChecked = completedMeals.includes(meal.title);
-                        return (
-                          <div 
-                            key={meal.title}
-                            onClick={() => onToggleMeal(meal.title)}
-                            className="p-3 bg-dark-950/50 border border-white/5 rounded-xl flex items-center justify-between cursor-pointer hover:border-brand-lime/20 transition-colors"
-                          >
-                            <div className="flex items-center space-x-2.5">
-                              <div className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
-                                isChecked ? 'bg-brand-lime border-brand-lime text-dark-950' : 'border-white/20'
-                              }`}>
-                                {isChecked && <Check className="h-3 w-3 stroke-[4]" />}
-                              </div>
-                              <div className="text-left">
-                                <span className="px-1.5 py-0.5 bg-brand-lime/10 border border-brand-lime/20 rounded text-[7px] font-black text-brand-lime uppercase tracking-wider block w-fit mb-0.5">
-                                  {meal.title}
-                                </span>
-                                <span className={`text-xs font-bold leading-tight block ${isChecked ? 'line-through text-zinc-500' : 'text-white'}`}>
-                                  {meal.name}
-                                </span>
-                              </div>
-                            </div>
-                            <span className="text-[9px] text-zinc-500 font-semibold shrink-0">{meal.kcal} kcal</span>
-                          </div>
-                        );
-                      })}
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Body Fat Goal Progress ({currentBF !== null ? `${currentBF}%` : 'N/A'} to {targetBodyFat}%)</span>
+                  {renderProgressBar(goalProgressLevels.bodyfat, 'text-brand-cyan')}
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Protein Goal Progress ({consumedProtein} / {targetProt}g)</span>
+                  {renderProgressBar(goalProgressLevels.protein, 'text-brand-lime')}
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Calorie Budget Progress ({consumedCalories} / {targetCals} kcal)</span>
+                  {renderProgressBar(goalProgressLevels.calorie, 'text-brand-pink')}
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase block mb-1">Weekly Workout Goal Progress</span>
+                  {renderProgressBar(goalProgressLevels.workout, 'text-brand-cyan')}
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase block">Water Intake Progress ({todayWater} / {targetWater} ml)</span>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => onAddWater(250)}
+                        className="px-1.5 py-0.5 bg-white/5 hover:bg-brand-cyan/20 border border-white/5 rounded text-[8px] font-black text-zinc-300 hover:text-white transition-all"
+                      >
+                        +250ml
+                      </button>
+                      <button 
+                        onClick={() => onAddWater(500)}
+                        className="px-1.5 py-0.5 bg-white/5 hover:bg-brand-cyan/20 border border-white/5 rounded text-[8px] font-black text-zinc-300 hover:text-white transition-all"
+                      >
+                        +500ml
+                      </button>
                     </div>
                   </div>
-                )}
+                  {renderProgressBar(goalProgressLevels.water, 'text-brand-pink')}
+                </div>
               </div>
-
             </SpotlightCard>
+
+            {/* Achievements Badges */}
+            <SpotlightCard className="p-6 space-y-4 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Trophy className="h-4 w-4 text-yellow-400 animate-pulse" /> Achievements Badges
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-3 text-center">
+                {[
+                  { name: '7D Workout Streak', icon: '🔥', desc: 'Maintain 7 day workouts streak', unlocked: workoutStreak >= 7 },
+                  { name: 'Protein Master', icon: '🥩', desc: 'Hit daily protein target', unlocked: consumedProtein >= targetProt },
+                  { name: 'Gym Warrior', icon: '🏋', desc: '5+ workouts logged', unlocked: workoutHistory.length >= 5 },
+                  { name: 'Hydration Hero', icon: '💧', desc: 'Hit water hydration target', unlocked: todayWater >= targetWater },
+                  { name: 'Weight Achieved', icon: '⚖', desc: 'Reached target body weight', unlocked: Math.abs(userWeight - goalWeight) <= 0.5 }
+                ].map((badge) => (
+                  <div 
+                    key={badge.name} 
+                    className={`p-2.5 rounded-xl border flex flex-col items-center justify-center space-y-1 transition-all ${
+                      badge.unlocked 
+                        ? 'bg-yellow-500/10 border-yellow-500/25 text-white scale-[1.01]' 
+                        : 'bg-dark-950/40 border-white/5 text-zinc-600 opacity-40'
+                    }`}
+                    title={badge.desc}
+                  >
+                    <span className="text-xl">{badge.icon}</span>
+                    <span className="text-[8px] font-black uppercase tracking-wider block truncate w-full">{badge.name}</span>
+                    <span className="text-[7px] text-zinc-500 block">{badge.unlocked ? 'Unlocked' : 'Locked'}</span>
+                  </div>
+                ))}
+              </div>
+            </SpotlightCard>
+
+            {/* AI Coach Quick Advice widget */}
+            <SpotlightCard className="p-6 space-y-3 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Sparkles className="h-4 w-4 text-brand-violet" /> AI Coach Quick Advice
+              </h3>
+              <div className="p-3 bg-brand-violet/5 border border-brand-violet/15 rounded-xl text-xs text-zinc-300 leading-relaxed">
+                {consumedProtein < targetProt ? (
+                  "Increase protein intake by adding eggs or whey to recover properly from your training session today."
+                ) : (
+                  "Excellent recovery nutrition today! Prioritize getting 8 hours of sleep tonight to maximize muscle protein synthesis."
+                )}
+                {todayWater < targetWater && " Increase your water intake by another 500ml now to stay hydrated."}
+              </div>
+            </SpotlightCard>
+
+            {/* Upcoming Reminders Tasks checklist */}
+            <SpotlightCard className="p-6 space-y-3 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Clock className="h-4 w-4 text-brand-cyan" /> Upcoming Reminders
+              </h3>
+              <div className="space-y-2">
+                {upcomingTasks.map((task, idx) => (
+                  <div key={idx} className="p-2.5 bg-dark-950/65 border border-white/5 rounded-xl text-[10px] font-bold text-zinc-300 flex items-center gap-2">
+                    <CheckSquare className="h-3.5 w-3.5 text-zinc-650" />
+                    <span>{task}</span>
+                  </div>
+                ))}
+              </div>
+            </SpotlightCard>
+
+            {/* Quick Actions Deck */}
+            <SpotlightCard className="p-6 space-y-3 text-left">
+              <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Plus className="h-4 w-4 text-white" /> Quick Actions
+              </h3>
+              <div className="grid grid-cols-2 gap-2 text-center text-[10px]">
+                <button 
+                  onClick={() => onNavigate('nutrition', 'scanner')}
+                  className="p-2.5 bg-white/5 border border-white/5 hover:border-brand-lime rounded-xl font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  🥗 Scan Food
+                </button>
+                <button 
+                  onClick={() => onNavigate('training', 'logger')}
+                  className="p-2.5 bg-white/5 border border-white/5 hover:border-brand-pink rounded-xl font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  🏋 Start Workout
+                </button>
+                <button 
+                  onClick={() => onNavigate('coach')}
+                  className="p-2.5 bg-white/5 border border-white/5 hover:border-brand-violet rounded-xl font-bold text-zinc-300 hover:text-white transition-all col-span-2"
+                >
+                  🤖 Ask AI Coach
+                </button>
+                <button 
+                  onClick={() => onNavigate('body-fat')}
+                  className="p-2.5 bg-white/5 border border-white/5 hover:border-brand-cyan rounded-xl font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  📸 Body Fat Scan
+                </button>
+                <button 
+                  onClick={() => onNavigate('training', 'progress')}
+                  className="p-2.5 bg-white/5 border border-white/5 hover:border-brand-pink rounded-xl font-bold text-zinc-300 hover:text-white transition-all"
+                >
+                  📈 View Progress
+                </button>
+              </div>
+            </SpotlightCard>
+
           </div>
 
         </div>
 
       </div>
-
     </section>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, Upload, Apple, Sparkles, Scale, Trash2, 
-  Clock, ShieldAlert, CheckCircle2, Info, ArrowLeft
+  Clock, ShieldAlert, CheckCircle2, Info, ArrowLeft, FolderOpen
 } from 'lucide-react';
 import { SpotlightCard } from './SpotlightCard';
 
@@ -406,6 +406,9 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
     setImageName(null);
     setCameraActive(false);
     setCameraError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraError("Camera access unavailable. Upload a photo instead.");
@@ -484,8 +487,32 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
         }
       };
       reader.readAsDataURL(file);
+    } else {
+      setSelectedImage(null);
+      setImageName(null);
+      setAnalysisResults(null);
+      setAnalysisError(null);
     }
   };
+
+  const handleFileCancel = () => {
+    if (!fileInputRef.current || !fileInputRef.current.files || fileInputRef.current.files.length === 0) {
+      setSelectedImage(null);
+      setImageName(null);
+      setAnalysisResults(null);
+      setAnalysisError(null);
+    }
+  };
+
+  useEffect(() => {
+    const input = fileInputRef.current;
+    if (input) {
+      input.addEventListener('cancel', handleFileCancel);
+      return () => {
+        input.removeEventListener('cancel', handleFileCancel);
+      };
+    }
+  }, []);
 
   // Drag and drop events
   const handleDragOver = (e: React.DragEvent) => {
@@ -1101,7 +1128,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                       <Camera className="h-4 w-4" /> Capture Photo
                     </button>
                   ) : selectedImage ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {!analysisResults && !analysisError && (
                         <button
                           onClick={handleTriggerAnalysis}
@@ -1117,6 +1144,10 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                             setSelectedImage(null);
                             setAnalysisResults(null);
                             setAnalysisError(null);
+                            setImageName(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
                             handleStartCamera();
                           }}
                           className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-cyan text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
@@ -1128,37 +1159,70 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                             setSelectedImage(null);
                             setAnalysisResults(null);
                             setAnalysisError(null);
+                            setImageName(null);
                             setCameraActive(false);
                             setCameraError('');
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
                           }}
                           className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/40 text-zinc-300 hover:text-red-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
                         >
                           <Trash2 className="h-4 w-4 text-red-500" /> Remove Image
                         </button>
                       </div>
+
+                      {/* File Name Display */}
+                      <div className="text-left bg-dark-900/60 border border-white/5 rounded-xl p-3">
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                          Selected File
+                        </div>
+                        <div className="text-xs font-mono font-semibold text-zinc-200 truncate">
+                          {imageName || 'No file chosen'}
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={handleStartCamera}
-                        className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-cyan text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
-                      >
-                        <Camera className="h-4 w-4 text-brand-cyan" /> Take Photo
-                      </button>
-                      
-                      <label className="py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-violet text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]">
-                        <Upload className="h-4 w-4 text-brand-violet" /> Upload Photo
-                        <input 
-                          ref={fileInputRef}
-                          type="file" 
-                          accept="image/jpeg,image/jpg,image/png,image/webp" 
-                          onChange={handleFileChange}
-                          className="block mt-2 text-xs text-zinc-400"
-                        />
-                      </label>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={handleStartCamera}
+                          className="py-3 bg-gradient-to-r from-brand-violet/10 to-brand-cyan/10 hover:from-brand-violet/20 hover:to-brand-cyan/20 border border-brand-violet/20 hover:border-brand-cyan/40 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] duration-200 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                        >
+                          <Camera className="h-4 w-4 text-brand-cyan" /> Take Photo
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="py-3 bg-gradient-to-r from-brand-violet/10 to-brand-cyan/10 hover:from-brand-violet/20 hover:to-brand-cyan/20 border border-brand-violet/20 hover:border-brand-cyan/40 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] duration-200 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                        >
+                          <FolderOpen className="h-4 w-4 text-brand-violet" /> Upload Photo
+                        </button>
+                      </div>
+
+                      {/* File Name Display */}
+                      <div className="text-left bg-dark-900/60 border border-white/5 rounded-xl p-3">
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-1">
+                          Selected File
+                        </div>
+                        <div className="text-xs font-mono font-semibold text-zinc-200 truncate">
+                          {imageName || 'No file chosen'}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
+
+                {/* Hidden File Input */}
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/jpeg,image/jpg,image/png,image/webp" 
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
 
 
               </SpotlightCard>

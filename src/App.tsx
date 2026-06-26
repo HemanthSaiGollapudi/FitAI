@@ -499,6 +499,7 @@ function App() {
         [todayStr]: (prev[todayStr] || 0) + ml
       };
       localStorage.setItem('fitai_water_logs', JSON.stringify(next));
+      window.dispatchEvent(new Event('fitai_logs_updated'));
       return next;
     });
   };
@@ -678,6 +679,7 @@ function App() {
     setWorkoutHistory((prev) => {
       const next = [newLog, ...prev];
       localStorage.setItem('fitai_workout_history', JSON.stringify(next));
+      window.dispatchEvent(new Event('fitai_logs_updated'));
       return next;
     });
 
@@ -740,6 +742,7 @@ function App() {
     setLoggedScannedFoods((prev) => {
       const next = [...prev, newLog];
       localStorage.setItem('fitai_scanned_food_logs', JSON.stringify(next));
+      window.dispatchEvent(new Event('fitai_logs_updated'));
       return next;
     });
   };
@@ -748,6 +751,7 @@ function App() {
     setLoggedScannedFoods((prev) => {
       const next = prev.filter((item) => item.id !== id);
       localStorage.setItem('fitai_scanned_food_logs', JSON.stringify(next));
+      window.dispatchEvent(new Event('fitai_logs_updated'));
       return next;
     });
   };
@@ -975,6 +979,13 @@ function App() {
           onNavigate={handleNavigate}
           onStartWorkout={handleStartWorkout}
           onChangeDietType={handleChangeDietType}
+          userAge={currentUser?.age || 25}
+          userGender={currentUser?.gender || 'Male'}
+          userHeight={currentUser?.height || 170}
+          targetWeight={goalWeight}
+          loggedScannedFoods={loggedScannedFoods}
+          weightHistory={weightHistory}
+          completedExercises={completedExercises}
         />
       ) : activeView === 'body-fat' ? (
         <BodyFatEstimator />

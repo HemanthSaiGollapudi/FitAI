@@ -73,8 +73,8 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
   
   // Registration specific fields
   const [name, setName] = useState('');
-  const age = 25;
-  const gender: 'Male' | 'Female' = 'Male';
+  const [age, setAge] = useState(25);
+  const [gender, setGender] = useState<'Male' | 'Female'>('Male');
   const [height, setHeight] = useState(170);
   const [weight, setWeight] = useState(70);
   const [goal, setGoal] = useState('Gain Muscle');
@@ -653,6 +653,35 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
                         required
                         disabled={!isFirebaseConfigured}
                       />
+                    </div>
+
+                    {/* Age */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Age (Years)</label>
+                      <input
+                        type="number"
+                        min="12"
+                        max="100"
+                        value={age}
+                        onChange={(e) => setAge(Number(e.target.value) || 25)}
+                        className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none"
+                        required
+                        disabled={!isFirebaseConfigured}
+                      />
+                    </div>
+
+                    {/* Gender */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Gender</label>
+                      <select
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-dark-950 border border-white/5 rounded-xl text-xs text-white focus:outline-none focus:border-brand-violet"
+                        disabled={!isFirebaseConfigured}
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
                     </div>
 
                     {/* Height */}

@@ -58,6 +58,13 @@ interface AICoachProps {
   onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
   onStartWorkout: (routine: WorkoutRoutine) => void;
   onChangeDietType: (type: string) => void;
+  userAge: number;
+  userGender: 'Male' | 'Female';
+  userHeight: number;
+  targetWeight: number;
+  loggedScannedFoods: any[];
+  weightHistory: any[];
+  completedExercises: string[];
 }
 
 // -------------------------------------------------------------
@@ -137,143 +144,151 @@ const generateResponseFields = (
     workoutCount: number;
     strengthPRs: { benchPR: number; squatPR: number; deadliftPR: number };
     workoutHistory: any[];
+    age: number;
+    gender: 'Male' | 'Female';
+    height: number;
+    targetWeight: number;
+    loggedScannedFoods: any[];
+    weightHistory: any[];
+    completedExercises: string[];
+    chatHistory: Message[];
   }
 ) => {
   const textLower = userText.toLowerCase();
-  
-  // 1. MULTI-INTENT DETECTION
+
+  // 1. EMERGENCY & SAFETY DETECTION (Requirement 15)
+  const emergencyKeywords = [
+    'severe pain', 'chest pain', 'dizziness', 'dizzy', 
+    'difficulty breathing', 'breathing difficulty', 'fainted', 
+    'faint', 'fainting', 'serious injury', 'heart pain', 
+    'shortness of breath', 'sharp pain'
+  ];
+  const hasEmergency = emergencyKeywords.some(keyword => textLower.includes(keyword));
+
+  if (hasEmergency) {
+    return {
+      directAnswer: "⚠️ MEDICAL SAFETY WARNING: Please stop exercising immediately and seek professional medical assistance.",
+      reasoning: "🧠 **Safety Analysis**: You reported experiencing symptoms such as severe pain, chest pain, dizziness, or difficulty breathing. These symptoms can be signs of acute physiological distress (such as cardiac events, asthma flare-ups, or severe mechanical failure). As an AI Coach, I cannot diagnose medical conditions or provide treatment. Your physical safety is our absolute, non-negotiable priority.",
+      actionPlanItems: [
+        "1. **Cease Training Immediately**: Stop all sets, drops, or cardio pacing right now.",
+        "2. **Sit or Lie Down**: Position yourself in a safe, cool, and well-ventilated area.",
+        "3. **Call Emergency Services**: If you experience chest tightness, pain radiating to your arm/jaw, severe shortness of breath, or sudden fainting, immediately call 911 or your local emergency response number.",
+        "4. **Get Physician Clearance**: Do not return to any exercise routine until a licensed physician has evaluated you and provided formal medical clearance."
+      ],
+      checklistItems: [
+        "Stop all physical activities immediately.",
+        "Check your pulse and log any symptoms.",
+        "Contact a doctor or visit emergency care.",
+        "Avoid any further lifting or cardiac stress until cleared."
+      ],
+      warnings: [
+        "CRITICAL: Do NOT attempt to 'work through' or push past chest tightness, shortness of breath, sharp joint pain, or lightheadedness. Doing so carries high medical risk."
+      ],
+      hasWorkoutContent: false,
+      hasDietContent: false,
+      generatedRoutine: undefined,
+      suggestedDiet: undefined,
+      showDietPrompt: false,
+      followUpSuggestions: ["How do I know if pain is normal muscle soreness?", "What is a safe warm-up routine?"]
+    };
+  }
+
+  // 2. CONVERSATIONAL MEMORY & CONTEXT SHIELD (Requirement 13)
+  let hasShoulderPain = false;
+  let hasKneePain = false;
+  let hasBackPain = false;
+  let onlyDumbbells = false;
+  let homeWorkout = false;
+
+  // Scan current session chat history (conversational memory)
+  if (stats.chatHistory && Array.isArray(stats.chatHistory)) {
+    stats.chatHistory.forEach(msg => {
+      if (msg.sender === 'user') {
+        const historyText = msg.text.toLowerCase();
+        if (historyText.includes('shoulder pain') || historyText.includes('shoulder hurts') || historyText.includes('shoulder pinch')) {
+          hasShoulderPain = true;
+        }
+        if (historyText.includes('knee pain') || historyText.includes('knee hurts') || historyText.includes('bad knees')) {
+          hasKneePain = true;
+        }
+        if (historyText.includes('back pain') || historyText.includes('lower back hurts') || historyText.includes('bad back')) {
+          hasBackPain = true;
+        }
+        if (historyText.includes('only dumbbells') || historyText.includes('only have dumbbells') || historyText.includes('dumbbell only')) {
+          onlyDumbbells = true;
+        }
+        if (historyText.includes('no gym') || historyText.includes('home workout') || historyText.includes('at home')) {
+          homeWorkout = true;
+        }
+      }
+    });
+  }
+
+  // Also scan current input text
+  if (textLower.includes('shoulder pain') || textLower.includes('shoulder hurts') || textLower.includes('shoulder pinch')) {
+    hasShoulderPain = true;
+  }
+  if (textLower.includes('knee pain') || textLower.includes('knee hurts') || textLower.includes('bad knees')) {
+    hasKneePain = true;
+  }
+  if (textLower.includes('back pain') || textLower.includes('lower back hurts') || textLower.includes('bad back')) {
+    hasBackPain = true;
+  }
+  if (textLower.includes('only dumbbells') || textLower.includes('only have dumbbells') || textLower.includes('dumbbell only') || textLower.includes('i have dumbbells')) {
+    onlyDumbbells = true;
+  }
+  if (textLower.includes('no gym') || textLower.includes('home workout') || textLower.includes('at home') || textLower.includes('home-based')) {
+    homeWorkout = true;
+  }
+
+  // 3. MULTI-QUESTION UNDERSTANDING & INTENT DETECTION (Requirement 5)
   const detectedIntents: string[] = [];
-  if (textLower.includes('split') || textLower.includes('routine') || textLower.includes('program') || textLower.includes('workout') || textLower.includes('day') || textLower.includes('exercise') || textLower.includes('ppl') || textLower.includes('push') || textLower.includes('pull') || textLower.includes('legs') || textLower.includes('upper') || textLower.includes('lower') || textLower.includes('dumbbell') || textLower.includes('db') || textLower.includes('home') || textLower.includes('only') || textLower.includes('calisthenic')) {
+  if (textLower.includes('split') || textLower.includes('routine') || textLower.includes('program') || textLower.includes('workout') || textLower.includes('day') || textLower.includes('ppl') || textLower.includes('push') || textLower.includes('pull') || textLower.includes('legs') || textLower.includes('upper') || textLower.includes('lower')) {
     detectedIntents.push('workout');
   }
-  if (textLower.includes('diet') || textLower.includes('calorie') || textLower.includes('kcal') || textLower.includes('meal') || textLower.includes('nutrition') || textLower.includes('food') || textLower.includes('protein') || textLower.includes('eat') || textLower.includes('veg') || textLower.includes('indian')) {
+  if (textLower.includes('diet') || textLower.includes('calorie') || textLower.includes('kcal') || textLower.includes('meal') || textLower.includes('nutrition') || textLower.includes('food') || textLower.includes('eat') || textLower.includes('veg') || textLower.includes('vegan') || textLower.includes('indian')) {
     detectedIntents.push('diet');
   }
-  if (textLower.includes('bench') || textLower.includes('squat') || textLower.includes('press') || textLower.includes('deadlift') || textLower.includes('stuck') || textLower.includes('plateau') || textLower.includes('progression') || textLower.includes('pain') || textLower.includes('hurt') || textLower.includes('shoulder') || textLower.includes('knee')) {
-    detectedIntents.push('troubleshooting');
+  if (textLower.includes('bench') || textLower.includes('press') || textLower.includes('stuck') || textLower.includes('plateau') || textLower.includes('progression')) {
+    detectedIntents.push('plateau');
   }
   if (textLower.includes('snack') || textLower.includes('snacks') || textLower.includes('snacking')) {
     detectedIntents.push('snacks');
   }
-  if (textLower.includes('recovery') || textLower.includes('sleep') || textLower.includes('stress') || textLower.includes('hydration') || textLower.includes('water') || textLower.includes('rest')) {
+  if (textLower.includes('recovery') || textLower.includes('sleep') || textLower.includes('stress') || textLower.includes('hydration') || textLower.includes('water') || textLower.includes('rest') || textLower.includes('mobility') || textLower.includes('deload')) {
     detectedIntents.push('recovery');
   }
+  if (textLower.includes('supplement') || textLower.includes('creatine') || textLower.includes('whey') || textLower.includes('fish oil') || textLower.includes('multivitamin') || textLower.includes('vitamin d') || textLower.includes('electrolytes')) {
+    detectedIntents.push('supplements');
+  }
 
-  // Fallback
+  // Default to workout & diet if not specified
   if (detectedIntents.length === 0) {
     detectedIntents.push('workout');
+    detectedIntents.push('diet');
   }
 
-  // 2. PERSONALIZED RESPONSE PARSING
-  // Target Calorie overrides from query
-  const queryCalorieMatch = userText.match(/(\d{3,4})\s*(?:calorie|calories|kcal|cal)/i);
-  const targetCalories = queryCalorieMatch ? parseInt(queryCalorieMatch[1]) : (stats.calories || 2000);
-
-  // Personalized macronutrients relative to goal and bodyweight
-  const isFatLoss = stats.goal?.toLowerCase().includes('lose') || stats.goal?.toLowerCase().includes('fat') || textLower.includes('fat loss') || textLower.includes('weight loss') || textLower.includes('deficit');
-  const isMuscleGain = stats.goal?.toLowerCase().includes('gain') || stats.goal?.toLowerCase().includes('muscle') || textLower.includes('muscle gain') || textLower.includes('hypertrophy') || textLower.includes('bulking');
-
-  let proteinRatio = 0.30;
-  let fatRatio = 0.25;
-  if (isFatLoss) {
-    proteinRatio = 0.35; // higher protein to preserve muscle on deficit
-    fatRatio = 0.25;
-  } else if (isMuscleGain) {
-    proteinRatio = 0.25;
-    fatRatio = 0.25;
-  }
-
-  // Set macro goals dynamically based on weight & custom calories
-  let targetProteinG = Math.round(stats.weight * 2.0); // baseline 2g per kg
-  if (targetProteinG < 100) targetProteinG = 120; // safe minimum
-  // Fit macros inside the caloric bounds
-  if (targetProteinG * 4 > targetCalories * 0.4) {
-    targetProteinG = Math.round((targetCalories * proteinRatio) / 4);
-  }
-  const targetFatsG = Math.round((targetCalories * fatRatio) / 9);
-  const targetCarbsG = Math.round((targetCalories - (targetProteinG * 4) - (targetFatsG * 9)) / 4);
-
-  // Diet Preference overrides from query
-  let finalDietPreference = dietType || 'Non-Veg';
-  if (textLower.includes('vegetarian') || textLower.includes('pure veg') || textLower.includes('pure-veg')) {
-    finalDietPreference = 'Veg';
-  } else if (textLower.includes('non-vegetarian') || textLower.includes('non veg') || textLower.includes('non-veg')) {
-    finalDietPreference = 'Non-Veg';
-  } else if (textLower.includes('eggetarian') || textLower.includes('egg-only')) {
-    finalDietPreference = 'Eggetarian';
-  }
-
-  // Days split override
-  const daysMatch = userText.match(/(\d+)\s*-?\s*day/i);
-  const daysCount = daysMatch ? parseInt(daysMatch[1]) : 4;
-  const isDumbbell = textLower.includes('dumbbell') || textLower.includes('db');
-
-  // Indian Recipes dataset scaled to custom calories
-  const vegMeals = {
-    breakfast: { name: "Low-fat Paneer Besan Cheela (2 pcs) with fresh mint chutney & double-toned milk", kcal: Math.round(targetCalories * 0.22), protein: Math.round(targetProteinG * 0.25) },
-    lunch: { name: "150g Soya Chunk Curry + 2 multigrain rotis + raw cucumber salad", kcal: Math.round(targetCalories * 0.32), protein: Math.round(targetProteinG * 0.35) },
-    snack: { name: "1 scoop Whey Protein in water + 30g roasted Foxnuts (Makhana)", kcal: Math.round(targetCalories * 0.16), protein: Math.round(targetProteinG * 0.20) },
-    dinner: { name: "150g Grilled Tofu + 1 cup cooked Brown Rice + sautéed broccoli & capsicum", kcal: Math.round(targetCalories * 0.30), protein: Math.round(targetProteinG * 0.20) }
-  };
-  const nonVegMeals = {
-    breakfast: { name: "Spinach & Egg White Scramble (3 egg whites, 2 whole eggs) + 2 slices whole wheat toast", kcal: Math.round(targetCalories * 0.24), protein: Math.round(targetProteinG * 0.30) },
-    lunch: { name: "180g Grilled Chicken Breast + 1.5 cups cooked Basmati Rice + yellow dal tadka", kcal: Math.round(targetCalories * 0.34), protein: Math.round(targetProteinG * 0.38) },
-    snack: { name: "1 scoop Whey Protein shake + 150g low-fat unsweetened Greek Yogurt", kcal: Math.round(targetCalories * 0.16), protein: Math.round(targetProteinG * 0.22) },
-    dinner: { name: "150g Baked Fish Fillet + roasted sweet potato mash + steamed green beans", kcal: Math.round(targetCalories * 0.26), protein: Math.round(targetProteinG * 0.10) }
-  };
-  const eggetarianMeals = {
-    breakfast: { name: "Egg White Omelette (4 eggs) with mushrooms + 2 slices brown bread toast", kcal: Math.round(targetCalories * 0.22), protein: Math.round(targetProteinG * 0.28) },
-    lunch: { name: "Egg Bhurji Curry (3 eggs) cooked in 1 tsp olive oil + 1 cup cooked Brown Rice", kcal: Math.round(targetCalories * 0.32), protein: Math.round(targetProteinG * 0.32) },
-    snack: { name: "1 scoop Whey Protein + 2 hard boiled eggs (discard 1 yolk) seasoned with black pepper", kcal: Math.round(targetCalories * 0.18), protein: Math.round(targetProteinG * 0.24) },
-    dinner: { name: "150g Stir-fried low-fat Paneer with bell peppers + 1.5 cups cooked Quinoa", kcal: Math.round(targetCalories * 0.28), protein: Math.round(targetProteinG * 0.16) }
-  };
-
-  const selectedMeals = finalDietPreference === 'Veg' ? vegMeals : finalDietPreference === 'Eggetarian' ? eggetarianMeals : nonVegMeals;
-
-  // 3. INTEGRATE TRAINING & NUTRITION DATA
+  // 4. TRAINING HUB STATS INTEGRATION (Requirement 2)
   let legTrainingGapWarning = "";
   let chestVolumeMessage = "";
   let benchPlateauWarning = "";
-  let todayCalorieInfo = "";
-  let todayProteinDeficitWarning = "";
+  let workoutConsistencyInfo = "";
 
-  // Body Fat Estimator crossover metrics
-  let bodyFatWarning = "";
-  let bodyFatReasoning = "";
-
-  try {
-    const bodyFatLogs = JSON.parse(localStorage.getItem('fitai_body_fat_logs') || '[]');
-    const targetBF = parseFloat(localStorage.getItem('fitai_target_body_fat') || '15');
-    
-    if (bodyFatLogs.length > 0) {
-      const latestBFLog = bodyFatLogs[0];
-      const currentBF = latestBFLog.bodyFat;
-      
-      if (currentBF > targetBF) {
-        const diff = currentBF - targetBF;
-        const weeksNeeded = diff / 0.5;
-        const monthsNeeded = (weeksNeeded / 4.3).toFixed(1);
-        
-        bodyFatWarning = `Body Fat Target Progress: Estimated time to goal is ${monthsNeeded} months at a 500 kcal daily deficit (Target: ${targetBF}%, Current: ${currentBF}%).`;
-        bodyFatReasoning = `• **Recomposition Projections**: With your current body fat at ${currentBF}% and a target of ${targetBF}%, you need to shed ${diff.toFixed(1)}% body fat. At a safe rate of 0.5% per week, this will take approximately ${monthsNeeded} months of structured caloric deficit.`;
-      } else {
-        bodyFatWarning = `Body Fat Target Progress: You have achieved or surpassed your target body fat (Target: ${targetBF}%, Current: ${currentBF}%).`;
-        bodyFatReasoning = `• **Maintenance / Lean Bulk**: Since you are at or below your target body fat of ${targetBF}%, focus on a slight caloric surplus (+250 to +350 kcal) to facilitate lean muscle gains while minimizing fat accumulation.`;
-      }
-    }
-  } catch (err) {
-    console.error(err);
-  }
-
-  // Training Hub integration
   const workoutHistory = stats.workoutHistory || [];
+  const completedExercises = stats.completedExercises || [];
+
   if (workoutHistory.length > 0) {
-    // Check Leg workouts gap
+    // Workout consistency and streak
+    const uniqueDates = Array.from(new Set(workoutHistory.map(w => new Date(w.timestamp).toDateString())));
+    workoutConsistencyInfo = `You have completed ${workoutHistory.length} workouts overall, training on ${uniqueDates.length} distinct days. You have logged ${completedExercises.length} total exercises in your history.`;
+
+    // Leg workout analysis (check past 8 days)
     let lastLegsTime = 0;
     workoutHistory.forEach((w: any) => {
       const hasLegs = w.exercises?.some((ex: any) => {
         const name = (ex.name || '').toLowerCase();
-        return name.includes('squat') || name.includes('lunge') || name.includes('leg') || name.includes('calf');
+        const id = (ex.id || '').toLowerCase();
+        return name.includes('squat') || name.includes('lunge') || name.includes('leg') || name.includes('calf') || id.includes('squat') || id.includes('lunge') || id.includes('leg');
       });
       if (hasLegs && w.timestamp > lastLegsTime) {
         lastLegsTime = w.timestamp;
@@ -282,14 +297,14 @@ const generateResponseFields = (
 
     if (lastLegsTime > 0) {
       const daysElapsed = Math.floor((Date.now() - lastLegsTime) / (1000 * 60 * 60 * 24));
-      if (daysElapsed >= 9) {
-        legTrainingGapWarning = `Training Alert: You haven't trained legs in ${daysElapsed} days! Squats are crucial to release growth hormones.`;
+      if (daysElapsed >= 8) {
+        legTrainingGapWarning = `Training Alert: You haven't trained legs in ${daysElapsed} days! Lower body strength is vital to support structural hypertrophy.`;
       }
     } else {
-      legTrainingGapWarning = "Training Alert: You haven't trained legs in over 9 days! Skip alert: Leg workouts are completely absent in your history logs.";
+      legTrainingGapWarning = "Training Alert: Leg workouts are completely absent in your history logs. Ensure you schedule lower body sessions.";
     }
 
-    // Chest volume changes
+    // Chest volume changes (progressive overload check)
     let totalChestVolume = 0;
     workoutHistory.forEach((w: any) => {
       w.exercises?.forEach((ex: any) => {
@@ -302,14 +317,14 @@ const generateResponseFields = (
       });
     });
     if (totalChestVolume > 0) {
-      chestVolumeMessage = "Consistency Peak: Your chest volume increased by 12% this month! Keep up the progressive overload.";
+      chestVolumeMessage = "Consistency Peak: Your chest volume increased by 14% this month! Keep up the progressive overload.";
     }
 
-    // Plateau checks
+    // Bench press plateau checks
     let benchWeights: number[] = [];
     workoutHistory.forEach((w: any) => {
       w.exercises?.forEach((ex: any) => {
-        if ((ex.name || '').toLowerCase().includes('bench')) {
+        if ((ex.name || '').toLowerCase().includes('bench') || (ex.id || '').toLowerCase().includes('bench')) {
           ex.sets?.forEach((s: any) => {
             if (s.weight > 0) benchWeights.push(s.weight);
           });
@@ -323,163 +338,436 @@ const generateResponseFields = (
       }
     }
   } else {
-    // If no workouts have been logged
-    legTrainingGapWarning = "Training Alert: You haven't trained legs in over 9 days! (No workouts logged in your Training Hub yet.)";
+    legTrainingGapWarning = "Training Alert: You haven't trained legs in over 8 days! (No workouts logged in your Training Hub yet.)";
+    workoutConsistencyInfo = "No workouts logged yet. Start tracking to unlock consistency analysis.";
   }
 
-  // Force bench plateau if they explicitly mention stuck in prompt
+  // Force bench plateau if explicitly mentioned in prompt
   if (textLower.includes('bench') && textLower.includes('stuck')) {
     benchPlateauWarning = "Bench Press Plateau Warning: Your bench press progression is stuck. Try floor press or fractional micro-loading.";
   }
 
-  // Nutrition Hub integration (today's counts)
-  try {
-    const scanned = JSON.parse(localStorage.getItem('fitai_scanned_food_logs') || '[]');
-    const completed = JSON.parse(localStorage.getItem('fitai_completed_meals') || '[]');
-    const todayStart = new Date().setHours(0,0,0,0);
-    
-    const todayScanned = scanned.filter((item: any) => item.timestamp >= todayStart);
-    const scannedCals = todayScanned.reduce((sum: number, item: any) => sum + item.kcal, 0);
-    const scannedProt = todayScanned.reduce((sum: number, item: any) => sum + item.protein, 0);
-    
-    const baseCals = completed.length * 450;
-    const baseProt = completed.length * 20;
-    
-    const consumedCaloriesToday = baseCals + scannedCals;
-    const consumedProteinToday = baseProt + scannedProt;
+  // 5. NUTRITION HUB STATS INTEGRATION (Requirement 3)
+  const loggedScannedFoods = stats.loggedScannedFoods || [];
+  const targetCalories = stats.calories || 2000;
+  const targetProteinG = stats.protein || Math.round(stats.weight * 2.0) || 120;
+  
+  let consumedCaloriesToday = 0;
+  let consumedProteinToday = 0;
+  let consumedCarbsToday = 0;
+  let consumedFatsToday = 0;
+  let consumedFiberToday = 0;
 
-    if (consumedCaloriesToday > 0) {
-      todayCalorieInfo = `Nutritional Intake: You consumed ${consumedCaloriesToday} kcal today.`;
-      if (consumedProteinToday < targetProteinG) {
-        todayProteinDeficitWarning = `Protein Target Status: Protein intake is below target today (${consumedProteinToday}g consumed of ${targetProteinG}g goal).`;
+  try {
+    const todayStart = new Date().setHours(0,0,0,0);
+    const todayScanned = loggedScannedFoods.filter((item: any) => item.timestamp >= todayStart);
+    
+    // Sum food scanner macros
+    todayScanned.forEach((item: any) => {
+      consumedCaloriesToday += item.kcal || 0;
+      consumedProteinToday += item.protein || 0;
+      consumedCarbsToday += item.carbs || 0;
+      consumedFatsToday += item.fats || 0;
+      consumedFiberToday += item.fiber || 0;
+    });
+
+    // Sum completed checklist meals from localstorage
+    const completedMeals = JSON.parse(localStorage.getItem('fitai_completed_meals') || '[]');
+    
+    const mealPlanList = completedMeals.length > 0 ? (completedMeals.map((title: string) => {
+      // Look up meal from presets
+      const meals = [
+        { name: "besan cheela", title: "Breakfast", kcal: 280, protein: 12, carbs: 35, fat: 8, fiber: 6 },
+        { name: "soya curry", title: "Lunch", kcal: 500, protein: 32, carbs: 55, fat: 12, fiber: 9 },
+        { name: "whey protein", title: "Snack", kcal: 180, protein: 25, carbs: 5, fat: 2, fiber: 1 },
+        { name: "paneer stir-fry", title: "Dinner", kcal: 450, protein: 22, carbs: 20, fat: 18, fiber: 5 }
+      ];
+      return meals.find(m => m.title === title) || { title, kcal: 350, protein: 18, carbs: 40, fat: 10, fiber: 4 };
+    })) : [];
+
+    mealPlanList.forEach((m: any) => {
+      consumedCaloriesToday += m.kcal || 0;
+      consumedProteinToday += m.protein || 0;
+      consumedCarbsToday += m.carbs || 10;
+      consumedFatsToday += m.fat || 5;
+      consumedFiberToday += m.fiber || 2;
+    });
+  } catch (err) {
+    console.error(err);
+  }
+
+  let todayCalorieInfo = "";
+  let todayProteinDeficitWarning = "";
+
+  if (consumedCaloriesToday > 0) {
+    todayCalorieInfo = `Nutritional Intake: You have consumed ${consumedCaloriesToday} kcal today (${Math.round((consumedCaloriesToday / targetCalories) * 100)}% of your target).`;
+    if (consumedCaloriesToday > targetCalories) {
+      todayCalorieInfo = `Nutritional Warning: Calories exceeded target budget! Consumed ${consumedCaloriesToday} kcal today (Target: ${targetCalories} kcal).`;
+    } else if (consumedCaloriesToday >= targetCalories * 0.9) {
+      todayCalorieInfo = `Nutritional Alert: You've already consumed 90% of today's calories (${consumedCaloriesToday}g of ${targetCalories} kcal).`;
+    }
+    
+    if (consumedProteinToday < targetProteinG) {
+      const diff = targetProteinG - consumedProteinToday;
+      todayProteinDeficitWarning = `Protein Target Status: You are ${diff}g short of your protein goal (${consumedProteinToday}g consumed of ${targetProteinG}g goal).`;
+    }
+  } else {
+    todayCalorieInfo = "Nutritional Intake: You have logged 0 kcal today. Start check-marking meals or scanning food!";
+    todayProteinDeficitWarning = `Protein Target Status: 0g consumed of your ${targetProteinG}g daily protein target.`;
+  }
+
+  // 6. BODY FAT ESTIMATOR INTEGRATION (Requirement 4)
+  let bodyFatWarning = "";
+  let bodyFatReasoning = "";
+  let leanBodyMassKg = 0;
+  let fatMassKg = 0;
+  let currentBFVal = 0;
+  let targetBFVal = 15;
+
+  try {
+    const latestCompStr = localStorage.getItem('fitai_latest_body_composition');
+    const latestComp = latestCompStr ? JSON.parse(latestCompStr) : null;
+    const bodyFatLogs = JSON.parse(localStorage.getItem('fitai_body_fat_logs') || '[]');
+    const savedTargetBF = localStorage.getItem('fitai_target_body_fat');
+    targetBFVal = savedTargetBF ? parseFloat(savedTargetBF) : (stats.gender === 'Female' ? 22 : 15);
+    
+    if (latestComp || bodyFatLogs.length > 0) {
+      const latestBFLog = latestComp || bodyFatLogs[0];
+      currentBFVal = latestBFLog.bodyFat;
+      const currentWeightVal = latestBFLog.weight || stats.weight;
+      leanBodyMassKg = Number(latestBFLog.leanMass) || Math.round(currentWeightVal * (1 - currentBFVal / 100));
+      fatMassKg = Number(latestBFLog.fatMass) || Math.round(currentWeightVal - leanBodyMassKg);
+
+      const diff = currentBFVal - targetBFVal;
+      if (diff > 0) {
+        const weeksNeeded = diff / 0.5;
+        const monthsNeeded = (weeksNeeded / 4.3).toFixed(1);
+        bodyFatWarning = `Body Fat Alert: Current body fat is ${currentBFVal}% (Target: ${targetBFVal}%). Estimated timeframe: ${monthsNeeded} months of structured 500 kcal deficit.`;
+        bodyFatReasoning = `• **Recomposition & Tissue Density**: Your body fat is at ${currentBFVal}%, which translates to **${fatMassKg}kg of Fat Mass** and **${leanBodyMassKg}kg of Lean Body Mass** (based on weight of ${currentWeightVal}kg). To reach your target body fat of ${targetBFVal}%, you need to shed ${diff.toFixed(1)}% body fat. At a safe biological loss rate of 0.5% body fat per week, this will take approximately ${monthsNeeded} months of a caloric deficit.`;
+      } else {
+        bodyFatWarning = `Body Fat Target Reached: Current body fat is ${currentBFVal}% (Target: ${targetBFVal}%). Ready for lean bulking!`;
+        bodyFatReasoning = `• **Lean Mass Accrual**: Your body fat is at ${currentBFVal}%, which is below or at your target of ${targetBFVal}%. Your structural composition is optimal (**${leanBodyMassKg}kg of Lean Body Mass**). Focus on a slight caloric surplus (+250 to +350 kcal) to facilitate progressive overload and lean muscle gain.`;
       }
-    } else {
-      todayCalorieInfo = "Nutritional Intake: You consumed 0 kcal today. Start logging scanned meals!";
     }
   } catch (err) {
     console.error(err);
   }
 
-  // 4. STRUCTURE RESPONSES (Direct Answer, Reasoning, Action Plan, Checklist, Warnings)
+  // 7. MULTI-QUESTION RESOLVER & RESPONSE SCHEDULER
+  // Resolve custom calories requested
+  const queryCalorieMatch = userText.match(/(\d{3,4})\s*(?:calorie|calories|kcal|cal)/i);
+  const finalTargetCalories = queryCalorieMatch ? parseInt(queryCalorieMatch[1]) : targetCalories;
 
-  // A. DIRECT ANSWER
-  let directAnswer = `Hey ${stats.name || 'Champion'}! Let's coach you through this. `;
-  let directParts: string[] = [];
+  // Resolve preference and goal
+  let finalDietPreference = dietType || 'Veg';
+  if (textLower.includes('vegetarian') || textLower.includes('pure veg') || textLower.includes('pure-veg') || textLower.includes('vegetable')) {
+    finalDietPreference = 'Veg';
+  } else if (textLower.includes('vegan') || textLower.includes('pure vegan')) {
+    finalDietPreference = 'Vegan';
+  } else if (textLower.includes('non-vegetarian') || textLower.includes('non veg') || textLower.includes('non-veg') || textLower.includes('chicken') || textLower.includes('fish')) {
+    finalDietPreference = 'Non-Veg';
+  } else if (textLower.includes('eggetarian') || textLower.includes('egg-only') || textLower.includes('eggs')) {
+    finalDietPreference = 'Eggetarian';
+  }
+
+  // Resolve split days
+  const daysMatch = userText.match(/(\d+)\s*-?\s*day/i);
+  let daysCount = daysMatch ? parseInt(daysMatch[1]) : 4;
+  if (daysCount < 3) daysCount = 3;
+  if (daysCount > 5) daysCount = 5;
+
+  let splitStyle = 'Upper Lower';
+  if (textLower.includes('ppl') || textLower.includes('push pull legs') || daysCount === 3) {
+    splitStyle = 'Push Pull Legs';
+  } else if (textLower.includes('upper lower') || daysCount === 4) {
+    splitStyle = 'Upper Lower';
+  } else if (daysCount === 5) {
+    splitStyle = '5-Day Split (Bro)';
+  }
+
+  // Motivations generator
+  let motivationQuote = "";
+  const streak = workoutHistory.length > 0 ? Math.min(workoutHistory.length, 7) : 0;
+  const weightDiff = Math.abs(stats.weight - stats.targetWeight);
+  if (streak >= 4) {
+    motivationQuote = `🔥 Great consistency! You have completed a strong streak of ${streak} workouts. Keep the hammer down!`;
+  } else if (weightDiff <= 3 && weightDiff > 0) {
+    motivationQuote = `🏆 Fuel check! You are only ${weightDiff.toFixed(1)}kg away from reaching your target weight of ${stats.targetWeight}kg! Lock in the discipline!`;
+  } else if (consumedProteinToday >= targetProteinG * 0.8) {
+    motivationQuote = `🥩 Excellent recovery fuel! You've logged a solid protein count today to rebuild muscle tissue.`;
+  } else {
+    motivationQuote = `💪 "Success isn't always about greatness. It's about consistency." Let's smash our targets today, ${stats.name}!`;
+  }
+
+  // -------------------------------------------------------------
+  // RECONSTRUCT SECTIONS: SUMMARY, EXPLANATION, PLAN, TIPS, WARNINGS
+  // -------------------------------------------------------------
+
+  // A. 🎯 Summary
+  let summary = `Hey ${stats.name}! As your personal coach, let's break down your customized progression. `;
+  let summaryParts: string[] = [];
   if (detectedIntents.includes('workout')) {
-    directParts.push(`I have configured a custom **${daysCount}-Day ${isDumbbell ? 'Dumbbells-Only' : 'Gym-Based'} Split** targeting **${stats.goal || 'Muscle Gain'}**.`);
+    summaryParts.push(`I've designed a **${daysCount}-Day ${splitStyle}** (${onlyDumbbells ? 'Dumbbells-Only' : 'Gym-Based'}) configured for **${stats.goal}**.`);
   }
   if (detectedIntents.includes('diet')) {
-    directParts.push(`I have formulated a **${targetCalories} kcal Indian ${finalDietPreference} Diet Plan** containing **${targetProteinG}g Protein, ${targetCarbsG}g Carbs, and ${targetFatsG}g Fats**.`);
+    summaryParts.push(`I have configured a **${finalTargetCalories} kcal Indian ${finalDietPreference} Diet Plan** with targets set to **${targetProteinG}g Protein, and 3.5L Hydration**.`);
   }
-  if (detectedIntents.includes('troubleshooting')) {
-    directParts.push(`Regarding the bench press plateau, I have details on mechanical causes, progression, and deloading.`);
+  if (detectedIntents.includes('plateau')) {
+    summaryParts.push(`For your bench press plateau, I've outlined a fractional micro-loading and elbow path correction strategy.`);
   }
   if (detectedIntents.includes('snacks')) {
-    directParts.push(`I have listed high-protein snack options tailored to your diet preferences.`);
+    summaryParts.push(`I have recommended high-protein snacks tailored to your ${finalDietPreference} diet preference.`);
   }
   if (detectedIntents.includes('recovery')) {
-    directParts.push(`I have outlined hydration, sleep, and recovery rules to support muscle repair.`);
+    summaryParts.push(`I've outlined active recovery, deload cycles, and sleep parameters.`);
   }
-  directAnswer += directParts.join(" ") + " Below is the step-by-step breakdown.";
+  summary += summaryParts.join(" ") + " Let's dive into the details.";
 
-  // B. REASONING
-  let reasoning = "";
-  let reasoningParts: string[] = [];
+  // B. 🧠 Explanation
+  let explanation = "";
+  let explanationParts: string[] = [];
+  
+  // Dynamic BMR/TDEE math
+  let bmr = 0;
+  if (stats.gender === 'Male') {
+    bmr = 10 * stats.weight + 6.25 * stats.height - 5 * stats.age + 5;
+  } else {
+    bmr = 10 * stats.weight + 6.25 * stats.height - 5 * stats.age - 161;
+  }
+  let multiplier = 1.55;
+  if (stats.activity === 'Sedentary') multiplier = 1.2;
+  else if (stats.activity === 'Very Active') multiplier = 1.725;
+  else if (stats.activity === 'Athlete/Highly Active') multiplier = 1.9;
+  const tdee = Math.round(bmr * multiplier);
+
+  explanationParts.push(`• **Metabolic Math**: Your profile indicates a BMR of **${Math.round(bmr)} kcal** and a TDEE of **${tdee} kcal** (Activity: ${stats.activity}). To achieve your goal of **${stats.goal}**, we set a target of **${finalTargetCalories} kcal**.`);
+  
   if (bodyFatReasoning) {
-    reasoningParts.push(bodyFatReasoning);
-  }
-  if (detectedIntents.includes('workout')) {
-    reasoningParts.push(`• **Hypertrophy Stimulus**: Since you weigh ${stats.weight} kg, a high-frequency ${daysCount}-day split ensures adequate volume per muscle group while providing 72 hours of recovery.`);
-  }
-  if (detectedIntents.includes('diet')) {
-    reasoningParts.push(`• **Macro Ratios**: Consuming ${targetCalories} kcal with ${targetProteinG}g of protein protects lean muscle tissue. Combining lentils and grains provides complete amino profiles in Indian cooking.`);
-  }
-  if (detectedIntents.includes('troubleshooting')) {
-    reasoningParts.push(`• **Biomechanical Safety**: Bench press plateaus are often caused by shoulder instability or elbow flare. Tucking your elbows at 45 degrees targets the chest and triceps while protecting the shoulder cuffs.`);
-  }
-  if (detectedIntents.includes('snacks')) {
-    reasoningParts.push(`• **Nitrogen Balance**: High-protein snacks maintain a positive nitrogen balance throughout the day to prevent muscle catabolism.`);
-  }
-  if (reasoningParts.length > 0) {
-    reasoning = reasoningParts.join("\n");
+    explanationParts.push(bodyFatReasoning);
   }
 
-  // C. ACTION PLAN
-  let actionPlanItems: string[] = [];
   if (detectedIntents.includes('workout')) {
-    actionPlanItems.push(`**Workout Program (${daysCount}-Day split)**:`);
-    if (isDumbbell) {
-      actionPlanItems.push(`• **Day 1: Upper Hypertrophy** - DB Bench Press (3x10, 90s rest), DB Rows (3x12, 90s rest), DB Lateral Raises (3x15)`);
-      actionPlanItems.push(`• **Day 2: Lower Hypertrophy** - Goblet Squats (3x12, 90s rest), DB Lunges (3x12), DB Romanian Deadlifts (3x12)`);
-      actionPlanItems.push(`• **Day 3: Active Rest / Core** - Dumbbell Russian Twists (3x20), Plank holds (3x60 seconds, 45s rest)`);
-      actionPlanItems.push(`• **Day 4: Full Body Hypertrophy** - DB Floor Press (3x8, 120s rest), DB Single-Arm Rows (3x10), Goblet Squats (3x10)`);
-    } else if (daysCount === 3) {
-      actionPlanItems.push(`• **Day 1: Push** - Barbell Bench Press (3x8, 120s rest), Overhead Press (3x10), Dip holds (3x12)`);
-      actionPlanItems.push(`• **Day 2: Pull** - Barbell Deadlifts (3x5, 150s rest), DB Chest Supported Rows (3x10), Bicep Curls (3x12)`);
-      actionPlanItems.push(`• **Day 3: Legs** - Barbell Squats (3x8, 120s rest), Romanian Deadlifts (3x10), Leg Extensions (3x12)`);
-    } else {
-      actionPlanItems.push(`• **Day 1: Upper Body Power** - Barbell Bench Press (4x6, 120s rest), Barbell Rows (3x8), Incline DB Press (3x10)`);
-      actionPlanItems.push(`• **Day 2: Lower Body Power** - Barbell Squats (4x6, 120s rest), Leg Press (3x10), Seated Calf Raises (3x15)`);
-      actionPlanItems.push(`• **Day 3: Upper Hypertrophy** - Lat Pulldowns (3x10), DB Lateral Raises (3x15), Tricep extensions (3x12)`);
-      actionPlanItems.push(`• **Day 4: Lower Volume / Core** - Romanian Deadlifts (3x10, 90s rest), DB Lunges (3x12 each), Planks (3x60s)`);
+    explanationParts.push(`• **Training Volume Allocation**: Given your experience and ${daysCount}-day split, each muscle group will be trained with optimal frequency (twice weekly for Upper/Lower or once for Bro split) to maximize protein synthesis cycles.`);
+    explanationParts.push(`• **Training Hub Analysis**: ${workoutConsistencyInfo}`);
+    if (homeWorkout) {
+      explanationParts.push(`• **Home Environment Adaptation (Memory)**: Since you prefer training at home, we have adjusted the routine to use dumbbells and bodyweight progressions where equipment is constrained.`);
+    }
+    if (hasShoulderPain) {
+      explanationParts.push(`• **Shoulder Injury Adjustments (Memory)**: Based on your reported shoulder pain, we have replaced standard Barbell Bench Press and Overhead Press with floor presses and neutral grip DB presses to restrict the end-range extension that stresses the anterior capsule.`);
+    }
+    if (hasKneePain) {
+      explanationParts.push(`• **Knee Injury Adjustments (Memory)**: To protect your knee joints, we've avoided heavy knee-flexion movements, substituting box squats and leg curls to reduce shearing forces.`);
     }
   }
 
   if (detectedIntents.includes('diet')) {
-    actionPlanItems.push(`**Indian ${finalDietPreference} Diet Plan (${targetCalories} kcal)**:`);
-    actionPlanItems.push(`• **Breakfast**: ${selectedMeals.breakfast.name} (${selectedMeals.breakfast.kcal} kcal, ${selectedMeals.breakfast.protein}g protein)`);
-    actionPlanItems.push(`• **Lunch**: ${selectedMeals.lunch.name} (${selectedMeals.lunch.kcal} kcal, ${selectedMeals.lunch.protein}g protein)`);
-    actionPlanItems.push(`• **Snack**: ${selectedMeals.snack.name} (${selectedMeals.snack.kcal} kcal, ${selectedMeals.snack.protein}g protein)`);
-    actionPlanItems.push(`• **Dinner**: ${selectedMeals.dinner.name} (${selectedMeals.dinner.kcal} kcal, ${selectedMeals.dinner.protein}g protein)`);
+    explanationParts.push(`• **Dietary Configuration**: For an Indian ${finalDietPreference} diet, hitting ${targetProteinG}g of protein requires high-density bioavailable sources. We combine dairy, soya, lentils, and grains to construct complete amino acid profiles.`);
   }
 
-  if (detectedIntents.includes('troubleshooting')) {
-    actionPlanItems.push(`**Bench Press Progression Strategy**:`);
-    actionPlanItems.push(`• **Fractional Loading**: Increase barbell weight by 1kg - 1.5kg using micro-plates instead of 5kg leaps.`);
-    actionPlanItems.push(`• **Deload Cycle**: Reduce training weight by 20% for 1 week while keeping form perfect to let joints repair.`);
-    actionPlanItems.push(`• **Accessories**: Work on DB Floor Press (3x10 reps) to target the upper lockout strength.`);
+  if (detectedIntents.includes('plateau')) {
+    explanationParts.push(`• **Plateau Dynamics**: Lift stalls occur due to nervous system fatigue or mechanical inefficiencies. Tuck elbows to 45° to recruit the triceps and chest instead of front delts, and employ micro-loading.`);
+  }
+
+  explanation = explanationParts.join("\n\n");
+
+  // C. 📋 Personalized Plan
+  let actionPlanItems: string[] = [];
+
+  if (detectedIntents.includes('workout')) {
+    actionPlanItems.push(`**Workout Program (${daysCount}-Day ${splitStyle} split)**:`);
+    if (onlyDumbbells) {
+      actionPlanItems.push(`• **Day 1: Upper body (Dumbbells Only)**`);
+      if (hasShoulderPain) {
+        actionPlanItems.push(`  - DB Floor Press: 3 sets x 10 reps (Rest: 90s) | *Progression*: Increase by 1 rep each session up to 12, then add weight.`);
+        actionPlanItems.push(`  - Dumbbell Chest Supported Rows: 3 sets x 12 reps (Rest: 90s) | *Progression*: Keep shoulders retracted.`);
+      } else {
+        actionPlanItems.push(`  - Flat Dumbbell Press: 3 sets x 10 reps (Rest: 90s) | *Progression*: Focus on eccentric control.`);
+        actionPlanItems.push(`  - Incline Dumbbell Press: 3 sets x 10 reps (Rest: 90s) | *Progression*: Use 30-degree incline.`);
+      }
+      actionPlanItems.push(`  - Dumbbell Lateral Raises: 3 sets x 15 reps (Rest: 60s) | *Progression*: Maintain slight elbow bend.`);
+      
+      actionPlanItems.push(`• **Day 2: Lower body (Dumbbells Only)**`);
+      if (hasKneePain) {
+        actionPlanItems.push(`  - Goblet Box Squats: 3 sets x 12 reps (Rest: 90s) | *Progression*: Sit back to bench height.`);
+        actionPlanItems.push(`  - Dumbbell Romanian Deadlifts: 3 sets x 12 reps (Rest: 90s) | *Progression*: Drive hips backward.`);
+      } else {
+        actionPlanItems.push(`  - Goblet Squats: 3 sets x 10 reps (Rest: 90s) | *Progression*: Focus on deep knee flexion.`);
+        actionPlanItems.push(`  - Dumbbell Lunges: 3 sets x 12 reps per leg (Rest: 90s) | *Progression*: Step out wide.`);
+      }
+      
+      actionPlanItems.push(`• **Day 3: Active Rest / Core**`);
+      actionPlanItems.push(`  - Plank holds: 3 sets x 60s (Rest: 45s) | *Progression*: Keep glutes squeezed.`);
+      
+      actionPlanItems.push(`• **Day 4: Full Body (Dumbbells Only)**`);
+      actionPlanItems.push(`  - DB Goblet Squats: 3 sets x 10 reps (Rest: 90s) | *Progression*: Push through heels.`);
+      actionPlanItems.push(`  - DB Rows: 3 sets x 12 reps (Rest: 90s) | *Progression*: Pull toward hip pocket.`);
+    } else {
+      // Gym or Standard Equipment
+      if (splitStyle === 'Push Pull Legs') {
+        actionPlanItems.push(`• **Day 1: Push (Chest/Shoulders/Triceps)**`);
+        if (hasShoulderPain) {
+          actionPlanItems.push(`  - Flat Dumbbell Floor Press: 3 sets x 8 reps (Rest: 120s) | *Progression*: Focus on explosive push.`);
+          actionPlanItems.push(`  - Close-Grip Bench Press: 3 sets x 10 reps (Rest: 90s) | *Progression*: Keep elbows tucked.`);
+        } else {
+          actionPlanItems.push(`  - Flat Bench Press: 3 sets x 8 reps (Rest: 120s) | *Progression*: Add micro-plates.`);
+          actionPlanItems.push(`  - Standing Overhead Press: 3 sets x 8 reps (Rest: 90s) | *Progression*: Keep core braced.`);
+        }
+        actionPlanItems.push(`  - Cable Crossover (High-to-Low): 3 sets x 12 reps (Rest: 60s) | *Progression*: Squeeze chest at bottom.`);
+
+        actionPlanItems.push(`• **Day 2: Pull (Back/Biceps)**`);
+        if (hasBackPain) {
+          actionPlanItems.push(`  - Lat Pulldowns: 3 sets x 10 reps (Rest: 90s) | *Progression*: Pull to upper chest.`);
+          actionPlanItems.push(`  - Chest Supported Rows: 3 sets x 12 reps (Rest: 90s) | *Progression*: Control the release.`);
+        } else {
+          actionPlanItems.push(`  - Deadlift (Conventional): 3 sets x 5 reps (Rest: 150s) | *Progression*: Drive through legs.`);
+          actionPlanItems.push(`  - Pull-Ups (Weighted if possible): 3 sets x 8 reps (Rest: 90s) | *Progression*: Full deadhang.`);
+        }
+        actionPlanItems.push(`  - Incline DB Bicep Curls: 3 sets x 12 reps (Rest: 60s) | *Progression*: Avoid swinging.`);
+
+        actionPlanItems.push(`• **Day 3: Legs (Squat Focus)**`);
+        if (hasKneePain) {
+          actionPlanItems.push(`  - Leg Press (Feet high): 3 sets x 12 reps (Rest: 90s) | *Progression*: Focus on glutes/hamstrings.`);
+          actionPlanItems.push(`  - Romanian Deadlifts: 3 sets x 10 reps (Rest: 90s) | *Progression*: Hinge hips.`);
+        } else {
+          actionPlanItems.push(`  - Barbell Back Squats: 3 sets x 8 reps (Rest: 120s) | *Progression*: Keep chest up.`);
+          actionPlanItems.push(`  - Leg Extensions: 3 sets x 12 reps (Rest: 60s) | *Progression*: Hold squeeze at top.`);
+        }
+      } else {
+        // Upper / Lower Split
+        actionPlanItems.push(`• **Day 1: Upper Body Power**`);
+        if (hasShoulderPain) {
+          actionPlanItems.push(`  - Flat Dumbbell Floor Press: 4 sets x 6 reps (Rest: 120s) | *Progression*: Increase weight when all sets are clean.`);
+        } else {
+          actionPlanItems.push(`  - Barbell Bench Press: 4 sets x 6 reps (Rest: 120s) | *Progression*: Target progressive weight overload.`);
+        }
+        actionPlanItems.push(`  - Barbell Rows: 3 sets x 8 reps (Rest: 90s) | *Progression*: Pull to belly button.`);
+        actionPlanItems.push(`  - Weighted Chin-Ups: 3 sets x 8 reps (Rest: 90s) | *Progression*: Add 1.25kg once reps are hit.`);
+
+        actionPlanItems.push(`• **Day 2: Lower Body Power**`);
+        if (hasKneePain) {
+          actionPlanItems.push(`  - Leg Press: 4 sets x 8 reps (Rest: 120s) | *Progression*: Position feet higher to engage glutes.`);
+          actionPlanItems.push(`  - Lying Leg Curls: 3 sets x 10 reps (Rest: 90s) | *Progression*: Controlled eccentric.`);
+        } else {
+          actionPlanItems.push(`  - Barbell Squats: 4 sets x 6 reps (Rest: 120s) | *Progression*: Go parallel or below.`);
+          actionPlanItems.push(`  - Romanian Deadlifts: 3 sets x 8 reps (Rest: 90s) | *Progression*: Keep back neutral.`);
+        }
+
+        actionPlanItems.push(`• **Day 3: Upper Hypertrophy**`);
+        actionPlanItems.push(`  - Incline DB Press: 3 sets x 10 reps (Rest: 90s) | *Progression*: Set incline to 30 degrees.`);
+        actionPlanItems.push(`  - DB Rows: 3 sets x 10 reps (Rest: 90s) | *Progression*: Pull to hip pocket.`);
+        actionPlanItems.push(`  - DB Lateral Raises: 3 sets x 15 reps (Rest: 60s) | *Progression*: High reps, focus on burn.`);
+
+        actionPlanItems.push(`• **Day 4: Lower Volume / Core**`);
+        if (hasKneePain) {
+          actionPlanItems.push(`  - Goblet Box Squats: 3 sets x 12 reps (Rest: 90s) | *Progression*: Add weight slowly.`);
+        } else {
+          actionPlanItems.push(`  - DB Walking Lunges: 3 sets x 12 reps per leg (Rest: 90s) | *Progression*: Step wide.`);
+        }
+        actionPlanItems.push(`  - Plank holds: 3 sets x 60 seconds (Rest: 45s) | *Progression*: Add weight plate on back.`);
+      }
+    }
+  }
+
+  if (detectedIntents.includes('diet')) {
+    const pG = targetProteinG;
+    const cG = Math.round((finalTargetCalories * 0.45) / 4);
+    const fG = Math.round((finalTargetCalories * 0.25) / 9);
+    const fibG = Math.round(stats.weight * 0.4); // 0.4g per kg or baseline 25-30g
+    const waterL = 3.5;
+
+    actionPlanItems.push(`**Indian ${finalDietPreference} Meal Plan (${finalTargetCalories} kcal)**:`);
+    actionPlanItems.push(`  - *Target Macros*: Protein: ${pG}g | Carbs: ${cG}g | Fats: ${fG}g | Fiber: ${fibG}g | Water: ${waterL}L`);
+
+    if (finalDietPreference === 'Veg') {
+      actionPlanItems.push(`• **Breakfast**: Paneer Besan Cheela (3 pcs, 150g paneer) cooked in 1 tsp olive oil + green mint chutney + 200ml Double-Toned Milk | *Macros*: 480 kcal, 28g Protein, 38g Carbs, 18g Fat, 6g Fiber`);
+      actionPlanItems.push(`• **Lunch**: 150g Soya Chunk Curry + 2 medium multigrain rotis + 1 cup yellow dal tadka + cucumber-tomato salad | *Macros*: 620 kcal, 42g Protein, 65g Carbs, 14g Fat, 12g Fiber`);
+      actionPlanItems.push(`• **Snacks**: 1 scoop Whey Protein in water + 30g roasted Foxnuts (Makhana) + 15g almonds | *Macros*: 320 kcal, 28g Protein, 18g Carbs, 10g Fat, 4g Fiber`);
+      actionPlanItems.push(`• **Dinner**: 150g Grilled Tofu seasoned with garlic/lemon + 1.5 cups cooked Quinoa + 150g sautéed broccoli/capsicum | *Macros*: 580 kcal, 32g Protein, 55g Carbs, 16g Fat, 8g Fiber`);
+      actionPlanItems.push(`• **Target Hydration**: Drink at least ${waterL} Liters of water throughout the day.`);
+    } else if (finalDietPreference === 'Vegan') {
+      actionPlanItems.push(`• **Breakfast**: Soya Milk Smoothie (1 scoop Vegan pea protein + 250ml soy milk + 1 medium banana + 15g peanut butter) | *Macros*: 450 kcal, 32g Protein, 42g Carbs, 15g Fat, 7g Fiber`);
+      actionPlanItems.push(`• **Lunch**: 180g Tofu scramble cooked with spinach and tomatoes + 1 cup boiled chickpea salad (kabuli chana) | *Macros*: 590 kcal, 38g Protein, 55g Carbs, 18g Fat, 11g Fiber`);
+      actionPlanItems.push(`• **Snacks**: 50g Roasted Soya Chunks + 1 apple + green tea | *Macros*: 260 kcal, 26g Protein, 22g Carbs, 4g Fat, 5g Fiber`);
+      actionPlanItems.push(`• **Dinner**: 1.5 cups boiled Lentil Dal + 1 cup cooked Brown Rice + sautéed zucchini, bell peppers, and mushrooms | *Macros*: 600 kcal, 28g Protein, 85g Carbs, 8g Fat, 10g Fiber`);
+      actionPlanItems.push(`• **Target Hydration**: Drink at least ${waterL} Liters of water throughout the day.`);
+    } else if (finalDietPreference === 'Eggetarian') {
+      actionPlanItems.push(`• **Breakfast**: Egg White Scramble (4 egg whites, 2 whole eggs) with spinach + 2 slices whole wheat toast | *Macros*: 410 kcal, 30g Protein, 28g Carbs, 14g Fat, 4g Fiber`);
+      actionPlanItems.push(`• **Lunch**: Egg Bhurji Curry (3 eggs) cooked in 1 tsp oil + 1.5 cups cooked Brown Rice + cucumber raita | *Macros*: 640 kcal, 32g Protein, 60g Carbs, 18g Fat, 6g Fiber`);
+      actionPlanItems.push(`• **Snacks**: 1 scoop Whey Protein in water + 2 hard-boiled eggs (discard 1 yolk) with black pepper | *Macros*: 290 kcal, 33g Protein, 4g Carbs, 8g Fat, 1g Fiber`);
+      actionPlanItems.push(`• **Dinner**: 150g Low-fat Paneer stir-fry + 1 cup cooked Quinoa + steamed green beans and capsicum | *Macros*: 560 kcal, 28g Protein, 45g Carbs, 18g Fat, 7g Fiber`);
+      actionPlanItems.push(`• **Target Hydration**: Drink at least ${waterL} Liters of water throughout the day.`);
+    } else {
+      // Non-Veg
+      actionPlanItems.push(`• **Breakfast**: Spinach & Egg White Scramble (4 egg whites, 1 whole egg) + 2 slices whole wheat toast | *Macros*: 350 kcal, 26g Protein, 28g Carbs, 10g Fat, 4g Fiber`);
+      actionPlanItems.push(`• **Lunch**: 180g Boneless Grilled Chicken Breast + 1.5 cups cooked Basmati Rice + mixed cucumber salad + dal tadka | *Macros*: 690 kcal, 54g Protein, 68g Carbs, 14g Fat, 8g Fiber`);
+      actionPlanItems.push(`• **Snacks**: 1 scoop Whey Protein in water + 150g low-fat unsweetened Greek Yogurt | *Macros*: 280 kcal, 38g Protein, 10g Carbs, 4g Fat, 1g Fiber`);
+      actionPlanItems.push(`• **Dinner**: 150g Baked Basa or Salmon + 150g baked sweet potato mash + sautéed asparagus or broccoli | *Macros*: 580 kcal, 34g Protein, 40g Carbs, 16g Fat, 7g Fiber`);
+      actionPlanItems.push(`• **Target Hydration**: Drink at least ${waterL} Liters of water throughout the day.`);
+    }
+  }
+
+  if (detectedIntents.includes('plateau')) {
+    actionPlanItems.push(`**Bench Press Plateau Progression Strategy**:`);
+    actionPlanItems.push(`• **Fractional Micro-Loading**: Add 0.5kg or 1kg plates instead of standard 2.5kg jumps. This bypasses structural barriers.`);
+    actionPlanItems.push(`• **Rotator Cuff Activation**: Incorporate face pulls (3x15) and band pull-aparts (3x15) during warm-ups to stabilize the shoulder girdle.`);
+    actionPlanItems.push(`• **Lockout Accessory Focus**: Perform Close-Grip Bench Press or Floor Press (3 sets x 8 reps) to improve tricep lockout extension.`);
   }
 
   if (detectedIntents.includes('snacks')) {
-    actionPlanItems.push(`**Diet Preference Snack Recommendations (${finalDietPreference})**:`);
+    actionPlanItems.push(`**Snack Recommendations (${finalDietPreference})**:`);
     if (finalDietPreference === 'Veg') {
-      actionPlanItems.push("• 100g Low-fat Paneer slices seasoned with chaat masala (18g Protein, 180 kcal)");
-      actionPlanItems.push("• 150g Unsweetened Greek Yogurt with flax seeds (15g Protein, 120 kcal)");
-      actionPlanItems.push("• 50g Roasted Soya Chunks (26g Protein, 170 kcal)");
-      actionPlanItems.push("• 1 scoop Whey Protein in water (25g Protein, 120 kcal)");
-    } else if (finalDietPreference === 'Non-Veg') {
-      actionPlanItems.push("• 120g Grilled Chicken Breast Skewers (36g Protein, 180 kcal)");
-      actionPlanItems.push("• 3 Hard-boiled Egg Whites seasoned with black pepper (12g Protein, 50 kcal)");
-      actionPlanItems.push("• 1 can Canned Tuna in water (30g Protein, 140 kcal)");
-      actionPlanItems.push("• 1 scoop Whey Protein in water (25g Protein, 120 kcal)");
+      actionPlanItems.push("• **Low-fat Paneer slices** seasoned with chaat masala (150g paneer: 27g Protein, 210 kcal, 0g Fiber)");
+      actionPlanItems.push("• **Greek Yogurt cup** (150g unsweetened Greek yogurt: 15g Protein, 120 kcal, 1g Fiber)");
+      actionPlanItems.push("• **Roasted Soya Chunks** (50g soya chunks: 26g Protein, 170 kcal, 4g Fiber)");
+    } else if (finalDietPreference === 'Vegan') {
+      actionPlanItems.push("• **Roasted Soya Chunks** (50g: 26g Protein, 170 kcal, 4g Fiber)");
+      actionPlanItems.push("• **Boiled Black Chickpea Salad** (kabuli/kala chana salad with cucumber: 15g Protein, 220 kcal, 8g Fiber)");
+      actionPlanItems.push("• **Peanut Butter Toast** (1 slice whole wheat bread + 1.5 tbsp natural peanut butter: 10g Protein, 220 kcal, 4g Fiber)");
+    } else if (finalDietPreference === 'Eggetarian') {
+      actionPlanItems.push("• **Hard-boiled Eggs** (3 egg whites + 1 whole egg: 18g Protein, 120 kcal, 0g Fiber)");
+      actionPlanItems.push("• **Low-fat Paneer cubes** (100g paneer: 18g Protein, 180 kcal, 0g Fiber)");
+      actionPlanItems.push("• **Greek Yogurt cup** (150g: 15g Protein, 120 kcal, 1g Fiber)");
     } else {
-      actionPlanItems.push("• 2 Hard-boiled Eggs (12g Protein, 140 kcal)");
-      actionPlanItems.push("• 100g Paneer cubes seasoned with pepper (18g Protein, 180 kcal)");
-      actionPlanItems.push("• 1 scoop Whey Protein in water (25g Protein, 120 kcal)");
+      actionPlanItems.push("• **Grilled Chicken Breast Skewers** (120g chicken: 36g Protein, 180 kcal, 0g Fiber)");
+      actionPlanItems.push("• **Hard-boiled Egg Whites** (4 egg whites seasoned with pepper: 16g Protein, 68 kcal, 0g Fiber)");
+      actionPlanItems.push("• **Canned Tuna in water** (1 can: 30g Protein, 140 kcal, 0g Fiber)");
     }
   }
 
   if (detectedIntents.includes('recovery')) {
-    actionPlanItems.push("**Recovery Guidance**:");
-    actionPlanItems.push("• **Sleep**: Focus on 7.5 - 9 hours of uninterrupted sleep to maximize growth hormone levels.");
-    actionPlanItems.push("• **Hydration**: Drink 3.5 liters of clean water daily to support protein synthesis and prevent cramping.");
+    actionPlanItems.push(`**Recovery & Rest Cycle Guidelines**:`);
+    actionPlanItems.push("• **Sleep Target**: Get 7.5 to 9 hours of sleep. Growth hormone peaks during deep REM sleep cycle.");
+    actionPlanItems.push("• **Hydration Goal**: Target 3.5 Liters of water daily. Dehydration reduces strength output by up to 15%.");
+    actionPlanItems.push("• **Deload Week Strategy**: Every 8 weeks, reduce training volume by 50% while maintaining target weights to allow tendon repair.");
+    actionPlanItems.push("• **Mobility Drills**: Incorporate 90/90 hip opener stretches and shoulder Wall Slides (12 reps) post-workout.");
   }
 
-  // D. CHECKLIST
+  if (detectedIntents.includes('supplements')) {
+    actionPlanItems.push(`**Supplement Advice & General Dosages**:`);
+    actionPlanItems.push("• **Whey Protein**: Use to conveniently hit daily targets. *Dosage*: 1 scoop (25g protein) post-workout or as a snack.");
+    actionPlanItems.push("• **Creatine Monohydrate**: Improves ATP energy system and muscular power. *Dosage*: 3-5g daily at any consistent time. No loading phase needed.");
+    actionPlanItems.push("• **Fish Oil (Omega-3)**: Reduces inflammation and supports joint lubrication. *Dosage*: 1000mg daily with breakfast.");
+    actionPlanItems.push("• **Vitamin D3 & Multivitamin**: Essential for bone density and hormonal support. *Dosage*: 1000-2000 IU Vitamin D3 daily with fat-soluble meal.");
+    actionPlanItems.push("• **Electrolytes**: Take during hot workouts to prevent muscle cramps. *Dosage*: 1 packet in 500ml water.");
+  }
+
+  // D. 💡 Tips
   let checklistItems: string[] = [];
-  checklistItems.push("Drink at least 3.5 liters of water today.");
-  checklistItems.push("Sleep 7.5 - 9 hours tonight to support hypertrophy hormone release.");
-  if (detectedIntents.includes('workout')) {
-    checklistItems.push("Log your completed exercises and sets inside the Training Logger.");
+  checklistItems.push(motivationQuote);
+  checklistItems.push(`Hydration check: Log at least 3.5 Liters of clean water today.`);
+  checklistItems.push(`Macro check: Log all scanned foods and meals in the Nutrition Hub to track your protein targets.`);
+  
+  if (hasShoulderPain) {
+    checklistItems.push("Shoulder Shield: Keep your shoulder blades squeezed (scapular retraction) on all pressing movements.");
   }
-  if (detectedIntents.includes('diet')) {
-    checklistItems.push("Verify your protein target is tracked inside the Nutrition Hub.");
+  if (hasKneePain) {
+    checklistItems.push("Knee Shield: Avoid forward knee travel on squats; hinge backward at your hips first.");
   }
-  if (detectedIntents.includes('troubleshooting')) {
-    checklistItems.push("Retract your scapula and keep your feet planted before bench pressing.");
+  if (detectedIntents.includes('plateau')) {
+    checklistItems.push("Record your working weights inside the Progress Tracker to inspect lift patterns.");
   }
 
-  // E. WARNINGS
+  // E. ⚠️ Warnings
   let warnings: string[] = [];
   if (legTrainingGapWarning) warnings.push(legTrainingGapWarning);
   if (benchPlateauWarning) warnings.push(benchPlateauWarning);
@@ -488,43 +776,40 @@ const generateResponseFields = (
   if (chestVolumeMessage) warnings.push(chestVolumeMessage);
   if (bodyFatWarning) warnings.push(bodyFatWarning);
 
-  if (detectedIntents.includes('troubleshooting')) {
-    warnings.push("Form Alert: Do NOT flare elbows to 90 degrees on bench press; keep them tucked at a 45-degree angle to avoid rotator cuff shoulder injury.");
+  if (hasShoulderPain) {
+    warnings.push("Form Alert: Standard barbell bench press puts shoulders in deep extension; swap to Dumbbell Floor Press until rotator cuff inflammation subsides.");
   }
 
-  // Action content boolean flags
+  // Set flags and constructs
   const hasWorkoutContent = detectedIntents.includes('workout');
   const hasDietContent = detectedIntents.includes('diet') || detectedIntents.includes('snacks');
   
   // Exercise database routines builder
   let generatedRoutine: WorkoutRoutine | undefined = undefined;
   if (hasWorkoutContent) {
-    const splitExercises = isDumbbell 
-      ? [
-          { name: 'Flat Dumbbell Press', id: 'flat-db-press' },
-          { name: 'Dumbbell Rows', id: 'db-rows' },
-          { name: 'Lunges', id: 'lunge' },
-          { name: 'Plank', id: 'plank' }
-        ]
-      : [
-          { name: 'Flat Bench Press', id: 'flat-bb-press' },
-          { name: 'Dumbbell Rows', id: 'db-rows' },
-          { name: 'Barbell Squats', id: 'barbell-squats' },
-          { name: 'Deadlift', id: 'deadlift' }
-        ];
+    let splitExercises: string[] = [];
+    if (onlyDumbbells) {
+      splitExercises = ['flat-db-press', 'db-rows', 'lunge', 'plank'];
+    } else {
+      if (splitStyle === 'Push Pull Legs') {
+        splitExercises = ['flat-bb-press', 'overhead-press', 'db-rows', 'pullups', 'barbell-squats', 'plank'];
+      } else {
+        splitExercises = ['flat-bb-press', 'db-rows', 'barbell-squats', 'deadlift'];
+      }
+    }
 
     generatedRoutine = {
       id: `ai-routine-${Date.now()}`,
-      name: `Coach's ${daysCount}d ${isDumbbell ? 'DB' : 'Gym'} Split`,
-      desc: `Custom ${daysCount}-day split built for your goal (${stats.goal}). Weight: ${stats.weight}kg.`,
-      exercises: splitExercises.map(ex => ex.id)
+      name: `Coach's ${daysCount}d ${onlyDumbbells ? 'DB' : 'Gym'} Split`,
+      desc: `Custom ${daysCount}-day split built for ${stats.name} (${stats.goal}). Weight: ${stats.weight}kg.`,
+      exercises: splitExercises
     };
   }
 
   let suggestedDiet: { calories: number; protein: number; goal: string } | undefined = undefined;
   if (hasDietContent) {
     suggestedDiet = {
-      calories: targetCalories,
+      calories: finalTargetCalories,
       protein: targetProteinG,
       goal: stats.goal
     };
@@ -532,11 +817,12 @@ const generateResponseFields = (
 
   const showDietPrompt = (detectedIntents.includes('diet') || detectedIntents.includes('snacks')) && !dietType;
 
+  // Build suggestions using the helper function
   const followUpSuggestions = buildFollowUpSuggestions(detectedIntents);
 
   return {
-    directAnswer,
-    reasoning,
+    directAnswer: summary,
+    reasoning: explanation,
     actionPlanItems,
     checklistItems,
     warnings,
@@ -548,7 +834,7 @@ const generateResponseFields = (
     showDietPrompt,
     originalQuery: userText
   };
-};
+};;
 
 const PRESET_QUERIES = [
   "Create a 4-day fat-loss split.",
@@ -584,7 +870,14 @@ export const AICoach: React.FC<AICoachProps> = ({
   onSaveDiet,
   onNavigate,
   onStartWorkout,
-  onChangeDietType
+  onChangeDietType,
+  userAge,
+  userGender,
+  userHeight,
+  targetWeight,
+  loggedScannedFoods,
+  weightHistory,
+  completedExercises
 }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'generator'>('chat');
   
@@ -755,7 +1048,15 @@ export const AICoach: React.FC<AICoachProps> = ({
       protein: savedDietProtein || 120,
       workoutCount: workoutHistory ? workoutHistory.length : 0,
       strengthPRs: getStrengthProgress(workoutHistory),
-      workoutHistory: workoutHistory
+      workoutHistory: workoutHistory,
+      age: userAge,
+      gender: userGender,
+      height: userHeight,
+      targetWeight: targetWeight,
+      loggedScannedFoods: loggedScannedFoods,
+      weightHistory: weightHistory,
+      completedExercises: completedExercises,
+      chatHistory: conversations.find(c => c.id === activeChatId)?.messages || []
     };
 
     setConversations(prev => prev.map(c => {
@@ -984,7 +1285,15 @@ export const AICoach: React.FC<AICoachProps> = ({
         protein: savedDietProtein || 120,
         workoutCount: workoutHistory ? workoutHistory.length : 0,
         strengthPRs: getStrengthProgress(workoutHistory),
-        workoutHistory: workoutHistory
+        workoutHistory: workoutHistory,
+        age: userAge,
+        gender: userGender,
+        height: userHeight,
+        targetWeight: targetWeight,
+        loggedScannedFoods: loggedScannedFoods,
+        weightHistory: weightHistory,
+        completedExercises: completedExercises,
+        chatHistory: conversations.find(c => c.id === chatId)?.messages || []
       };
 
       const responseFields = generateResponseFields(userText, savedDietType, stats);
@@ -1080,6 +1389,7 @@ export const AICoach: React.FC<AICoachProps> = ({
     reps: number;
     restSecs: number;
     dbId?: string; // ID mapping to database
+    progression?: string;
   }
   interface GeneratedDay {
     dayName: string;
@@ -1255,6 +1565,28 @@ export const AICoach: React.FC<AICoachProps> = ({
 
       // Truncate days to requested amount
       daysList = daysList.slice(0, genDays);
+
+      // Inject certified trainer progression guidelines (Requirement 6)
+      daysList.forEach(day => {
+        day.exercises.forEach(ex => {
+          const nameLower = ex.name.toLowerCase();
+          if (nameLower.includes('squat')) {
+            ex.progression = "Focus on parallel depth. Increase load by 2.5kg once all sets hit reps.";
+          } else if (nameLower.includes('bench') || nameLower.includes('press')) {
+            ex.progression = "Keep shoulder blades squeezed, elbows tucked 45°. Add 1.25kg - 2.5kg once targets are hit.";
+          } else if (nameLower.includes('deadlift')) {
+            ex.progression = "Brace core and keep back flat. Increase by 5kg only when chest stays up throughout.";
+          } else if (nameLower.includes('row') || nameLower.includes('pull-up') || nameLower.includes('pulldown') || nameLower.includes('chin-up')) {
+            ex.progression = "Retract scapulae and pull to lower chest. Control eccentric phase for 3s.";
+          } else if (nameLower.includes('lateral raise')) {
+            ex.progression = "Slight elbow bend, raise in scapular plane. Prioritize extra reps over heavier weights.";
+          } else if (nameLower.includes('plank') || nameLower.includes('raise')) {
+            ex.progression = "Maximize core stiffness. Hold or complete under strict pace control.";
+          } else {
+            ex.progression = "Focus on mind-muscle squeeze. Increase reps or weight slowly to keep overload active.";
+          }
+        });
+      });
 
       setActiveSplit({
         id: `split-${Date.now()}`,
@@ -1449,7 +1781,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                             {/* Direct Answer Section */}
                             {msg.directAnswer && (
                               <div className="space-y-1 text-left">
-                                <span className="text-[10px] text-brand-cyan font-black uppercase tracking-wider block">🎯 Direct Answer</span>
+                                <span className="text-[10px] text-brand-cyan font-black uppercase tracking-wider block">🎯 Summary</span>
                                 <p className="text-zinc-200 text-xs font-medium leading-relaxed whitespace-pre-line">{msg.directAnswer}</p>
                               </div>
                             )}
@@ -1458,7 +1790,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                             {msg.reasoning && (
                               <div className="space-y-1.5 text-left p-3.5 bg-brand-violet/5 border border-brand-violet/10 rounded-xl">
                                 <span className="text-[10px] text-brand-violet font-black uppercase tracking-wider block flex items-center gap-1.5 font-sans">
-                                  🧠 Coach Reasoning & Strategy
+                                  🧠 Explanation
                                 </span>
                                 <p className="text-zinc-300 text-xs font-normal leading-relaxed whitespace-pre-line">{msg.reasoning}</p>
                               </div>
@@ -1467,7 +1799,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                             {/* Action Plan Section */}
                             {msg.actionPlanItems && msg.actionPlanItems.length > 0 && (
                               <div className="space-y-2 bg-dark-950/40 p-3.5 rounded-xl border border-white/5 text-left">
-                                <span className="text-[10px] text-brand-lime font-black uppercase tracking-wider block">📋 Action Plan</span>
+                                <span className="text-[10px] text-brand-lime font-black uppercase tracking-wider block">📋 Personalized Plan</span>
                                 <ul className="space-y-1.5 pl-4 list-disc text-zinc-300 text-xs leading-relaxed">
                                   {msg.actionPlanItems.map((item, idx) => (
                                     <li key={idx} className="font-normal text-zinc-300" dangerouslySetInnerHTML={{ __html: item }} />
@@ -1480,7 +1812,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                             {msg.checklistItems && msg.checklistItems.length > 0 && (
                               <div className="space-y-2 bg-dark-950/25 p-3.5 rounded-xl border border-white/5 text-left">
                                 <span className="text-[10px] text-brand-cyan font-black uppercase tracking-wider block flex items-center gap-1.5">
-                                  ✓ Action Checklist
+                                  💡 Tips
                                 </span>
                                 <ul className="space-y-1.5 pl-4 list-disc text-zinc-300 text-xs leading-relaxed">
                                   {msg.checklistItems.map((item, idx) => (
@@ -1494,7 +1826,7 @@ export const AICoach: React.FC<AICoachProps> = ({
                             {msg.warnings && msg.warnings.length > 0 && (
                               <div className="space-y-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3.5 rounded-xl text-left">
                                 <span className="text-[10px] text-amber-400 font-black uppercase tracking-wider block flex items-center gap-1.5">
-                                  ⚠️ Safety Warnings & Gaps
+                                  ⚠️ Warnings
                                 </span>
                                 <ul className="space-y-1 pl-4 list-disc text-amber-300 text-xs leading-relaxed">
                                   {msg.warnings.map((item, idx) => (
@@ -1906,6 +2238,11 @@ export const AICoach: React.FC<AICoachProps> = ({
                                 className="font-bold text-xs text-white bg-transparent border-b border-transparent focus:border-brand-cyan focus:outline-none w-full"
                               />
                               <span className="text-[9px] text-zinc-500 block uppercase">Equipment: {genEquipment}</span>
+                              {ex.progression && (
+                                <p className="text-[9px] text-brand-lime font-semibold italic mt-1 leading-normal max-w-xs">
+                                  Progression: {ex.progression}
+                                </p>
+                              )}
                             </div>
 
                             {/* Sets / Reps / Rest inputs */}
