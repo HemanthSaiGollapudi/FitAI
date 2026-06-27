@@ -76,7 +76,7 @@ function App() {
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        if (user.emailVerified) {
+        if (user.emailVerified || import.meta.env.DEV) {
           setIsAuthenticated(true);
           
           // Retrieve metadata from local database
@@ -144,11 +144,42 @@ function App() {
           localStorage.removeItem('fitai_current_user');
         }
       } else {
-        // Logged out
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-        localStorage.removeItem('fitai_is_authenticated');
-        localStorage.removeItem('fitai_current_user');
+        // Logged out in Firebase, check if local auth session is active
+        const isLocalAuth = localStorage.getItem('fitai_is_authenticated') === 'true';
+        const savedUser = localStorage.getItem('fitai_current_user');
+        if (isLocalAuth && savedUser) {
+          try {
+            const profile = JSON.parse(savedUser);
+            setIsAuthenticated(true);
+            setCurrentUser(profile);
+            
+            // Synchronize states
+            setUserName(profile.name);
+            setUserWeight(profile.weight);
+            const targetW = profile.targetWeight || 65;
+            setGoalWeight(targetW);
+            
+            const dietType = profile.dietPreference === 'Veg' ? 'Veg' : profile.dietPreference === 'Non-Veg' ? 'Non-Veg' : 'Eggetarian';
+            setSavedDietType(dietType);
+            
+            const dGoal = profile.goal === 'Lose Weight' ? 'Fat Loss' : profile.goal === 'Gain Muscle' ? 'Muscle Gain' : profile.goal === 'Build Strength' ? 'Build Strength' : 'Stamina';
+            setSavedDietGoal(dGoal);
+            
+            if (profile.activityLevel) {
+              setUserActivity(profile.activityLevel);
+            }
+          } catch {
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+            localStorage.removeItem('fitai_is_authenticated');
+            localStorage.removeItem('fitai_current_user');
+          }
+        } else {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          localStorage.removeItem('fitai_is_authenticated');
+          localStorage.removeItem('fitai_current_user');
+        }
       }
       setAuthLoading(false);
     });

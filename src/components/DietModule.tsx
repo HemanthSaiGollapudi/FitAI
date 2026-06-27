@@ -212,7 +212,7 @@ export const DietModule: React.FC<DietModuleProps> = ({
     const dailyFats = (dailyCal * 0.25) / 9; // 25% of calories from fat
     setTargetFats(Math.round(dailyFats));
 
-    const dailyCarbs = (dailyCal - (dailyProt * 4) - (dailyFats * 9)) / 4;
+    const dailyCarbs = Math.max(20, (dailyCal - (dailyProt * 4) - (dailyFats * 9)) / 4);
     setTargetCarbs(Math.round(dailyCarbs));
 
   }, [age, gender, height, weight, activity, goal, selectedSubGoal]);

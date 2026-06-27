@@ -1047,6 +1047,7 @@ export const FoodScanner: React.FC<FoodScannerProps> = ({
                         ref={videoRef} 
                         autoPlay 
                         playsInline 
+                        muted
                         className="w-full h-full object-cover"
                       />
                       {/* Scanning visual sweep line effect */}

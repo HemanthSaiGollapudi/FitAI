@@ -207,8 +207,20 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
     setSuccessMsg('');
     setUnverifiedUser(null);
 
+    // Get registered users for local fallback
+    const users = getRegisteredUsers();
+    const localProfile = users.find(
+      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
+
+    // If Firebase is not configured, try local login fallback directly
     if (!isFirebaseConfigured) {
-      setErrorMsg('Authentication is offline due to missing configuration.');
+      if (localProfile) {
+        onAuthSuccess(localProfile);
+        navigateToPath('/dashboard');
+        return;
+      }
+      setErrorMsg('Invalid email or password.');
       return;
     }
 
@@ -216,8 +228,8 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const fbUser = userCredential.user;
 
-      // Check if email is verified
-      if (!fbUser.emailVerified) {
+      // Check if email is verified (Bypass in local DEV mode)
+      if (!fbUser.emailVerified && !import.meta.env.DEV) {
         setUnverifiedUser(fbUser);
         setErrorMsg('Please verify your email before logging in.');
         await signOut(auth);
@@ -225,7 +237,6 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       }
 
       // Find local profile
-      const users = getRegisteredUsers();
       let profile = users.find(u => u.email.toLowerCase() === fbUser.email!.toLowerCase());
 
       if (!profile) {
@@ -257,6 +268,12 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       navigateToPath('/dashboard');
     } catch (err: any) {
       console.error("Login submission error:", err);
+      // Fallback to local profile check on Firebase authentication error
+      if (localProfile) {
+        onAuthSuccess(localProfile);
+        navigateToPath('/dashboard');
+        return;
+      }
       setErrorMsg('Invalid email or password.');
     }
   };
@@ -266,11 +283,6 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
-
-    if (!isFirebaseConfigured) {
-      setErrorMsg('Registration is unavailable. Please configure Firebase.');
-      return;
-    }
 
     // Client-side validations
     if (!validateEmail(email)) {
@@ -304,18 +316,33 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const fbUser = userCredential.user;
-
-      // Update name profile details on Firebase
-      await updateProfile(fbUser, { displayName: name });
+      let fbUser = null;
+      if (isFirebaseConfigured) {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          fbUser = userCredential.user;
+          // Update name profile details on Firebase
+          await updateProfile(fbUser, { displayName: name });
+          // Send verification email and sign out
+          await sendEmailVerification(fbUser);
+          await signOut(auth);
+        } catch (fbErr) {
+          console.warn("Firebase registration failed, falling back to local registry:", fbErr);
+        }
+      }
 
       // Save user profile settings locally
       const users = getRegisteredUsers();
+      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        setErrorMsg('This email is already registered. Please login.');
+        return;
+      }
+
       const defaultTargetWeight = goal === 'Lose Weight' ? Math.round(weight - 6) : Math.round(weight + 4);
       const newUser: UserProfile = {
         name,
         email: email.toLowerCase(),
+        password, // Save password for local offline fallback
         age,
         gender,
         height,
@@ -330,11 +357,10 @@ export const AuthModule: React.FC<AuthModuleProps> = ({ onAuthSuccess }) => {
       users.push(newUser);
       saveRegisteredUsers(users);
 
-      // Send verification email and sign out
-      await sendEmailVerification(fbUser);
-      await signOut(auth);
+      const msg = fbUser 
+        ? 'Verification email sent. Please verify your email before logging in.'
+        : 'Registration successful! (Offline local account created)';
 
-      const msg = 'Verification email sent. Please verify your email before logging in.';
       setEmail('');
       setPassword('');
       setConfirmPassword('');
