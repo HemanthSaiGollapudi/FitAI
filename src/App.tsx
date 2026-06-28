@@ -22,7 +22,7 @@ import type { LoggedScannedFood } from './components/FoodScanner';
 import { ProfileView } from './components/ProfileView';
 import { AICoach } from './components/AICoach';
 import { BodyFatEstimator } from './components/BodyFatEstimator';
-import { AccessoriesStore } from './components/AccessoriesStore';
+import { HealthConnect } from './components/HealthConnect';
 import { NutritionHub } from './components/NutritionHub';
 import { TrainingHub } from './components/TrainingHub';
 import { Trophy, Fingerprint, Scan, Unlock, Loader2 } from 'lucide-react';
@@ -439,11 +439,11 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const [activeView, setActiveView] = useState<'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings'>('home');
   const [nutritionActiveTab, setNutritionActiveTab] = useState<'diet' | 'scanner'>('diet');
   const [trainingActiveTab, setTrainingActiveTab] = useState<'library' | 'logger' | 'progress'>('library');
 
-  const handleNavigate = (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => {
+  const handleNavigate = (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings', subTab?: string) => {
     const path = view === 'home' ? '/dashboard' : `/${view}`;
     navigateToPath(path);
     if (view === 'nutrition' && subTab) {
@@ -460,7 +460,7 @@ function App() {
     if (authLoading) return;
 
     const publicPaths = ['/login', '/signup', '/forgot-password'];
-    const protectedPaths = ['/dashboard', '/nutrition', '/training', '/coach', '/body-fat', '/store', '/profile'];
+    const protectedPaths = ['/dashboard', '/nutrition', '/training', '/coach', '/body-fat', '/health-connect', '/profile', '/settings'];
 
     let path = currentPath;
     if (path === '/' || path === '') {
@@ -1020,13 +1020,21 @@ function App() {
         />
       ) : activeView === 'body-fat' ? (
         <BodyFatEstimator />
-      ) : activeView === 'store' ? (
-        <AccessoriesStore />
+      ) : activeView === 'health-connect' ? (
+        <HealthConnect />
       ) : activeView === 'profile' ? (
         <ProfileView 
           onSaveProfile={handleSaveProfile}
           savedGoal={savedDietGoal}
           onLogout={handleLogout}
+          defaultTab="dashboard"
+        />
+      ) : activeView === 'settings' ? (
+        <ProfileView 
+          onSaveProfile={handleSaveProfile}
+          savedGoal={savedDietGoal}
+          onLogout={handleLogout}
+          defaultTab="settings"
         />
       ) : (
         <>

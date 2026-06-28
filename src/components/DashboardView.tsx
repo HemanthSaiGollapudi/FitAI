@@ -237,7 +237,7 @@ interface DashboardViewProps {
   userName: string;
   waterLogs: Record<string, number>;
   onAddWater: (ml: number) => void;
-  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
+  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings', subTab?: string) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({

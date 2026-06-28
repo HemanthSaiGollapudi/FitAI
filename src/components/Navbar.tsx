@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationCenter } from './NotificationCenter';
 
 interface NavbarProps {
-  activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile';
-  onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile') => void;
+  activeView: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings';
+  onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings') => void;
   isAuthenticated?: boolean;
   onLogout?: () => void;
 }
@@ -32,8 +32,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeView, onChangeView, isAuth
     { name: '🏋️ Training Hub', href: '#training-hub', view: 'training' },
     { name: '🤖 AI Coach', href: '#coach', view: 'coach' },
     { name: '📸 AI Body Fat Estimator', href: '#body-fat', view: 'body-fat' },
-    { name: '🛍️ Accessories Store', href: '#store', view: 'store' },
+    { name: '❤️ Health Connect', href: '#health-connect', view: 'health-connect' },
     { name: '👤 Profile', href: '#profile', view: 'profile' },
+    { name: '⚙️ Settings', href: '#settings', view: 'settings' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent, item: typeof menuItems[0]) => {

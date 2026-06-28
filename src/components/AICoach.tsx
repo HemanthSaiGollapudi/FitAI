@@ -55,7 +55,7 @@ interface AICoachProps {
   userName: string;
   userActivity: string;
   onSaveDiet: (settings: any) => void;
-  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile', subTab?: string) => void;
+  onNavigate: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings', subTab?: string) => void;
   onStartWorkout: (routine: WorkoutRoutine) => void;
   onChangeDietType: (type: string) => void;
   userAge: number;

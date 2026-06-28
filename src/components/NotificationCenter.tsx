@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 interface NotificationCenterProps {
-  onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'store' | 'profile') => void;
+  onChangeView: (view: 'home' | 'nutrition' | 'training' | 'coach' | 'body-fat' | 'health-connect' | 'profile' | 'settings') => void;
 }
 
 export interface NotificationItem {

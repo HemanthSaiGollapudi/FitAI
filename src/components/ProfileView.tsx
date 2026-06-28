@@ -22,6 +22,7 @@ interface ProfileViewProps {
   }) => void;
   savedGoal: string;
   onLogout?: () => void;
+  defaultTab?: 'dashboard' | 'traits' | 'settings';
 }
 
 interface ReminderSettings {
@@ -54,9 +55,15 @@ const AVATAR_PRESETS = [
   { name: 'Muscle Legend', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=150&auto=format&fit=crop&q=80' }
 ];
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGoal, onLogout }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ onSaveProfile, savedGoal, onLogout, defaultTab }) => {
   // Navigation Tabs state
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'traits' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'traits' | 'settings'>(defaultTab || 'dashboard');
+
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   // Load biological profile state from localStorage
   const [name, setName] = useState<string>('Champion');
