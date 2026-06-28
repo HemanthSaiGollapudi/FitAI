@@ -273,6 +273,22 @@ export const BodyFatEstimator: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [scanLabel, setScanLabel] = useState('My AI Body Composition Scan');
 
+  // Keep track of active interval and timeouts to prevent duplicates and memory leaks
+  const activeIntervalRef = useRef<any>(null);
+  const activeTimeoutRef = useRef<any>(null);
+
+  // Clean up timers on component unmount
+  useEffect(() => {
+    return () => {
+      if (activeIntervalRef.current) {
+        clearInterval(activeIntervalRef.current);
+      }
+      if (activeTimeoutRef.current) {
+        clearTimeout(activeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Webcam states
   const [activeCameraView, setActiveCameraView] = useState<'front' | 'side' | 'back' | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -434,11 +450,29 @@ export const BodyFatEstimator: React.FC = () => {
   };
 
   const handleStartEstimation = () => {
-    if (!frontImage || !sideImage || !backImage) {
-      alert('Please upload/capture all three photos (Front, Side, Back) before starting AI estimation.');
+    // 1. Prevent duplicate run triggers
+    if (validationState === 'checking' || activeIntervalRef.current) {
       return;
     }
 
+    // 2. Clear any existing timers
+    if (activeIntervalRef.current) {
+      clearInterval(activeIntervalRef.current);
+      activeIntervalRef.current = null;
+    }
+    if (activeTimeoutRef.current) {
+      clearTimeout(activeTimeoutRef.current);
+      activeTimeoutRef.current = null;
+    }
+
+    // 3. Image validation check
+    if (!frontImage || !sideImage || !backImage) {
+      setValidationState('failed');
+      setValidationMessage('Missing Photos: Please upload or capture all three photos (Front, Side, and Back) before starting AI estimation.');
+      return;
+    }
+
+    setScanResult(null);
     setValidationMessage(null);
     setValidationState('checking');
     
@@ -451,123 +485,156 @@ export const BodyFatEstimator: React.FC = () => {
     ];
     setValidationSteps(initialSteps);
 
-    // Simulated multi-step validation scanner sequence
     let currentStep = 0;
-    const interval = setInterval(() => {
-      if (currentStep < initialSteps.length) {
+    
+    activeIntervalRef.current = setInterval(() => {
+      // Safety check: ensure images are still present
+      if (!frontImage || !sideImage || !backImage) {
+        if (activeIntervalRef.current) {
+          clearInterval(activeIntervalRef.current);
+          activeIntervalRef.current = null;
+        }
+        setValidationState('failed');
+        setValidationMessage('Missing Photos: Verification interrupted. Please make sure all three photos remain uploaded.');
+        return;
+      }
+
+      // Check if step fails
+      let stepFailed = false;
+      const imgToCheck = currentStep === 0 ? frontImage : (currentStep === 1 ? sideImage : backImage);
+      const nameToCheck = currentStep === 0 ? frontFileName : (currentStep === 1 ? sideFileName : backFileName);
+      
+      if (imgToCheck && imgToCheck.length < 500) {
+        stepFailed = true;
+      }
+      if (nameToCheck && nameToCheck.toLowerCase().includes('fail')) {
+        stepFailed = true;
+      }
+
+      if (stepFailed) {
+        if (activeIntervalRef.current) {
+          clearInterval(activeIntervalRef.current);
+          activeIntervalRef.current = null;
+        }
+        setValidationState('failed');
+        
         setValidationSteps(prev => {
           const next = [...prev];
-          
-          // Determine if this step fails. For validation testing: 
-          // If file name contains "fail" or file length is tiny (< 500 characters, like a dummy txt)
-          let stepFailed = false;
-          const imgToCheck = currentStep === 0 ? frontImage : (currentStep === 1 ? sideImage : backImage);
-          const nameToCheck = currentStep === 0 ? frontFileName : (currentStep === 1 ? sideFileName : backFileName);
-          
-          if (imgToCheck && imgToCheck.length < 500) {
-            stepFailed = true;
-          }
-          if (nameToCheck && nameToCheck.toLowerCase().includes('fail')) {
-            stepFailed = true;
-          }
-
-          if (stepFailed) {
+          if (next[currentStep]) {
             next[currentStep].status = 'failed';
-            setValidationState('failed');
-            
-            // Set contextual validation error message
-            if (currentStep === 0) {
-              setValidationMessage("No person detected. Please upload a clear full-body image.");
-            } else if (currentStep === 4) {
-              setValidationMessage("Face is obstructed. For accurate biometric analysis, stand clear with your face visible.");
-            } else {
-              setValidationMessage("Image quality is insufficient for accurate estimation. Please retake the photo in better lighting with your full body visible.");
-            }
-            clearInterval(interval);
-          } else {
-            next[currentStep].status = 'passed';
-            if (currentStep + 1 < next.length) {
-              next[currentStep + 1].status = 'checking';
-            }
           }
           return next;
         });
-        currentStep++;
-      } else {
-        clearInterval(interval);
+
+        if (currentStep === 0) {
+          setValidationMessage("No person detected. Please upload a clear full-body image.");
+        } else if (currentStep === 4) {
+          setValidationMessage("Face is obstructed. For accurate biometric analysis, stand clear with your face visible.");
+        } else {
+          setValidationMessage("Image quality is insufficient for accurate estimation. Please retake the photo in better lighting with your full body visible.");
+        }
+        return;
+      }
+
+      // Mark step as passed
+      setValidationSteps(prev => {
+        const next = [...prev];
+        if (next[currentStep]) {
+          next[currentStep].status = 'passed';
+        }
+        if (currentStep + 1 < next.length) {
+          next[currentStep + 1].status = 'checking';
+        }
+        return next;
+      });
+
+      currentStep++;
+
+      if (currentStep >= initialSteps.length) {
+        if (activeIntervalRef.current) {
+          clearInterval(activeIntervalRef.current);
+          activeIntervalRef.current = null;
+        }
         setValidationState('passed');
         
-        // Execute analysis after passing checks
-        setTimeout(() => {
-          const bmiVal = parseFloat((weight / ((height / 100) ** 2)).toFixed(1));
-          
-          // Standard YMCA/BIA approximation
-          let bf = 0;
-          if (gender === 'Male') {
-            bf = 1.20 * bmiVal + 0.23 * age - 16.2;
-          } else {
-            bf = 1.20 * bmiVal + 0.23 * age - 5.4;
-          }
-          
-          bf = Math.max(3, Math.min(50, parseFloat(bf.toFixed(1))));
-          const fatMass = parseFloat((weight * (bf / 100)).toFixed(1));
-          const leanMass = parseFloat((weight - fatMass).toFixed(1));
-          const muscleMass = parseFloat((leanMass * 0.78).toFixed(1));
-          const ffmiVal = parseFloat((leanMass / ((height / 100) ** 2)).toFixed(2));
-          
-          // BMR & TDEE
-          const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === 'Male' ? 5 : -161);
-          const tdee = Math.round(bmr * 1.375); // active metabolism
-          
-          const maintenance = tdee;
-          const fatLoss = tdee - 500;
-          const aggressive = Math.max(gender === 'Male' ? 1500 : 1200, tdee - 750);
-          const muscleGain = tdee + 350;
-          
-          const cat = getEstimatedCategory(gender, bf);
-          const proteinMin = Math.round(leanMass * 1.6);
-          const proteinMax = Math.round(leanMass * 2.2);
-
-          const result: BodyScanLog = {
-            id: `scan-${Date.now()}`,
-            date: new Date().toISOString().split('T')[0],
-            weight,
-            bodyFat: bf,
-            leanMass,
-            fatMass,
-            muscleMass,
-            ffmi: ffmiVal,
-            bmi: bmiVal,
-            maintenanceCalories: maintenance,
-            fatLossCalories: fatLoss,
-            aggressiveCalories: aggressive,
-            muscleGainCalories: muscleGain,
-            targetBodyFat,
-            confidence: Math.round(92 + Math.random() * 5),
-            category: cat,
-            label: scanLabel,
-            proteinMin,
-            proteinMax,
-            images: {
-              front: frontImage,
-              side: sideImage,
-              back: backImage
+        // Execute analysis after passing checks with Try/Catch error protection
+        activeTimeoutRef.current = setTimeout(() => {
+          try {
+            const bmiVal = parseFloat((weight / ((height / 100) ** 2)).toFixed(1));
+            
+            // Standard YMCA/BIA approximation
+            let bf = 0;
+            if (gender === 'Male') {
+              bf = 1.20 * bmiVal + 0.23 * age - 16.2;
+            } else {
+              bf = 1.20 * bmiVal + 0.23 * age - 5.4;
             }
-          };
+            
+            bf = Math.max(3, Math.min(50, parseFloat(bf.toFixed(1))));
+            const fatMass = parseFloat((weight * (bf / 100)).toFixed(1));
+            const leanMass = parseFloat((weight - fatMass).toFixed(1));
+            const muscleMass = parseFloat((leanMass * 0.78).toFixed(1));
+            const ffmiVal = parseFloat((leanMass / ((height / 100) ** 2)).toFixed(2));
+            
+            // BMR & TDEE
+            const bmr = 10 * weight + 6.25 * height - 5 * age + (gender === 'Male' ? 5 : -161);
+            const tdee = Math.round(bmr * 1.375); // active metabolism
+            
+            const maintenance = tdee;
+            const fatLoss = tdee - 500;
+            const aggressive = Math.max(gender === 'Male' ? 1500 : 1200, tdee - 750);
+            const muscleGain = tdee + 350;
+            
+            const cat = getEstimatedCategory(gender, bf);
+            const proteinMin = Math.round(leanMass * 1.6);
+            const proteinMax = Math.round(leanMass * 2.2);
 
-          setScanResult(result);
-          setValidationState('idle');
+            const result: BodyScanLog = {
+              id: `scan-${Date.now()}`,
+              date: new Date().toISOString().split('T')[0],
+              weight,
+              bodyFat: bf,
+              leanMass,
+              fatMass,
+              muscleMass,
+              ffmi: ffmiVal,
+              bmi: bmiVal,
+              maintenanceCalories: maintenance,
+              fatLossCalories: fatLoss,
+              aggressiveCalories: aggressive,
+              muscleGainCalories: muscleGain,
+              targetBodyFat,
+              confidence: Math.round(92 + Math.random() * 5),
+              category: cat,
+              label: scanLabel,
+              proteinMin,
+              proteinMax,
+              images: {
+                front: frontImage,
+                side: sideImage,
+                back: backImage
+              }
+            };
 
-          localStorage.setItem('fitai_latest_body_composition', JSON.stringify({
-            bodyFat: bf,
-            weight: weight,
-            targetBF: targetBodyFat,
-            targetWeight: targetWeight,
-            lastScanDate: result.date,
-            progressPct: Math.max(0, Math.min(100, Math.round(((bf - targetBodyFat) / (bf || 1)) * 100)))
-          }));
-          window.dispatchEvent(new Event('fitai_logs_updated'));
+            setScanResult(result);
+            setValidationState('idle');
 
+            localStorage.setItem('fitai_latest_body_composition', JSON.stringify({
+              bodyFat: bf,
+              weight: weight,
+              targetBF: targetBodyFat,
+              targetWeight: targetWeight,
+              lastScanDate: result.date,
+              progressPct: Math.max(0, Math.min(100, Math.round(((bf - targetBodyFat) / (bf || 1)) * 100)))
+            }));
+            window.dispatchEvent(new Event('fitai_logs_updated'));
+          } catch (err) {
+            console.error("AI estimation analysis failed:", err);
+            setValidationState('failed');
+            setValidationMessage("AI Analysis Failed: An unexpected error occurred while analyzing the biometric data. Please try again.");
+          } finally {
+            activeTimeoutRef.current = null;
+          }
         }, 300);
       }
     }, 250);
@@ -943,7 +1010,10 @@ export const BodyFatEstimator: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handleClearImage(pos)}
-                                  className="p-1.5 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white rounded-lg text-red-400 transition-all shadow-md animate-fadeIn"
+                                  disabled={validationState === 'checking'}
+                                  className={`p-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 transition-all shadow-md animate-fadeIn ${
+                                    validationState === 'checking' ? 'opacity-40 cursor-not-allowed' : 'hover:bg-red-500 hover:text-white'
+                                  }`}
                                   title="Remove Image"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -951,7 +1021,10 @@ export const BodyFatEstimator: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => setActiveCameraView(pos)}
-                                  className="p-1.5 bg-brand-cyan/20 border border-brand-cyan/35 hover:bg-brand-cyan hover:text-white rounded-lg text-brand-cyan transition-all shadow-md"
+                                  disabled={validationState === 'checking'}
+                                  className={`p-1.5 bg-brand-cyan/20 border border-brand-cyan/35 rounded-lg text-brand-cyan transition-all shadow-md ${
+                                    validationState === 'checking' ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brand-cyan hover:text-white'
+                                  }`}
                                   title="Retake Photo"
                                 >
                                   <Camera className="h-3.5 w-3.5" />
@@ -964,12 +1037,15 @@ export const BodyFatEstimator: React.FC = () => {
                             </>
                           ) : (
                             <div className="flex flex-col items-center justify-center p-3 w-full h-full text-center space-y-3">
-                              <label className="cursor-pointer flex flex-col items-center justify-center text-center p-2 rounded-xl hover:bg-white/5 transition-all w-full">
+                              <label className={`flex flex-col items-center justify-center text-center p-2 rounded-xl transition-all w-full ${
+                                validationState === 'checking' ? 'pointer-events-none opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-white/5'
+                              }`}>
                                 <Upload className="h-5 w-5 text-zinc-500 mb-1 group-hover:text-brand-cyan transition-colors" />
                                 <span className="text-[9px] text-zinc-400 font-bold block uppercase tracking-wider">Upload File</span>
                                 <input 
                                   type="file" 
                                   accept="image/*"
+                                  disabled={validationState === 'checking'}
                                   onChange={(e) => handleImageUpload(e, pos)}
                                   className="hidden" 
                                 />
@@ -980,7 +1056,10 @@ export const BodyFatEstimator: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => setActiveCameraView(pos)}
-                                className="px-3 py-1.5 bg-white/5 border border-white/5 hover:border-brand-cyan hover:bg-brand-cyan/15 rounded-xl text-[9px] font-black text-zinc-300 hover:text-white transition-all flex items-center gap-1 w-full justify-center"
+                                disabled={validationState === 'checking'}
+                                className={`px-3 py-1.5 bg-white/5 border border-white/5 rounded-xl text-[9px] font-black text-zinc-300 transition-all flex items-center gap-1 w-full justify-center ${
+                                  validationState === 'checking' ? 'opacity-40 cursor-not-allowed' : 'hover:border-brand-cyan hover:bg-brand-cyan/15 hover:text-white'
+                                }`}
                               >
                                 <Camera className="h-3.5 w-3.5 text-brand-cyan" /> Take Photo
                               </button>
@@ -990,7 +1069,7 @@ export const BodyFatEstimator: React.FC = () => {
                           {/* Scanner sweep line overlay */}
                           {validationState === 'checking' && (
                             <motion.div 
-                              className="absolute inset-x-0 h-1 bg-brand-cyan shadow-[0_0_10px_rgba(6,182,212,0.8)] z-10"
+                               className="absolute inset-x-0 h-1 bg-brand-cyan shadow-[0_0_10px_rgba(6,182,212,0.8)] z-10"
                               animate={{ top: ['0%', '100%', '0%'] }}
                               transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                             />
@@ -1009,11 +1088,21 @@ export const BodyFatEstimator: React.FC = () => {
                     disabled={validationState === 'checking' || !frontImage || !sideImage || !backImage}
                     className={`w-full py-4 text-white text-xs font-black rounded-xl hover:scale-101 transition-all flex items-center justify-center gap-2 shadow-glow-cyan ${
                       !frontImage || !sideImage || !backImage || validationState === 'checking'
-                        ? 'bg-zinc-800 text-zinc-505 cursor-not-allowed border border-white/5'
+                        ? 'bg-zinc-800 text-zinc-505 cursor-not-allowed border border-white/5 shadow-none'
                         : 'bg-gradient-to-r from-brand-cyan to-brand-violet'
                     }`}
                   >
-                    <Scale className="h-4 w-4" /> {validationState === 'checking' ? 'Validating & Analysing...' : 'Run AI Estimation'}
+                    {validationState === 'checking' ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin text-brand-cyan" />
+                        <span>Analyzing body composition...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Scale className="h-4 w-4" />
+                        <span>Run AI Estimation</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </SpotlightCard>
@@ -1077,7 +1166,22 @@ export const BodyFatEstimator: React.FC = () => {
                   <Activity className="h-4.5 w-4.5 text-brand-cyan" /> Composition Report
                 </h3>
 
-                {scanResult ? (
+                {validationState === 'checking' ? (
+                  <div className="h-72 flex flex-col items-center justify-center text-center space-y-4 px-4 py-8 animate-pulse w-full">
+                    <div className="relative h-16 w-16 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-4 border-brand-cyan/20 border-t-brand-cyan animate-spin" />
+                      <Scale className="h-8 w-8 text-brand-cyan animate-bounce" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white uppercase tracking-wider mb-2">
+                        Analyzing body composition...
+                      </p>
+                      <p className="text-[11px] text-zinc-400 max-w-[280px] leading-relaxed mx-auto">
+                        Evaluating anatomical outlines, silhouette proportions, and adipose tissue contours across all angles...
+                      </p>
+                    </div>
+                  </div>
+                ) : scanResult ? (
                   <div className="space-y-6 w-full animate-fadeIn">
                     {/* Body Fat Percentage display */}
                     <div className="flex flex-col items-center gap-2">
